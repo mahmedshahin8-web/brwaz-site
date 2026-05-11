@@ -1,0 +1,27 @@
+{
+  "entities": {
+    "Dossier": {
+      "title": "Dossier",
+      "description": "A generated documentary dossier containing research, script, and visual data.",
+      "type": "object",
+      "properties": {
+        "video_title": { "type": "string" },
+        "thumbnail": { "type": "object" },
+        "opening_sketch": { "type": "object" },
+        "scenes": { "type": "array" },
+        "sources": { "type": "array" },
+        "publishing_kit": { "type": "object" },
+        "shorts": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "userId": { "type": "string" }
+      },
+      "required": ["video_title", "scenes", "userId", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/dossiers/{dossierId}": {
+      "schema": "Dossier",
+      "description": "Collection of investigative dossiers."
+    }
+  }
+}

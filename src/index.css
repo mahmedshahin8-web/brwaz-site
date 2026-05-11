@@ -1,0 +1,129 @@
+@import url('https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@400;600;700&family=Aref+Ruqaa:wght@400;700&family=Lateef:wght@400;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-base: #f4eee0; /* Classic newspaper paper color */
+  --color-surface: #ffffff;
+  --color-surface-alt: #eae5d8;
+  --color-text-main: #1a1a1a; /* Dark ink */
+  --color-text-muted: #555555;
+  --color-accent-amber: #b8860b;
+  --color-accent-red: #8b0000; /* Classic deep red */
+  --color-accent-blue: #004d99;
+  --color-manila: #e6dfcc;
+  --color-manila-dark: #c0b59b;
+  --font-arabic-heading: 'Aref Ruqaa', 'Amiri', serif; 
+  --font-arabic-body: 'Amiri', serif;
+  --font-mono: 'Cairo', sans-serif; /* For small UI elements */
+  --font-typewriter: 'Cairo', sans-serif;
+  --font-newspaper: 'Aref Ruqaa', 'Amiri', serif;
+}
+
+body {
+  font-family: var(--font-arabic-body);
+  background-color: var(--color-base);
+  background-image: url('https://www.transparenttextures.com/patterns/cream-paper.png');
+  color: var(--color-text-main);
+  direction: rtl;
+  overflow-x: hidden;
+  @apply selection:bg-[#8b0000] selection:text-white;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-arabic-heading);
+}
+
+.typewriter {
+  font-family: var(--font-typewriter);
+}
+
+.newspaper {
+  font-family: var(--font-newspaper);
+}
+
+.desk-header {
+  background-color: #ffffff;
+  border-bottom: 4px double #1a1a1a;
+}
+
+.manila-tab {
+  background-color: var(--color-surface);
+  border: 1px solid #1a1a1a;
+  box-shadow: 2px 2px 0px #1a1a1a;
+}
+
+.atmospheric-bg {
+  display: none; /* No glowing background in classic newspaper */
+}
+
+/* Hard borders and solid backgrounds instead of glass */
+.glass-card {
+  @apply bg-white border-2 border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] transition-all duration-300;
+}
+
+.input-field {
+  @apply w-full bg-white border-2 border-[#1a1a1a] px-4 py-3 text-sm focus:outline-none focus:border-[#8b0000] transition-all;
+}
+
+.label-caps {
+  @apply text-sm font-bold uppercase mb-2 block text-[#1a1a1a] border-b-2 border-black/20 pb-1;
+}
+
+table, th, td {
+  border-color: #1a1a1a !important;
+}
+
+/* Classic scrollbar */
+@layer utilities {
+  .scrollbar-hide::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-hide::-webkit-scrollbar-track {
+    background: #eae5d8;
+    border-left: 1px solid #1a1a1a;
+  }
+  .scrollbar-hide::-webkit-scrollbar-thumb {
+    background: #1a1a1a;
+  }
+}
+
+/* Barwaz Frame - Cinematic Navy, Ivory, Gold */
+.barwaz-frame {
+  position: relative;
+  background-color: #1F2A44; /* Deep Navy */
+  padding: 12px;
+  border: 2px solid #B89B6A; /* Muted Gold */
+  box-shadow: 4px 4px 0px #1a1a1a;
+  overflow: hidden;
+  border-radius: 4px;
+}
+
+.barwaz-frame img {
+  border: 2px solid #F5F1E8; /* Warm Ivory */
+  display: block;
+  width: 100%;
+  transition: transform 0.3s ease;
+}
+
+.barwaz-frame:hover img {
+  transform: scale(1.02);
+}
+
+.barwaz-text-overlay {
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #F5F1E8; /* Warm Ivory */
+  font-family: 'Amiri', serif;
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.9), 0px 0px 10px rgba(0, 0, 0, 0.5);
+  z-index: 10;
+  width: 90%;
+  line-height: 1.5;
+  direction: rtl;
+  pointer-events: none;
+}
