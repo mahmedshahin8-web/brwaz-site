@@ -69,6 +69,8 @@ import {
   Layers,
   Hourglass,
   Video,
+  Settings,
+  Volume2,
 } from "lucide-react";
 import {
   extractAndCleanScript,
@@ -185,6 +187,24 @@ export default function App() {
   };
   const [showMoodModal, setShowMoodModal] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [useOllama, setUseOllama] = useState(() => localStorage.getItem("useOllama") === "true");
+  const [ollamaUrl, setOllamaUrl] = useState(() => {
+    const stored = localStorage.getItem("ollamaUrl");
+    return (stored && stored !== "http://127.0.0.1:11434") ? stored : "http://localhost:11434";
+  });
+  const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("ollamaModel") || "llama3.1");
+  const [elevenLabsKey, setElevenLabsKey] = useState(() => localStorage.getItem("elevenLabsKey") || "");
+  const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState(() => localStorage.getItem("elevenLabsVoiceId") || "pNInz6obbfDQGcgMyIGC");
+
+  useEffect(() => {
+    localStorage.setItem("useOllama", useOllama ? "true" : "false");
+    localStorage.setItem("ollamaUrl", ollamaUrl);
+    localStorage.setItem("ollamaModel", ollamaModel);
+    localStorage.setItem("elevenLabsKey", elevenLabsKey);
+    localStorage.setItem("elevenLabsVoiceId", elevenLabsVoiceId);
+  }, [useOllama, ollamaUrl, ollamaModel, elevenLabsKey, elevenLabsVoiceId]);
+
   const [archive, setArchive] = useState<EpisodeData[]>([]);
   const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
   const [titleCache, setTitleCache] = useState<
@@ -503,6 +523,7 @@ export default function App() {
         undefined,
         (chunk) =>
           setStatus(`جاري التوليد (Streaming)...\n\n${chunk.slice(-1000)}`),
+        abortControllerRef.current.signal
       );
       if (abortControllerRef.current?.signal.aborted) return;
 
@@ -523,13 +544,24 @@ export default function App() {
       }
       setCooldown(30);
     } catch (err: any) {
+      if (err.name === "AbortError" || err.message === "AbortError" || err.message?.toLowerCase().includes("abort")) {
+        showToast("تم إيقاف الإنشاء بناءً على طلبك", "success");
+        return;
+      }
+      const errorMsg = err.message || "";
+      const isApiKeysFailure = errorMsg.includes("فشل كلا المزودين") || errorMsg.includes("المفتاح غير صالح");
+      
       const isQuota =
-        err.message?.includes("429") ||
-        err.message?.toLowerCase().includes("quota") ||
-        err.message?.includes("RESOURCE_EXHAUSTED") ||
-        err.message?.includes("عفواً");
-      const isFailedProxy = err.message?.includes("Failed to call");
-      if (isQuota) {
+        errorMsg.includes("429") ||
+        errorMsg.toLowerCase().includes("quota") ||
+        errorMsg.includes("RESOURCE_EXHAUSTED") ||
+        errorMsg.includes("عفواً");
+      const isFailedProxy = errorMsg.includes("Failed to call") || (!isApiKeysFailure && (errorMsg.includes("500") || errorMsg.includes("6")));
+
+      if (isApiKeysFailure) {
+        showToast("فقد الاتصال بالمولد", "error");
+        setError(errorMsg.replace("Ollama Proxy Error: 500 -", "").trim());
+      } else if (isQuota) {
         showToast("انتهى حد الاستخدام. يرجى الانتظار قليلاً.", "error");
         setError("تجاوزت الحد المسموح. يرجى الانتظار.");
       } else if (isFailedProxy || err.message?.includes("Failed to call")) {
@@ -555,7 +587,7 @@ export default function App() {
     let hasError = false;
     abortControllerRef.current = new AbortController();
     try {
-      if (duration === 60) {
+      if (duration >= 4) {
         setIsLongForm(true);
         setStatus(`جاري جمع المصادر الأولية...`);
         setProgress(5);
@@ -596,6 +628,8 @@ export default function App() {
             mood,
             note,
             undefined,
+            undefined,
+            abortControllerRef.current?.signal
           );
           clearInterval(progressInterval);
           setProgress(100);
@@ -683,16 +717,22 @@ export default function App() {
       }
     } catch (err: any) {
       hasError = true;
+      const errorMsg = err.message || "";
+      const isApiKeysFailure = errorMsg.includes("فشل كلا المزودين") || errorMsg.includes("المفتاح غير صالح");
+
       const isQuota =
-        err.message?.includes("429") ||
-        err.message?.toLowerCase().includes("quota") ||
-        err.message?.includes("RESOURCE_EXHAUSTED") ||
-        err.message?.includes("عفواً");
+        errorMsg.includes("429") ||
+        errorMsg.toLowerCase().includes("quota") ||
+        errorMsg.includes("RESOURCE_EXHAUSTED") ||
+        errorMsg.includes("عفواً");
       const isFailedProxy =
-        err.message?.includes("Failed to call") ||
-        err.message?.includes("500") ||
-        err.message?.includes("6");
-      if (isQuota) {
+        errorMsg.includes("Failed to call") ||
+        (!isApiKeysFailure && (errorMsg.includes("500") || errorMsg.includes("6")));
+
+      if (isApiKeysFailure) {
+        showToast("مشكلة في مفاتيح API", "error");
+        setError(errorMsg.replace("Ollama Proxy Error: 500 -", "").trim());
+      } else if (isQuota) {
         showToast(
           "انتهى حد الاستخدام المجاني حالياً. يرجى الانتظار قليلاً.",
           "error",
@@ -757,6 +797,8 @@ export default function App() {
               researchMap.video_title,
               targetWordsPerChapter,
               undefined,
+              undefined,
+              abortControllerRef.current?.signal
             );
             if (chapterScenes && chapterScenes.length > 0) {
               break;
@@ -796,6 +838,8 @@ export default function App() {
         researchMap.research_data,
         cumulativeScenes,
         undefined,
+        undefined,
+        abortControllerRef.current?.signal
       );
 
       if (abortControllerRef.current?.signal.aborted)
@@ -871,21 +915,27 @@ export default function App() {
       setResearchMap(null);
       setActiveTab("script");
     } catch (err: any) {
-      if (err.message === "AbortError") {
+      if (err.name === "AbortError" || err.message === "AbortError" || err.message?.toLowerCase().includes("abort")) {
         showToast("تم إيقاف الإنشاء بناءً على طلبك", "success");
         return;
       }
       hasErrorInApprove = true;
+      const errorMsg = err.message || "";
+      const isApiKeysFailure = errorMsg.includes("فشل كلا المزودين") || errorMsg.includes("المفتاح غير صالح");
+
       const isQuota =
-        err.message?.includes("429") ||
-        err.message?.toLowerCase().includes("quota") ||
-        err.message?.includes("RESOURCE_EXHAUSTED") ||
-        err.message?.includes("عفواً");
+        errorMsg.includes("429") ||
+        errorMsg.toLowerCase().includes("quota") ||
+        errorMsg.includes("RESOURCE_EXHAUSTED") ||
+        errorMsg.includes("عفواً");
       const isFailedProxy =
-        err.message?.includes("Failed to call") ||
-        err.message?.includes("500") ||
-        err.message?.includes("6");
-      if (isQuota) {
+        errorMsg.includes("Failed to call") ||
+        (!isApiKeysFailure && (errorMsg.includes("500") || errorMsg.includes("6")));
+
+      if (isApiKeysFailure) {
+        showToast("مشكلة في مفاتيح API", "error");
+        setError(errorMsg.replace("Ollama Proxy Error: 500 -", "").trim());
+      } else if (isQuota) {
         showToast("انتهى حد الاستخدام المجاني. يرجى الانتظار دقيقة.", "error");
         setError(
           "عفواً، انتهى حد الاستخدام المتاح حالياً. يرجى المحاولة مرة أخرى بعد دقيقة.",
@@ -1005,6 +1055,66 @@ export default function App() {
     showToast("تم تحميل السكريبت بنجاح!");
   };
 
+  const handleExportAudioZip = async () => {
+    if (!data) return;
+    
+    if (!elevenLabsKey) {
+      alert("يرجى إضافة مفتاح ElevenLabs من الإعدادات للتمكين من تحميل ملفات الـ MP3");
+      setShowSettings(true);
+      return;
+    }
+
+    setIsProcessingAudio(true);
+    showToast("جاري توليد ملفات الصوت وإعداد الـ ZIP...", "info");
+    
+    try {
+      const zip = new JSZip();
+      const allScenes = [data.opening_sketch, ...data.scenes];
+      const audioFolder = zip.folder("Voice_Tracks");
+      
+      let failCount = 0;
+
+      for (let index = 0; index < allScenes.length; index++) {
+        const scene = allScenes[index];
+        let cleanText = scene.voice_over.replace(/\[صمت درامي\]/g, "... ");
+        cleanText = cleanText.replace(/🔊/g, "");
+
+        if (!cleanText.trim()) continue;
+
+        try {
+          const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}?output_format=mp3_44100_128`, {
+              method: "POST",
+              headers: {
+                 "Content-Type": "application/json",
+                 "xi-api-key": elevenLabsKey
+              },
+              body: JSON.stringify({
+                text: cleanText,
+                model_id: "eleven_multilingual_v2"
+              })
+          });
+          if (!res.ok) throw new Error("API Error");
+          
+          const blob = await res.blob();
+          const fileName = `Track_${index.toString().padStart(2, '0')}_${scene.asset_id.replace(/\W+/g, "_")}.mp3`;
+          audioFolder?.file(fileName, blob);
+        } catch(err) {
+          console.error(`Failed to generate audio for scene ${index}`, err);
+          failCount++;
+        }
+      }
+      
+      const content = await zip.generateAsync({ type: "blob" });
+      saveAs(content, `Barwaz_Master_Audio_${data.video_title.replace(/\s+/g, "_")}.zip`);
+      showToast(`تم تصدير الصوتيات بنجاح! ${failCount > 0 ? `فشل ${failCount} مقطع.` : ''}`);
+    } catch (e) {
+      console.error(e);
+      showToast("حدث خطأ أثناء تصدير الصوتيات.", "error");
+    } finally {
+      setIsProcessingAudio(false);
+    }
+  };
+
   const handleExportZip = async () => {
     if (!data) return;
     showToast("جاري تجهيز الأصول وبناء المصنع المغلق...");
@@ -1020,6 +1130,19 @@ export default function App() {
       zip.file("Voiceover_Script.txt", transcript);
       
       let prompts = `# 🎨 توجيهات بصرية وهندسية - ${data.video_title}\n\n`;
+
+      // Master JSON Metadata
+      const metadata = {
+        title: data.video_title,
+        channel_dna: "barwaz_classic", // From dynamic channel DNA implementation
+        generation_date: new Date().toISOString(),
+        duration_minutes: duration.toString(),
+        total_scenes: allScenes.length,
+        research_angle: data.research_angle,
+        packaging: data.packaging,
+        shorts: data.shorts
+      };
+      zip.file("metadata.json", JSON.stringify(metadata, null, 2));
       
       // We will map over scenes and download their generated images to add to the Assets folder
       for (let index = 0; index < allScenes.length; index++) {
@@ -1166,32 +1289,42 @@ export default function App() {
       ></div>
 
       {/* Header (Classic Ahram Masthead) */}
-      <header className="sticky top-0 z-50 bg-white border-b-[6px] border-double border-[#1a1a1a] px-6 py-6 shadow-sm">
+      <header className="sticky top-0 z-50 bg-[#fdfbf7] border-b-[8px] border-double border-[#1a1a1a] px-6 py-6 shadow-[0_4px_12px_rgba(0,0,0,0.05)] relative overflow-hidden">
+        <div className="absolute top-0 left-0 w-full h-[4px] bg-[#8b0000]"></div>
         <div className="max-w-7xl mx-auto flex flex-col items-center justify-center space-y-4">
-          <div className="w-full flex items-center justify-between border-b-2 border-[#1a1a1a] pb-2 mb-2">
-            <span className="text-xs font-bold text-[#555] font-mono">
-              طبعة القاهرة
+          <div className="w-full flex items-center justify-between border-y-2 border-[#1a1a1a] py-2 mb-4">
+            <span className="text-sm font-bold text-[#1a1a1a] font-mono tracking-widest uppercase">
+              العدد الرئيسي - طبعة خاصة
             </span>
             <div className="flex gap-4">
-              
+              <button
+                onClick={() => setShowSettings(true)}
+                className={`px-4 py-1.5 border-x-2 border-[#1a1a1a] transition-all text-xs font-bold flex items-center gap-2 ${useOllama ? "bg-green-100 text-green-900" : "hover:bg-[#1a1a1a] hover:text-white"}`}
+                title="إعدادات المحرك"
+              >
+                <Settings className="w-4 h-4" />
+                <span className="hidden sm:inline">المحرك: {useOllama ? "محلي" : "سحابي"}</span>
+              </button>
               <button
                 onClick={() => setShowArchive(true)}
-                className="px-4 py-1 border border-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-white transition-all text-xs font-bold flex items-center gap-2"
+                className="px-4 py-1.5 bg-[#1a1a1a] text-white hover:bg-[#8b0000] transition-all text-xs font-bold flex items-center gap-2"
               >
-                <Archive className="w-3 h-3" />
-                <span>الأرشيف الصحفي</span>
+                <Archive className="w-4 h-4" />
+                <span>غرفة الأرشيف</span>
               </button>
             </div>
           </div>
-          <div className="text-center cursor-pointer" onClick={resetBoard}>
+          <div className="text-center cursor-pointer relative" onClick={resetBoard}>
+            <div className="absolute -left-12 top-1/2 -translate-y-1/2 hidden md:block w-8 h-8 rounded-full border border-gray-300"></div>
+            <div className="absolute -right-12 top-1/2 -translate-y-1/2 hidden md:block w-8 h-8 rounded-full border border-gray-300"></div>
             <h1
-              className="text-6xl md:text-8xl font-bold tracking-tight text-[#8b0000] newspaper leading-none"
-              style={{ textShadow: "2px 2px 0px rgba(0,0,0,0.1)" }}
+              className="text-7xl md:text-9xl font-bold tracking-tight text-[#1a1a1a] newspaper leading-none"
+              style={{ textShadow: "3px 3px 0px rgba(0,0,0,0.1), -1px -1px 0 #fff" }}
             >
-              استوديو بَرْوَاز
+              بَرْوَاز
             </h1>
-            <p className="mt-4 text-xl md:text-3xl text-[#1a1a1a] max-w-2xl mx-auto tracking-wide leading-relaxed font-bold relative z-10 bg-[#f4eee0] px-4 py-1 inline-block border-y-2 border-[#1a1a1a]">
-              المطبخ السري لصناعة الحلقات
+            <p className="mt-2 text-xl md:text-2xl text-[#8b0000] max-w-2xl mx-auto tracking-widest leading-relaxed font-bold relative z-10 newspaper border-y border-[#1a1a1a] py-1">
+               صــــالــة الــتـــحـــريـــر الإســــتــــقــــصــــائــــيــــة
             </p>
           </div>
         </div>
@@ -1239,13 +1372,15 @@ export default function App() {
           <motion.div
             initial={{ y: 10, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
-            className="w-full max-w-3xl mx-auto bg-white border-2 border-[#1a1a1a] shadow-[8px_8px_0_#1a1a1a] p-0 overflow-hidden"
+            className="w-full max-w-3xl mx-auto dossier-card overflow-hidden"
           >
-            <div className="bg-[#1a1a1a] text-white p-4 flex justify-between items-center">
-              <div className="flex items-center gap-2">
-                <Radar className="w-5 h-5 text-[#8b0000]" />
-                <h3 className="font-bold newspaper text-xl">
-                  تجهيز المطبخ (معطيات الحلقة)
+            <div className="bg-white/80 p-5 flex justify-between items-center border-b-2 border-[#1a1a1a] relative z-10 pl-12 pr-12">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 border-2 border-[#1a1a1a] flex items-center justify-center bg-[#f4eee0]">
+                   <FileText className="w-5 h-5 text-[#8b0000]" />
+                </div>
+                <h3 className="font-bold newspaper text-3xl text-[#1a1a1a]">
+                  ملف القضية الجديد
                 </h3>
               </div>
               <div className="flex gap-2">
@@ -1257,83 +1392,64 @@ export default function App() {
                       `أنا صانع محتوى وأبحث عن أفكار مبتكرة باستخدام قالب: "${mood}". الرجاء اقتراح 5 أفكار غير تقليدية لحلقات.`,
                     );
                   }}
-                  className="text-[10px] bg-white/10 hover:bg-white/20 px-2 py-1 transition-all border border-white/20 flex items-center gap-1"
+                  className="text-xs bg-white hover:bg-[#1a1a1a] hover:text-white text-[#1a1a1a] px-3 py-1.5 transition-all border-2 border-[#1a1a1a] flex items-center gap-2 font-bold shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px]"
                 >
-                  <Copy className="w-3 h-3" /> برومبت أفكار
+                  <Copy className="w-4 h-4" /> برومبت العصف
                 </button>
               </div>
             </div>
 
             {error && !isGeneratingTitle && !isLoading && (
-              <div className="bg-red-50 p-4 border-b border-red-200 text-red-800 text-sm font-bold flex items-center gap-2">
-                 <AlertTriangle className="w-4 h-4" />
+              <div className="bg-[#8b0000] p-4 text-white text-sm font-bold flex items-center gap-3 relative z-10 border-b border-[#1a1a1a]">
+                 <AlertTriangle className="w-5 h-5 ml-2" />
                  {error}
               </div>
             )}
 
-            <div className="p-6 space-y-6">
+            <div className="p-6 sm:p-10 space-y-8 relative z-10 pl-12 pr-12">
               <div>
-                <label className="block text-sm font-bold text-[#1a1a1a] mb-2 newspaper">
-                  المحرك وتوجه السرد (Persona المربوط بهذا المود):
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <span className="px-4 py-2 border-2 border-[#1a1a1a] font-bold text-sm bg-[#1a1a1a] text-white">
-                    {persona}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-bold text-[#1a1a1a] mb-2 newspaper">
-                  موضوع التحقيق / القضية:
+                <label className="block text-xl font-bold text-[#1a1a1a] mb-3 newspaper border-b-2 border-dotted border-gray-400 pb-1">
+                  1. عنوان القضية الفرعي أو الموضوع
                 </label>
                 <textarea
                   value={topic}
                   onChange={(e) => setTopic(e.target.value)}
-                  placeholder="اكتب فكرة الحلقة هنا... مثلاً (انهيار سيليكون فالي، أسطورة النداهة، صراع الرقائق الدقيقة)"
-                  className="w-full h-28 bg-[#f4eee0]/50 border-2 border-[#1a1a1a] p-4 text-[#1a1a1a] font-arabic-body focus:ring-0 focus:outline-none focus:border-[#8b0000] focus:bg-white transition-colors resize-none placeholder:text-gray-500"
+                  placeholder="حدثنا عما تبحث عنه... (مثل: سيليكون فالي، أسرار الحرب الباردة، اختفاء كاتي)..."
+                  className="w-full h-32 bg-transparent border-none p-2 text-2xl text-[#1a1a1a] font-arabic-body focus:ring-0 focus:outline-none resize-none placeholder:text-gray-400 leading-relaxed"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-y-2 border-dotted border-gray-400 py-6">
                 <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-sm font-bold text-[#1a1a1a] newspaper">
-                      القالب الفني (المود):
+                  <div className="flex justify-between items-center mb-3">
+                    <label className="text-lg font-bold text-[#1a1a1a] newspaper">
+                      التوجه الصحفي (القالب):
                     </label>
-                    <button
-                      onClick={() => setShowMoodModal(true)}
-                      className="text-[10px] text-blue-600 hover:underline"
-                    >
-                      تعديل القالب
-                    </button>
                   </div>
                   <div
                     onClick={() => setShowMoodModal(true)}
-                    className="w-full p-3 border-2 border-[#1a1a1a] bg-white cursor-pointer hover:bg-[#f4eee0] transition-all flex items-center gap-3"
+                    className="w-full p-4 border-2 border-[#1a1a1a] bg-white cursor-pointer hover:bg-[#1a1a1a] hover:text-white transition-colors flex items-center gap-4 group shadow-[4px_4px_0_#1a1a1a]"
                   >
-                    <div className="w-8 h-8 flex items-center justify-center bg-[#1a1a1a] text-white">
+                    <div className="w-10 h-10 border-2 border-[#1a1a1a] group-hover:border-white bg-[#f4eee0] group-hover:bg-[#1a1a1a] flex items-center justify-center transition-colors">
                       {React.createElement(
                         moods.find((m) => m.type === mood)?.icon || Smile,
-                        { className: "w-4 h-4" },
+                        { className: "w-6 h-6 text-[#8b0000] group-hover:text-white" },
                       )}
                     </div>
                     <div className="flex-1">
-                      <h4 className="font-bold text-sm">{mood}</h4>
-                      <p className="text-[10px] text-gray-500 line-clamp-1">
-                        {moods.find((m) => m.type === mood)?.description}
-                      </p>
+                      <h4 className="font-bold text-xl newspaper leading-tight">{mood}</h4>
+                      <p className="text-[12px] opacity-80 font-serif mt-1">المحقق: {persona}</p>
                     </div>
-                    <ChevronLeft className="w-4 h-4 text-gray-400" />
+                    <ChevronLeft className="w-5 h-5 text-gray-400 group-hover:text-white" />
                   </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-bold text-[#1a1a1a] mb-2 newspaper">
-                    مدة التحقيق:{" "}
-                    <span className="text-[#8b0000]">{duration} دقائق</span>
+                  <label className="block text-lg font-bold text-[#1a1a1a] mb-3 newspaper flex justify-between">
+                    <span>زمن التقرير (المدة):</span>
+                    <span className="text-[#8b0000] font-mono text-xl">{duration} د.</span>
                   </label>
-                  <div className="flex items-center h-[56px] px-4 border-2 border-[#1a1a1a] bg-[#f4eee0]/50">
+                  <div className="flex items-center h-[56px] px-6 border-2 border-[#1a1a1a] bg-[#f4eee0] shadow-[inset_2px_2px_4px_rgba(0,0,0,0.1)]">
                     <input
                       type="range"
                       min="5"
@@ -1341,29 +1457,30 @@ export default function App() {
                       step="5"
                       value={duration}
                       onChange={(e) => setDuration(parseInt(e.target.value))}
-                      className="w-full accent-[#8b0000]"
+                      className="w-full accent-[#1a1a1a]"
                     />
                   </div>
-                  <p className="text-[10px] text-gray-500 mt-1">
-                    {duration === 60
-                      ? "سيتم توليد خريطة بحثية مفصلة قبل الكتابة."
-                      : "كتابة مباشرة وسريعة للسكريبت."}
+                  <p className="text-xs text-gray-600 mt-2 font-serif italic font-bold">
+                    * الحلقات الأطول من 30 دقيقة تتطلب بناء أرشيف بحثي أعمق قبل الكتابة.
                   </p>
                 </div>
               </div>
 
-              <div className="pt-4 border-t-2 border-dotted border-gray-300">
+              <div className="pt-2">
                 <button
                   onClick={
                     isGeneratingTitle ? handleStopGeneration : handleSpinRadar
                   }
                   disabled={(cooldown > 0 && !isGeneratingTitle) || isLoading}
-                  className={`w-full py-4 text-white font-bold text-lg newspaper border-2 border-[#1a1a1a] transition-all flex items-center justify-center gap-3 shadow-[4px_4px_0_#1a1a1a] ${(cooldown > 0 && !isGeneratingTitle) || isLoading ? "bg-gray-400 cursor-not-allowed shadow-none border-gray-500" : "bg-[#1a1a1a] hover:bg-[#8b0000] hover:shadow-none hover:translate-y-[2px] hover:translate-x-[2px]"}`}
+                  className={`w-full py-5 px-4 text-white font-bold text-2xl newspaper border-2 transition-all flex flex-col items-center justify-center gap-2 ${(cooldown > 0 && !isGeneratingTitle) || isLoading ? "bg-gray-400 border-gray-500 cursor-not-allowed" : "bg-[#8b0000] border-[#1a1a1a] hover:bg-[#1a1a1a] shadow-[6px_6px_0_#1a1a1a] hover:shadow-none hover:translate-y-[4px] hover:translate-x-[4px]"}`}
                 >
                   {isGeneratingTitle ? (
                     <>
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                      <span>جاري المسح وإيجاد زوايا... (انقر للإلغاء)</span>
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>جاري المسح... (انقر للإلغاء)</span>
+                      </div>
+                      <span className="text-xs sm:text-sm text-gray-300 font-mono mt-1 opacity-80 whitespace-pre-wrap text-center overflow-hidden max-h-20 w-full px-2" dir="ltr">{status}</span>
                     </>
                   ) : cooldown > 0 ? (
                     <>
@@ -1390,53 +1507,62 @@ export default function App() {
               exit={{ opacity: 0 }}
               className="relative z-40 w-full max-w-6xl mx-auto"
             >
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 pb-4 border-b-4 border-double border-[#1a1a1a] gap-4">
                 <div>
-                  <h3 className="text-[#8b0000] font-bold text-3xl newspaper flex items-center gap-3">
-                    <Layers className="w-8 h-8" />
-                    زوايا المانشيت المقترحة
+                  <h3 className="text-[#1a1a1a] font-bold text-5xl newspaper flex items-center gap-4">
+                    مانشيتات عاجلة
+                    <span className="text-[#8b0000] animate-pulse">!</span>
                   </h3>
-                  <p className="text-gray-600 font-serif text-sm mt-1">
-                    بناءً على المعطيات، اقترحنا هذه الزوايا. اختر واحدة لتبدأ
-                    المعالجة.
+                  <p className="text-[#1a1a1a] font-arabic-body font-bold text-xl mt-3 tracking-wide">
+                    وصلنا للتو من المحررين الزوايا التالية للقضية:
                   </p>
                 </div>
                 <button
                   onClick={() => setSuggestedTitles([])}
-                  className="px-4 py-2 bg-white border-2 border-[#1a1a1a] text-[#1a1a1a] font-bold text-sm flex items-center gap-2 hover:bg-[#1a1a1a] hover:text-white transition-all shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px]"
+                  className="px-6 py-3 bg-white border-2 border-[#1a1a1a] text-[#1a1a1a] font-bold text-lg flex items-center gap-2 hover:bg-[#1a1a1a] hover:text-white transition-all shadow-[4px_4px_0_#1a1a1a] hover:shadow-none hover:translate-y-[4px]"
                 >
-                  <ChevronRight className="w-4 h-4" /> العودة للتجهيز
+                  <ChevronRight className="w-5 h-5" /> مسح المكتب
                 </button>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {suggestedTitles.map((suggestion) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {suggestedTitles.map((suggestion, idx) => (
                   <div
                     key={suggestion.id}
-                    className="bg-white border-2 border-[#1a1a1a] flex flex-col justify-between shadow-[4px_4px_0_#1a1a1a] hover:shadow-[6px_6px_0_#8b0000] transition-all group overflow-hidden relative"
+                    className="bg-[#f0ece1] border border-[#1a1a1a] flex flex-col justify-between shadow-[6px_6px_0_#1a1a1a] hover:shadow-[10px_10px_0_#8b0000] hover:-translate-y-2 transition-all p-2 group relative"
                   >
-                    <div className="absolute top-0 right-0 w-8 h-8 bg-[#8b0000] flex items-center justify-center translate-x-full group-hover:translate-x-0 transition-transform">
-                      <PenLine className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="p-6">
-                      <div className="text-[10px] font-mono text-gray-500 mb-2">
-                        FILE: {suggestion.id}
+                    <div className="border border-[#1a1a1a] border-dashed p-6 flex flex-col h-full relative bg-white">
+                      
+                      <div className="absolute top-4 left-4 w-12 h-12 rounded-full border border-[#8b0000] text-[#8b0000] flex items-center justify-center font-serif text-xl opacity-20 transform -rotate-12">
+                         {idx + 1}
                       </div>
-                      <h4 className="text-[#1a1a1a] text-xl font-bold mb-3 newspaper leading-tight">
-                        {suggestion.title}
-                      </h4>
-                      <p className="text-[#555] text-sm font-serif leading-relaxed italic bg-gray-50 p-3 border-r-2 border-gray-300">
-                        "{suggestion.hook}"
-                      </p>
-                    </div>
-                    <div className="p-4 bg-[#f4eee0]/50 border-t border-gray-200 mt-auto">
-                      <button
-                        onClick={() => handleGenerateEpisode(suggestion.title)}
-                        disabled={isLoading}
-                        className={`w-full py-2.5 border-2 border-[#1a1a1a] font-bold text-sm transition-all flex items-center justify-center gap-2 shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px] ${isLoading ? "opacity-50 cursor-not-allowed text-gray-500 bg-gray-200" : "bg-white text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-white"}`}
-                      >
-                        كتابة وتوليد الملف
-                      </button>
+
+                      <div className="mb-6">
+                        <div className="text-[10px] font-mono font-bold text-gray-500 mb-3 border-b border-gray-300 pb-2">
+                          DOC ID: {suggestion.id} | TYPE: EDITORIAL
+                        </div>
+                        <h4 className="text-[#1a1a1a] text-3xl font-bold mb-4 newspaper leading-[1.3] text-justify group-hover:text-[#8b0000] transition-colors">
+                          {suggestion.title}
+                        </h4>
+                        
+                        <div className="relative">
+                          <span className="absolute -right-2 -top-2 text-4xl text-gray-300 font-serif">"</span>
+                          <p className="text-[#333] text-lg font-arabic-body leading-relaxed mx-4 relative z-10 font-bold border-r-4 border-[#8b0000] pr-4 bg-gray-50 p-2">
+                            {suggestion.hook}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="pt-6 border-t-[3px] border-double border-[#1a1a1a] mt-auto">
+                        <button
+                          onClick={() => handleGenerateEpisode(suggestion.title)}
+                          disabled={isLoading}
+                          className={`w-full py-4 border-2 border-[#1a1a1a] font-bold text-xl newspaper transition-all flex items-center justify-center gap-3 ${isLoading ? "opacity-50 cursor-not-allowed text-gray-500 bg-gray-200" : "bg-black text-white hover:bg-[#8b0000] shadow-[4px_4px_0_rgba(0,0,0,0.5)] hover:shadow-none hover:translate-y-[2px]"}`}
+                        >
+                          <FileText className="w-5 h-5" />
+                          <span>توليد واصدار هذا التحقيق</span>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -1484,12 +1610,19 @@ export default function App() {
                             <strong>Allow</strong>.
                           </li>
                           <li>
-                            <strong>تشغيل Ollama بشكل صحيح:</strong> أغلق Ollama تماماً، ثم افتح Terminal/CMD وقم بتشغيله بالأمر:
+                            <strong>تشغيل Ollama بشكل صحيح:</strong> أغلق Ollama تماماً بجوار الساعة، ثم افتح CMD (موجه الأوامر) شغل الأمر:
                             <code
-                              className="bg-white px-2 py-1 select-all font-mono text-xs block mt-1"
+                              className="bg-white px-2 py-1 select-all font-mono text-xs block mt-1 border border-gray-300"
                               dir="ltr"
                             >
-                              OLLAMA_ORIGINS="{window.location.origin}" ollama serve
+                              set OLLAMA_ORIGINS="*" && ollama serve
+                            </code>
+                            وإذا كنت تستخدم <strong>Mac/Linux</strong>:
+                            <code
+                              className="bg-white px-2 py-1 select-all font-mono text-xs block mt-1 border border-gray-300"
+                              dir="ltr"
+                            >
+                              OLLAMA_ORIGINS="*" ollama serve
                             </code>
                           </li>
                         </ol>
@@ -1507,21 +1640,31 @@ export default function App() {
                   </div>
                 ) : (
                   <>
-                    <div className="relative">
-                      <div className="w-24 h-24 border-4 border-[#f4eee0] border-t-[#8b0000] rounded-full animate-spin" />
+                    <div className="relative flex justify-center items-center mb-4">
+                      {/* Newspaper Printing Press Animation Simulation */}
+                      <div className="w-16 h-16 border-4 border-dashed border-[#1a1a1a] rounded-full animate-[spin_3s_linear_infinite]" />
+                      <div className="absolute w-12 h-12 border-4 border-dashed border-[#8b0000] rounded-full animate-[spin_2s_linear_infinite_reverse]" />
                       <div className="absolute inset-0 flex items-center justify-center">
-                        <Loader2 className="w-8 h-8 text-[#1a1a1a] animate-pulse" />
+                        <PenLine className="w-6 h-6 text-[#1a1a1a] animate-pulse" />
                       </div>
                     </div>
 
                     <div className="space-y-4 text-center">
-                      <h3 className="text-3xl font-bold newspaper text-[#8b0000]">
-                        جاري "نبش" التفاصيل...
-                      </h3>
-                      <div className="mx-auto max-w-2xl max-h-48 overflow-y-auto text-sm font-bold text-[#1a1a1a] bg-[#f4eee0] px-4 py-3 border-l-4 border-[#8b0000] font-serif whitespace-pre-wrap text-right shadow-inner">
-                        <div className="text-lg mb-2">{status}</div>
+                      <div className="border-y-4 border-double border-[#1a1a1a] py-2 mb-4">
+                        <h3 className="text-3xl font-bold newspaper text-[#8b0000] tracking-wider uppercase">
+                          الطبعة الإضافية - عاجل
+                        </h3>
+                      </div>
+                      <h4 className="text-xl font-bold newspaper text-[#1a1a1a] mb-2">
+                        صالة التحرير تعكف على إعداد التحقيق...
+                      </h4>
+                      <div className="mx-auto max-w-2xl text-sm font-bold text-[#1a1a1a] bg-[#f4eee0] px-6 py-4 border-l-8 border-[#8b0000] border-y border-r border-[#1a1a1a] font-serif whitespace-pre-wrap text-right shadow-[4px_4px_0_#1a1a1a]">
+                        <div className="text-lg mb-2 flex items-center gap-2">
+                           <span className="w-2 h-2 rounded-full bg-[#8b0000] animate-ping" />
+                           <span className="typewriter">{status}</span>
+                        </div>
                         {streamedChunk && (
-                          <div className="font-mono text-xs text-left bg-gray-900 text-green-400 p-2 mt-2 rounded-sm overflow-hidden" dir="ltr" style={{ maxHeight: "150px", overflowY: "auto" }}>
+                          <div className="font-mono text-xs text-left bg-[#1a1a1a] text-[#f4eee0] p-3 mt-4 rounded-sm overflow-hidden border border-[#8b0000]" dir="ltr" style={{ maxHeight: "150px", overflowY: "auto" }}>
                             {streamedChunk}
                           </div>
                         )}
@@ -1533,41 +1676,44 @@ export default function App() {
                           initial={{ opacity: 0, y: 5 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, y: -5 }}
-                          className="text-xs text-[#555] font-serif italic h-8"
+                          className="text-sm text-[#555] font-serif italic h-8 typewriter border-b border-dashed border-gray-400 inline-block px-4 pb-1"
                         >
-                          {loadingTip}
+                          " {loadingTip} "
                         </motion.p>
                       </AnimatePresence>
                     </div>
 
-                    <div className="w-full space-y-2">
-                      <div className="flex justify-between text-xs font-bold font-mono">
-                        <span>{Math.round(progress)}% اكتمل</span>
+                    <div className="w-full space-y-2 mt-6">
+                      <div className="flex justify-between text-xs font-bold font-mono text-[#1a1a1a]">
+                        <span>[ {Math.round(progress)}% اكتمل ]</span>
                         <span>
-                          الوقت المتوقع:{" "}
+                          الوقت المتوقع للطباعة:{" "}
                           {estimatedTime > 0
                             ? `${estimatedTime} ثانية`
                             : "لحظات..."}
                         </span>
                       </div>
-                      <div className="w-full h-4 bg-[#f4eee0] border-2 border-[#1a1a1a] overflow-hidden">
+                      <div className="w-full h-6 bg-[#f4eee0] border-2 border-[#1a1a1a] shadow-inner relative overflow-hidden">
+                        {/* Newspaper stripe pattern for progress */}
                         <motion.div
-                          className="h-full bg-[#8b0000]"
+                          className="absolute top-0 left-0 bottom-0 bg-[#8b0000]"
                           initial={{ width: 0 }}
                           animate={{ width: `${progress}%` }}
                           transition={{ duration: 0.5 }}
+                          style={{
+                             backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(0,0,0,0.1) 10px, rgba(0,0,0,0.1) 20px)'
+                          }}
                         />
                       </div>
                     </div>
 
-                    <p className="text-[10px] text-[#888] font-serif italic max-w-sm">
-                      ملحوظة: الجودة تتطلب وقتاً. نحن نقوم ببناء حلقة احترافية،
-                      مراجع دقيقة، وسكربت مصري أصيل.
+                    <p className="text-[11px] text-[#555] font-serif italic max-w-sm border-t border-[#1a1a1a] pt-2 mt-4">
+                      ملحوظة: العمل الصحفي الاستقصائي يتطلب وقتاً. نحن نقوم ببناء حلقة احترافية، مراجع دقيقة، ومونتاج بصري عميق.
                     </p>
 
                     <button
                       onClick={handleStopGeneration}
-                      className="px-6 py-2 border-2 border-[#1a1a1a] text-xs font-bold hover:bg-[#1a1a1a] hover:text-white transition-all flex items-center gap-2"
+                      className="mt-6 px-6 py-2 border-2 border-[#1a1a1a] bg-white text-xs font-bold hover:bg-[#8b0000] hover:text-white transition-all flex items-center gap-2 mx-auto shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px]"
                     >
                       <X className="w-4 h-4" />
                       إلغاء العملية
@@ -1797,7 +1943,16 @@ export default function App() {
                   title="تصدير للإنتاج البصري والمونتاج (ZIP)"
                 >
                   <Archive className="w-4 h-4" />
-                  <span>تصدير للإنتاج (ZIP)</span>
+                  <span>تصدير الإنتاج (ZIP)</span>
+                </button>
+                <button
+                  onClick={handleExportAudioZip}
+                  disabled={isProcessingAudio}
+                  className="px-4 py-2 bg-[#1a1a1a] text-[#f4eee0] font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px] transition-all disabled:opacity-50"
+                  title="تصدير حزمة الأصوات (ElevenLabs MP3s)"
+                >
+                  <Volume2 className={`w-4 h-4 ${isProcessingAudio ? "animate-pulse" : ""}`} />
+                  <span>{isProcessingAudio ? "جاري المعالجة..." : "حزمة الأصوات (ElevenLabs)"}</span>
                 </button>
                 <button
                   onClick={handleDownloadVoiceScript}
@@ -2232,6 +2387,141 @@ export default function App() {
                     ))}
                   </div>
                 )}
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Settings Modal */}
+      <AnimatePresence>
+        {showSettings && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center px-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setShowSettings(false)}
+              className="absolute inset-0 bg-[#f4eee0]/90 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="relative w-full max-w-2xl max-h-[85vh] bg-white border-4 border-double border-[#1a1a1a] shadow-[16px_16px_0_#1a1a1a] overflow-hidden flex flex-col"
+            >
+              <div className="p-6 border-b-4 border-double border-[#1a1a1a] flex justify-between items-start bg-[#1a1a1a] text-[#f4eee0]">
+                <div>
+                  <h2 className="text-3xl font-bold newspaper text-[#8b0000] drop-shadow-md">
+                    إعدادات محرك الذكاء الاصطناعي
+                  </h2>
+                  <p className="font-serif italic mt-2 text-sm text-gray-300">
+                    يمكنك استخدام سيرفر Ollama في جهازك لكتابة المحتوى محلياً، مجاناً وبلا حدود.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowSettings(false)}
+                  className="p-1 hover:bg-[#8b0000] hover:text-white transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="p-6 overflow-y-auto space-y-6 text-[#1a1a1a]">
+                <div className="flex items-center gap-4 bg-[#f4eee0] p-4 border border-[#1a1a1a]">
+                  <input
+                    type="checkbox"
+                    id="useOllamaCheck"
+                    checked={useOllama}
+                    onChange={(e) => setUseOllama(e.target.checked)}
+                    className="w-6 h-6 border-2 border-[#1a1a1a] accent-[#8b0000]"
+                  />
+                  <label htmlFor="useOllamaCheck" className="text-xl font-bold font-arabic-body cursor-pointer">
+                    تفعيل Ollama بدلاً من السحابي
+                  </label>
+                </div>
+
+                <div className={`space-y-4 ${!useOllama ? "opacity-50 pointer-events-none" : ""}`}>
+                  <div>
+                    <label className="block text-sm font-bold mb-2 font-mono">رابط سيرفر Ollama</label>
+                    <input
+                      type="text"
+                      className="w-full text-xl font-mono p-3 border-2 border-[#1a1a1a] bg-white text-left focus:outline-none focus:ring-2 focus:ring-[#8b0000]"
+                      dir="ltr"
+                      value={ollamaUrl}
+                      onChange={(e) => setOllamaUrl(e.target.value)}
+                      placeholder="http://localhost:11434"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-bold mb-2 font-mono">اسم الموديل</label>
+                    <input
+                      type="text"
+                      className="w-full text-xl font-mono p-3 border-2 border-[#1a1a1a] bg-white text-left focus:outline-none focus:ring-2 focus:ring-[#8b0000]"
+                      dir="ltr"
+                      value={ollamaModel}
+                      onChange={(e) => setOllamaModel(e.target.value)}
+                      placeholder="llama3.1"
+                    />
+                  </div>
+                  
+                  <div className="bg-red-50 p-4 border-l-4 border-[#8b0000] text-sm">
+                    <h4 className="font-bold mb-2 flex items-center gap-2 text-[#8b0000]">
+                      <AlertTriangle className="w-4 h-4" /> هام جداً ليعمل في المتصفح
+                    </h4>
+                    <p className="mb-2">بسبب حماية المتصفح، يجب عليك تفعيل CORS في Ollama وإلا سيتم حجب الاتصال.</p>
+                    <ol className="list-decimal list-inside space-y-2 mt-2 font-mono text-[10px] sm:text-xs text-left overflow-hidden" dir="ltr">
+                      <li>تأكد من إغلاق Ollama من شريط المهام بجوار الساعة (Quit)</li>
+                      <li className="font-bold text-black font-arabic-body text-right">في الويندوز (افتح CMD أو PowerShell والصق):</li>
+                      <code className="block mt-1 bg-black text-green-400 p-2 select-all overflow-x-auto whitespace-nowrap">
+                        $env:OLLAMA_ORIGINS="*"; ollama serve
+                      </code>
+                      <li className="font-bold text-black font-arabic-body text-right mt-2">في Mac/Linux (افتح Terminal):</li>
+                      <code className="block mt-1 bg-black text-green-400 p-2 select-all overflow-x-auto whitespace-nowrap">
+                        OLLAMA_ORIGINS="*" ollama serve
+                      </code>
+                      <li className="font-bold text-[#8b0000] font-arabic-body text-right mt-2 pt-2 border-t border-red-200">
+                        لحل مشكلة (Mixed Content / HTTPS) باستخدام ngrok:
+                      </li>
+                      <code className="block mt-1 bg-black text-yellow-400 p-2 select-all overflow-x-auto whitespace-nowrap">
+                        ngrok http 11434 --host-header="localhost:11434"
+                      </code>
+                      <li className="mt-2 text-right font-arabic-body text-[#1a1a1a]">انسخ الرابط الذي يبدأ بـ https من ngrok وضعه في مربع (رابط سيرفر Ollama) بالأعلى. (لا يزال عليك تشغيل سيرفر ollama مع OLLAMA_ORIGINS="*" كما أسلفنا).</li>
+                    </ol>
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-6 border-t-2 border-dashed border-gray-300">
+                  <h3 className="text-xl font-bold mb-4 newspaper text-[#8b0000]">
+                    إعدادات الصوت (ElevenLabs)
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-bold mb-2">مفتاح API الخاص بـ ElevenLabs (اختياري)</label>
+                      <input
+                        type="password"
+                        className="w-full text-xl font-mono p-3 border-2 border-[#1a1a1a] bg-white text-left focus:outline-none focus:ring-2 focus:ring-[#8b0000]"
+                        dir="ltr"
+                        value={elevenLabsKey}
+                        onChange={(e) => setElevenLabsKey(e.target.value)}
+                        placeholder="sk-..."
+                      />
+                      <p className="text-xs text-gray-500 mt-1">يُستخدم لتوليد الأصوات بدقة عالية وتعبيرات واقعية. يمكنك تركه فارغاً للاستماع للصوت الافتراضي.</p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-bold mb-2">معرف الصوت (Voice ID)</label>
+                      <input
+                        type="text"
+                        className="w-full text-xl font-mono p-3 border-2 border-[#1a1a1a] bg-white text-left focus:outline-none focus:ring-2 focus:ring-[#8b0000]"
+                        dir="ltr"
+                        value={elevenLabsVoiceId}
+                        onChange={(e) => setElevenLabsVoiceId(e.target.value)}
+                        placeholder="pNInz6obbfDQGcgMyIGC"
+                      />
+                      <p className="text-xs text-gray-500 mt-1">المعرف الافتراضي لصوت ذكوري عميق (مثل آدم). يمكنك تغييره لمعرف أي صوت قمت بنسخه (Voice Cloning) من ElevenLabs.</p>
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </div>

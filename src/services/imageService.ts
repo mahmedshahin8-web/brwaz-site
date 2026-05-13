@@ -10,7 +10,7 @@ export async function generateNanoBananaImage(prompt: string): Promise<string> {
       config: {
         outputMimeType: "image/jpeg",
         aspectRatio: "16:9",
-        personGeneration: "DONT_ALLOW"
+        personGeneration: "DONT_ALLOW" as any
       }
     });
     
@@ -39,7 +39,7 @@ export async function editNanoBananaImageText(prompt: string, base64Image: strin
       config: {
         outputMimeType: "image/jpeg",
         aspectRatio: "16:9",
-        personGeneration: "DONT_ALLOW"
+        personGeneration: "DONT_ALLOW" as any
       }
     });
     

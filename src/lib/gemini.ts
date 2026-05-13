@@ -13,6 +13,7 @@ function checkEnv() {
 checkEnv();
 
 import { GoogleGenAI } from "@google/genai";
+import { getChannelDNA, buildSystemPrompt } from "../config/channelDNA";
 import { z } from "zod";
 import {
   EpisodeData,
@@ -128,221 +129,152 @@ export function getMoodContext(mood: MoodType): {
   researchAngle: string;
   scriptingStyle: string;
   visualAudioStyle: string;
+  archivalTreasureRules: string;
 } {
   if (mood === "أرشيف الضلمة") {
     return {
-      researchAngle:
-        "Bizarre historical events, Jahiliyyah rap battles, forgotten local history within Egypt and Arab world.",
-      scriptingStyle: "Dark, archival, and deeply investigartive.",
+      researchAngle: "أحداث تاريخية منسية، جرائم غامضة من أرشيف المحاكم المصرية، مذكرات شخصيات مجهولة، وتاريخ محلي مرعب.",
+      scriptingStyle: "Dark, archival, and deeply investigartive. سرد استقصائي كئيب يعتمد على التشويق واستخراج الأسرار.",
       visualAudioStyle: "Deep shadows, dusty film grain, echoes of the past.",
+      archivalTreasureRules: "يجب استخراج المصادر من: قصاصات جرائد الأهرام والأخبار في فترة ما قبل الخمسينات، تقارير البوليس السياسي القديمة، حواديات مجلة اللطائف المصورة، وسجلات الجنايات النادرة.",
     };
   } else if (mood === "كلاكيت وتزوير") {
     return {
-      researchAngle:
-        "Media, art, and pop-culture secrets/propaganda in the Arab world.",
-      scriptingStyle:
-        "Cynical media analysis, exposing the fake behind the screen.",
+      researchAngle: "أسرار الصناعة الإعلامية والسينمائية العربية، بروباجندا فترة الستينات، خدع بصرية تاريخية.",
+      scriptingStyle: "Cynical media analysis. تحليل إعلامي ساخر يكشف الوهم، سرد تفكيكي.",
       visualAudioStyle: "Glitchy TV effects, high contrast studio lighting.",
+      archivalTreasureRules: "يجب استخراج المصادر من: مجلة الكواكب، الموعد، حوارات تليفزيونية نادرة على ماسبيرو زمان، ومذكرات المخرجين والمنتجين العرب.",
     };
   } else if (mood === "ملفات متقفلش") {
     return {
-      researchAngle:
-        "Massive local scams, unsolved mysteries, or historical cons in the region.",
-      scriptingStyle:
-        "Hard-boiled investigator style, connecting the dots of corruption.",
+      researchAngle: "قضايا نصب كبرى (ريان، أشرف مروان)، ألغاز لم تحل، اختفاء شخصيات عامة في ظروف غامضة.",
+      scriptingStyle: "Hard-boiled investigator. محقق صحفي عنيد يربط الخيوط ببعضها ويكتب بأسلوب تقرير المباحث.",
       visualAudioStyle: "Interrogation light, neon noir, fast cuts.",
+      archivalTreasureRules: "يجب استخراج المصادر من: تحقيقات النيابة المنسية، مانشيتات الحوادث في جريدة الجمهورية والمساء، التقارير الرقابية المسربة.",
     };
   } else if (mood === "خرافات شعبية") {
     return {
-      researchAngle:
-        "Debunking Egyptian/Arab myths with cynical science and history.",
-      scriptingStyle: "Skeptical, debunking, logic-driven yet mocking.",
-      visualAudioStyle:
-        "Macro shots of talismans being destroyed, clean white lab light.",
+      researchAngle: "تفكيك الخرافات والأساطير المصرية والعربية (صيادين النداهة، السحر السفلي) باستخدام المنهج العلمي والتاريخي.",
+      scriptingStyle: "Skeptical, logic-driven yet mocking. ساخر مبني على المنطق.",
+      visualAudioStyle: "Macro shots of talismans being destroyed, clean white lab light.",
+      archivalTreasureRules: "يجب استخراج المصادر من: كتب التراث مثل (البداية والنهاية)، مخطوطات السحر القديمة (شمس المعارف) ومقارنتها بالدراسات الأنثروبولوجية الحديثة لمجلة المقتطف.",
     };
   } else if (mood === "سبوبة ولا ابتكار") {
     return {
-      researchAngle:
-        "Bizarre local business stories or fake inventions in Egypt/Arab world.",
-      scriptingStyle: "Business-cynical, exposing the 'hustle' culture.",
+      researchAngle: "أغرب قصص البيزنس والشركات الوهمية في مصر والشرق الأوسط، اختراعات الفنكوش.",
+      scriptingStyle: "Business-cynical. سرد ساخر من ثقافة 'الفهلوة' والبيزنس.",
       visualAudioStyle: "Shiny cheap surfaces, fast-paced 'salesman' energy.",
+      archivalTreasureRules: "يجب استخراج المصادر من: صفحات الاقتصاد في الأهرام بالثمانينات، إعلانات الشركات الوهمية في الصحف الصفراء، ومحاضر النصب والاحتيال المالي.",
     };
   } else if (mood === "حواديت شوارع") {
     return {
-      researchAngle:
-        "Raw, documentary style about people, street culture, and urban legends in Egypt.",
-      scriptingStyle:
-        "Gritty, authentic, street-smart vernacular, deeply connected to common people.",
-      visualAudioStyle:
-        "Handheld camera feel, raw local sounds, bustling street aesthetics.",
+      researchAngle: "تاريخ الشارع المصري، حكايات المقاهي، القهاوي الثقافية، وتاريخ الفتوات والعصابات المحلية.",
+      scriptingStyle: "Gritty, authentic, street-smart vernacular. لغة شارع واقعية خام بتوثيق تاريخي.",
+      visualAudioStyle: "Handheld camera feel, raw local sounds, bustling street aesthetics.",
+      archivalTreasureRules: "يجب استخراج المصادر من: مذكرات نجيب محفوظ، مجلة المصور، أرشيف التصوير الفوتوغرافي لفان ليو، وكتب التراث الشعبي لخيري شلبي.",
     };
   } else if (mood === "صراع العروش العربي") {
     return {
-      researchAngle:
-        "Political intrigue, epic betrayals, and massive power shifts in Arab/Islamic history.",
-      scriptingStyle:
-        "Epic, dramatic, highlighting betrayal and ambition, Machiavellian tone.",
-      visualAudioStyle:
-        "Grand orchestral background, maps with moving pieces, dark dramatic lighting.",
+      researchAngle: "مكائد سياسية، انقلابات، ودماء في البلاط الملكي أو فترات الخلافة الإسلامية.",
+      scriptingStyle: "Epic, dramatic, Machiavellian. سرد درامي ملحمي يركز على الخيانة والسلطة.",
+      visualAudioStyle: "Grand orchestral background, maps with moving pieces, dark dramatic lighting.",
+      archivalTreasureRules: "يجب استخراج المصادر من: تاريخ الطبري، مسالك الأبصار، وثائق الإمبراطورية العثمانية المترجمة، خطابات الملوك والرؤساء السريّة.",
     };
   } else if (mood === "تكنولوجيا مرعبة") {
     return {
-      researchAngle:
-        "Dystopian tech, cyber threats, deep fakes, and how technology is used to manipulate locally.",
-      scriptingStyle:
-        "Paranoid, cautionary, exposing the terrifying realities of the digital age.",
-      visualAudioStyle:
-        "Cyberpunk neon greens, glitching text, terrifying sterile tech environments.",
+      researchAngle: "استخدامات مرعبة للتكنولوجيا في الرقابة والمراقبة، الاختراقات السيبرانية في العالم العربي.",
+      scriptingStyle: "Paranoid, cautionary. بارانويا تقنية، سرد تحذيري ومرعب من المستقبل.",
+      visualAudioStyle: "Cyberpunk neon greens, glitching text, terrifying sterile tech environments.",
+      archivalTreasureRules: "يجب استخراج المصادر من: تقارير السايبرسكيورتي (Kaspersky, Citizen Lab) المرتبطة بالشرق الأوسط، تسريبات ويكيليكس، والمنتديات التقنية المظلمة (Darweb).",
     };
   } else if (mood === "اقتصاد الشارع") {
     return {
-      researchAngle:
-        "Black markets, weird financial hustles, economic crashes, and shadow money.",
-      scriptingStyle:
-        "Fast-talking financial cynic, breaking down complex scams into street terms.",
-      visualAudioStyle:
-        "Counting money machines, red stock market charts crashing, dim warehouse lighting.",
+      researchAngle: "أسواق سوداء، اقتصاد الظل، تسعير الدولار، كيف تنجو الطبقات الكادحة ميكرو-اقتصادياً.",
+      scriptingStyle: "Fast-talking financial. تحليل اقتصادي شعبي وسريع.",
+      visualAudioStyle: "Counting money machines, red stock market charts crashing, dim warehouse lighting.",
+      archivalTreasureRules: "يجب استخراج المصادر من: أرقام الجهاز المركزي للتعبئة والإحصاء القديمة جداً، تقارير البنك الدولي، مانشيتات مجلة रोज اليوسف عن الأزمات التموينية.",
     };
   } else if (mood === "ملفات مخابراتية") {
     return {
-      researchAngle:
-        "Spies, cold war Middle East, covert operations, and double agents.",
-      scriptingStyle:
-        "Secretive, whispering, highly tactical and classified tone.",
-      visualAudioStyle:
-        "Redacted files, red string conspiracy boards, typewriter sounds, surveillance camera angles.",
+      researchAngle: "جواسيس، عمليات سرية في الشرق الأوسط، حروب الجيل الرابع، وكواليس الحروب.",
+      scriptingStyle: "Secretive, whispering, highly tactical. سرد تكتيكي همسي وسري.",
+      visualAudioStyle: "Redacted files, red string conspiracy boards, typewriter sounds.",
+      archivalTreasureRules: "يجب استخراج المصادر من: مذكرات قادة ورجال المخابرات العامة (مثل مذكرات أمين هويدي)، الوثائق البريطانية والأمريكية المفرج عنها (Declassified FOIA)، وأرشيف حرب أكتوبر.",
     };
   } else if (mood === "طريقة الدحيح") {
     return {
-      researchAngle:
-        "Biographies of historical figures, inventors, and scientists, alongside behavioral economics, psychology, and complex scientific/historical phenomena. All simplified into everyday Egyptian stories using pop-culture analogies and myth-busting.",
-      scriptingStyle:
-        "Sarcastic, highly energetic, relatable Egyptian analogies, talking directly to the camera.",
-      visualAudioStyle:
-        "Fast-paced montage, comedic visual overlays, animated cutouts.",
+      researchAngle: "دمج الظواهر العلمية والاقتصادية والتاريخية المعقدة بأمثلة شعبية مصرية مبسطة (Pop-Science).",
+      scriptingStyle: "Sarcastic, highly energetic, relatable Egyptian analogies. استعراضي، كوميدي، يستخدم استعارات مصرية من الحياة اليومية.",
+      visualAudioStyle: "Fast-paced montage, comedic visual overlays, animated cutouts.",
+      archivalTreasureRules: "يجب استخراج المصادر من: أوراق بحثية من Nature أو Science أو هارفارد بيزنس ريفيو، ومزجها فجأة مع أمثلة من أفلام عادل إمام أو مواقف الميكروباص.",
     };
   } else if (mood === "خرائط دموية (Faceless)") {
     return {
-      researchAngle:
-        "Historical/Geographical conflicts explained entirely using abstract maps and moving borders. Focus on strategy and geopolitics.",
-      scriptingStyle:
-        "Analytical, strategic, referencing geographical movements and troop formations.",
-      visualAudioStyle:
-        "Animated maps, glowing borders, parchment textures, military drum rolls.",
+      researchAngle: "شرح التحركات العسكرية، الجغرافيا السياسية، والنزاعات الحدودية بأسلوب الخرائط.",
+      scriptingStyle: "Analytical, strategic. سرد تحليلي يعتمد على المكان والزمان.",
+      visualAudioStyle: "Animated maps, glowing borders, parchment textures.",
+      archivalTreasureRules: "يجب استخراج المصادر من: خرائط هيئة المساحة أيام الملكية، أطالس تاريخية لمركز دراسات الوحدة العربية، ووثائق المعاهدات الحدودية.",
     };
   } else if (mood === "سبورة بيضاء (Whiteboard)") {
     return {
-      researchAngle:
-        "Simplifying complex scientific, economic, or behavioral ideas using drawn illustrations. Focus on analogies.",
-      scriptingStyle:
-        "Friendly, educational, using a teacher-like persona talking to a layman.",
-      visualAudioStyle:
-        "Hand-drawn sketches forming on a whiteboard, marker squeak sounds, clean white background.",
-    };
-  } else if (mood === "ميمز ومقاطع (Faceless)") {
-    return {
-      researchAngle:
-        "Pop-culture, internet drama, or weird trends explained using viral memes and B-roll.",
-      scriptingStyle:
-        "Extremely fast-paced Gen-Z slang, cynical, highly internet-aware.",
-      visualAudioStyle:
-        "Rapid cuts of popular memes, viral video clips, aggressive swoosh transitions.",
-    };
-  } else if (mood === "رحلة في عقل مجرم") {
-    return {
-      researchAngle:
-        "Deep psychological breakdown of infamous crimes, analyzing the 'why' behind the crime.",
-      scriptingStyle:
-        "Suspenseful, psychological, speaking in a low, intense tone.",
-      visualAudioStyle:
-        "Muted colors, forensic analysis graphics, slow zoom-ins, heartbeat sound effects.",
-    };
-  } else if (mood === "المستقبل الديسطوبي") {
-    return {
-      researchAngle:
-        "Tech predictions, AI dangers, and worst-case scenarios for humanity's future.",
-      scriptingStyle:
-        "Ominous, sci-fi focused, using technical terms with a tone of impending doom.",
-      visualAudioStyle:
-        "Glitch effects, neon cyberpunk aesthetics, synth-wave dark ambient music.",
+      researchAngle: "تبسيط النظريات السلوكية أو الاقتصادية باستخدام رسوم بيانية بسيطة وتشابيه.",
+      scriptingStyle: "Friendly, educational. أستاذ يشرح لتلميذه بصبر وود.",
+      visualAudioStyle: "Hand-drawn sketches forming on a whiteboard, marker squeak sounds.",
+      archivalTreasureRules: "يجب استخراج المصادر من: الكتب التعليمية المبسطة، تجارب اقتصاد السلوك، والأوراق الأكاديمية التأسيسية للمفاهيم.",
     };
   } else if (mood === "محاكمة التاريخ") {
     return {
-      researchAngle:
-        "Re-evaluating historical figures or events, playing the role of a modern prosecutor or defense attorney.",
-      scriptingStyle:
-        "Argumentative, legal, using 'objections', dramatic reveals, and evidence presentation.",
-      visualAudioStyle:
-        "Gavel sounds, dramatic lighting, split-screen 'for' and 'against' visuals, paper stamping effects.",
+      researchAngle: "إعادة تقييم شخصيات تاريخية (مثل: هل كان الحجاج مجرماً أم منقذاً؟ هل الخديوي إسماعيل باني أم مخرب؟).",
+      scriptingStyle: "Argumentative, legal. مرافعة محكمة، استعراض الأدلة، اعتراض، دحض.",
+      visualAudioStyle: "Gavel sounds, split-screen 'for' and 'against' visuals, paper stamping effects.",
+      archivalTreasureRules: "يجب استخراج المصادر من: محاضر الجلسات الرسمية، خطابات الدفاع التاريخية، ومقارنة بين كتابات المؤرخين المتعاطفين والمعادين (مثال: الجبرتي ضد الفرنسيين).",
     };
   } else if (mood === "اقتصاد البقاء") {
     return {
-      researchAngle:
-        "Extreme real-world economics, how regular people survive crises, black markets, and hyperinflation.",
-      scriptingStyle:
-        "Urgent, gritty, explaining money through the lens of street-level survival.",
-      visualAudioStyle:
-        "Shaky cam feel, street-level b-roll, ticking clocks, harsh realism.",
+      researchAngle: "التضخم الجامح، انهيار العملات تاريخياً، مجاعات سابقة، وكيف يتصرف الناس وقت الكارثة.",
+      scriptingStyle: "Urgent, gritty. سرد محموم يبحث عن النجاة.",
+      visualAudioStyle: "Shaky cam feel, street-level b-roll, ticking clocks.",
+      archivalTreasureRules: "يجب استخراج المصادر من: تقارير عن 'الشدة المستنصرية' للمقريزي، بيانات الفقر من الأمم المتحدة، يوميات البقاء في فترات الحصار بالدول العربية.",
     };
   } else if (mood === "جبل الجليد (Iceberg)") {
     return {
-      researchAngle:
-        "Structuring facts into levels from mainstream knowledge down to obscure conspiracy theories and disturbing secrets.",
-      scriptingStyle:
-        "Gradually lowering the tone, becoming more mysterious and paranoid as we go deeper into the iceberg.",
-      visualAudioStyle:
-        "Iceberg graphic transitions, water depth sounds, increasingly distorted and eerie music at the bottom levels.",
+      researchAngle: "رحلة من الحقائق المعروفة للجميعنزولاً إلى النظريات المظلمة والأسرار المرعبة التي لا يعرفها أحد.",
+      scriptingStyle: "Gradually darkening. سرد يبدأ طبيعياً وينتهي ببارانويا ورعب.",
+      visualAudioStyle: "Iceberg graphic transitions, increasingly distorted music.",
+      archivalTreasureRules: "يجب استخراج المصادر من: الأخبار السائدة للقمة، ثم الغوص في منتديات الديب ويب، تسريبات 4chan، وأبحاث هامشية لم يتم أخذها بجدية.",
     };
   } else if (mood === "همس الحكايات (Dark ASMR)") {
     return {
-      researchAngle:
-        "Focusing on highly sensory and terrifying descriptive details, immersing the listener in the environment.",
-      scriptingStyle:
-        "Soft-spoken, long pauses, whispered secrets, creating extreme psychological intimacy and tension.",
-      visualAudioStyle:
-        "Pure ASMR format, binaural sound effects (3D audio), pitch-black or very minimal visuals (e.g., a single flickering candle).",
+      researchAngle: "حكايات رعب حقيقية أو جرائم موثقة لكن موصوفة بحواس شديدة الدقة والقرب.",
+      scriptingStyle: "Soft-spoken, deeply sensory. سرد هامس، بطيء، يركز على الأصوات والروائح.",
+      visualAudioStyle: "Pure ASMR format, minimal visuals.",
+      archivalTreasureRules: "يجب استخراج المصادر من: يوميات القتلة المتسلسلين (مثل ريا وسكينة من محاضر التحقيق الرسمية)، ووصف تفصيلي من تقارير الطب الشرعي القديمة جداً.",
     };
   } else if (mood === "شريط ملعون (Found Footage)") {
     return {
-      researchAngle:
-        "Uncovering a sequence of events presented as lost media, classified police tapes, or leaked footage.",
-      scriptingStyle:
-        "Fragmented, panicked, interrupted by static, reading 'classified' logs or 'last known recordings'.",
-      visualAudioStyle:
-        "VHS scanlines, date/time overlays, shaky cam, sudden audio cutouts, visual glitches.",
+      researchAngle: "قضايا اختفاء غامضة، رحلات استكشافية فشلت، أو مقاطع فيديو غريبة تم تحليلها.",
+      scriptingStyle: "Fragmented, panicked. سرد مبني على تقطيع الأحداث واستعراض التسجيلات.",
+      visualAudioStyle: "VHS scanlines, date/time overlays, visual glitches.",
+      archivalTreasureRules: "يجب استخراج المصادر من: أرشيف الراديو القديم (هنا القاهرة أيام الغارات)، ملفات تحقيقات الطيران الغامضة، وقصاصات يوميات مفقودة.",
     };
   } else if (mood === "مسافر عبر الزمن") {
     return {
-      researchAngle:
-        "Explaining current or historical events from the perspective of someone from the distant future or past.",
-      scriptingStyle:
-        "Nostalgic, detached, warning the viewer about 'what happened next', treating modern tech as ancient history.",
-      visualAudioStyle:
-        "Futuristic HUDs or ancient parchment framing, static glitches, distorted voice transmission.",
+      researchAngle: "شرح أحداث بديهية لنا كأنها خيال علمي من الماضي، أو شرح الماضي بنظرة مستهزئة من المستقبل.",
+      scriptingStyle: "Nostalgic, detached. راوي ينظر من مسافة زمنية بعيدة.",
+      visualAudioStyle: "Futuristic HUDs or ancient parchment framing.",
+      archivalTreasureRules: "يجب استخراج المصادر من: رسومات مستقبلية لمدينة القاهرة تعود للسبعينات، روايات خيال علمي عربية قديمة (نهاد شريف)، ومقالات 'كيف سيبدو عام 2000' المنشورة في الخمسينات.",
     };
   }
-  return { researchAngle: "", scriptingStyle: "", visualAudioStyle: "" };
+  return { researchAngle: "بحث موضوعي", scriptingStyle: "سرد تقليدي", visualAudioStyle: "مرئي عام", archivalTreasureRules: "ابحث في الموسوعات العامة" };
 }
 
-const MASTER_PERSONA = `[Person Lock: برنامج برواز - Barwaz]
-الهوية: أنت كاتب سيناريو وصانع محتوى وفني إخراج لبرنامج يوتيوب شهير اسمه "برواز". البرنامج "Faceless" يعتمد بالكامل على السرد الصوتي مع مواد بصرية (صور مصممة بالذكاء الاصطناعي، أرشيف، ومونتاج سريع).
-الأسلوب الأساسي: سرد القصص المعقدة (سواء تاريخية، اقتصادية، رعب، إلخ) بأسلوب القصة المشوقة. الإيقاع سريع جداً ولا يعطي المشاهد فرصة للملل.
-القاعدة الذهبية: أنت لست شخصية وهمية (مثل النباش أو المفتش)، لا تستخدم أبداً جمل مثل "هات الممحاة" أو "في غرفتي المظلمة" أو "أنا النباش" أو غيرها من الكليشيهات في السكريبت. أنت تحكي القصة أو الموضوع مباشرة بحماس وانسيابية.
+export function getSystemPrompt(): string {
+  const currentDNA = getChannelDNA("barwaz_classic");
+  return buildSystemPrompt(currentDNA);
+}
 
-[MANDATORY RULE FOR ALL OUTPUTS]:
-لغة التعليق الصوتي (Voice Over) أو السرد MUST ALWAYS AND ONLY BE IN EGYPTIAN DIALECT (عامية مصرية دارجة) in the style of "Al-Daheedh" (humorous, conversational, engaging, street-smart). Never use Modern Standard Arabic (فصحى) for the spoken script, regardless of the chosen mood or topic.
-
-[CRITICAL INSTRUCTION FOR ALL IMAGE PROMPTS]:
-في هيكلة الـ JSON الخاصة بالـ Pipeline، اعزل (وصف المشهد والأحداث) عن (وصف الاستايل الفني). اكتب وصف المشهد فقط (Subjects & Actions) في حقل الـ image_prompt في الإنجليزية.
-إذا كان المشهد يحتاج لظهور نص عربي داخل الصورة (مثل عنوان جريدة أو يافطة)، فاكتب النص العربي صراحة للذكاء الاصطناعي (Nano Banana) داخل البرومبت هكذا: The large Arabic text 'كلمتك هنا' is printed on...`;
-
-const MASTER_STYLE = `[Visual Style: Barwaz Core]
-Style: High-end documentary, dynamic composition, cinematic framing.
-Lighting: Professional studio lighting or cinematic natural light depending on the scene.`;
-
-const GLOBAL_IMAGE_STYLE =
-  "Cinematic lighting, 8k resolution, highly detailed, masterpieces style, hyper-realistic textures, no faces";
-const GLOBAL_NEGATIVE_PROMPT = "low quality, blurry, distorted";
+const GLOBAL_IMAGE_STYLE = "Cinematic lighting, 8k resolution, highly detailed, masterpieces style, hyper-realistic textures, ultra photorealistic";
+const GLOBAL_NEGATIVE_PROMPT = "no people, no humans, no faces, no characters, no text, no letters, no typography, no Arabic, no words, no clones, no duplicates, low quality, blurry, distorted";
 
 export function applyGlobalStyle(prompt: string): string {
   if (!prompt || prompt.trim() === "") return prompt;
@@ -376,8 +308,9 @@ async function generateAIContentRaw(
   schema?: any,
   engine = "gemini",
   onChunk?: (text: string) => void,
+  signal?: AbortSignal,
+  useGrounding?: boolean
 ): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
   const engineSystemInstruction = `أنت "محرك النبّاش"، نظام ذكاء اصطناعي متقدم مخصص حصرياً لإنتاج نصوص وثائقية استقصائية احترافية لصالح منصة "برواز". مهمتك صياغة تحقيقات بصرية دقيقة، عميقة، ومكتوبة باحترافية شديدة. يجب عليك تنفيذ المخرجات فوراً وبشكل مباشر دون أي مقدمات، أو تحيات، أو خاتمات حوارية.
 
 يجب الالتزام الصارم والخوارزمي بالقواعد التالية (أي كسر لهذه القواعد يعتبر فشلاً للنظام):
@@ -408,30 +341,136 @@ async function generateAIContentRaw(
 - عند شرح عمليات معقدة، ادمج مشاهد تعتمد على الجرافيكس (مثل: خرائط مضيئة، Wireframes) واكتب الـ Prompts الخاصة بها بأسلوب تجريدي.`;
 
   try {
-    const response = await ai.models.generateContentStream({
-        model: "gemini-2.5-flash", // The currently recommended model
-        contents: prompt,
-        config: {
-            systemInstruction: engineSystemInstruction,
-            responseMimeType: schema ? "application/json" : "text/plain",
-            temperature: 0.5,
-            topK: 40
-        }
-    });
-    
-    let content = "";
-    for await (const chunk of response) {
-        if (chunk.text) {
-            content += chunk.text;
-            if (onChunk) onChunk(content);
-        }
+    const useOllama = localStorage.getItem("useOllama") === "true";
+    const storedUrl = localStorage.getItem("ollamaUrl");
+    const ollamaUrl = (storedUrl && storedUrl !== "http://127.0.0.1:11434") ? storedUrl : "http://localhost:11434";
+    const ollamaModel = localStorage.getItem("ollamaModel") || "llama3.1";
+
+    let fetchUrl = "/api/generate";
+    let requestBody: any = {
+      model: "gemini-3-flash-preview",
+      messages: [
+        { role: "system", content: engineSystemInstruction },
+        { role: "user", content: prompt }
+      ],
+      stream: true,
+      options: {
+        temperature: 0.5,
+        top_k: 40
+      },
+      useGrounding: !!useGrounding,
+      ...(schema ? { format: "json" } : {})
+    };
+
+    if (useOllama) {
+      fetchUrl = `${ollamaUrl.replace(/\/$/, '')}/api/chat`;
+      requestBody.model = ollamaModel;
+      requestBody.format = "json"; // Ollama works best with strict "json" when prompt has template
+      requestBody.options = { 
+        temperature: 0.7,
+        repeat_penalty: 1.15,
+        num_ctx: 32768, // Ensure enough context limit for long generations
+        num_predict: -1 // Unlimited predicting
+      }; // Ollama specific format
     }
+
+    const response = await fetch(fetchUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+      signal: signal,
+    });
+
+    const contentType = response.headers.get("content-type") || "";
+    if (contentType.includes("text/html")) {
+      const errText = await response.text();
+      if (errText.includes("<title>Starting Server...</title>")) {
+         throw new Error("السيرفر الداخلي قيد التشغيل حالياً، يرجى الانتظار بضع ثوانٍ والمحاولة مرة أخرى.");
+      }
+      throw new Error(`تعذر الوصول! استقبلنا صفحة HTML بدلاً من JSON. يرجى التأكد من عمل الخادم بنجاح.`);
+    }
+
+    if (!response.ok) {
+      const errText = await response.text();
+      throw new Error(`Generation Error: ${response.status} - ${errText}`);
+    }
+
+    let content = "";
+    const reader = response.body?.getReader();
+    const decoder = new TextDecoder("utf-8");
+    
+    if (reader) {
+      let done = false;
+      let buffer = "";
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || "";
+          for (const line of lines) {
+            if (line.trim()) {
+               try {
+                   const parsed = JSON.parse(line);
+                   if (parsed.error) {
+                     throw new Error(parsed.error);
+                   }
+                   if (parsed._proxy_error) {
+                     throw new Error(`Proxy Error: ${parsed.status} - ${parsed.error}`);
+                   }
+                   if (parsed.message?.content) {
+                       content += parsed.message.content;
+                       if (onChunk) onChunk(content);
+                   }
+               } catch (e: any) {
+                   if (e instanceof Error && (e.message.includes("Proxy Error") || e.message.includes("فشل كلا") || e.message.includes("استنفاد") || e.message.includes("المفتاح"))) {
+                       throw e;
+                   }
+                   if (e instanceof Error && !e.message.includes("Unexpected token") && !e.message.includes("JSON")) {
+                       throw e;
+                   }
+                   console.error("Failed to parse chunk", line, e);
+               }
+            }
+          }
+        }
+      }
+      if (buffer.trim()) {
+         try {
+             const parsed = JSON.parse(buffer);
+             if (parsed._proxy_error) {
+                 throw new Error(`Proxy Error: ${parsed.status} - ${parsed.error}`);
+             }
+             if (parsed.message?.content) {
+                 content += parsed.message.content;
+                 if (onChunk) onChunk(content);
+             }
+         } catch(e) {
+             if (e instanceof Error && e.message.includes("Proxy Error")) {
+                 throw e;
+             }
+         }
+      }
+    }
+
     return content;
-  } catch (geminiErr: any) {
-     if (geminiErr.message?.includes("API_KEY_INVALID") || geminiErr.message?.includes("API key not valid")) {
-         throw new Error("مفتاح API غير صالح. يرجى التأكد من أنك قمت بنسخ مفتاح Gemini بشكل صحيح في الإعدادات.");
+  } catch (err: any) {
+     const msg = err?.message || "";
+     const useOllama = localStorage.getItem("useOllama") === "true";
+     
+     if (useOllama && err.name === "TypeError" && msg.includes("fetch")) {
+         throw new Error("فشل الاتصال بسيرفر Ollama المحلي. المتصفح يمنع الاتصال، يرجى مراجعة إعدادات Ollama في التطبيق للتأكد من تفعيل CORS (OLLAMA_ORIGINS=\"*\").");
      }
-     throw geminiErr;
+
+     // If the error comes from the backend proxy natively via our fallback system, it will have a detailed message.
+     // Let's only inject the manual key warning if it's explicitly an invalid manual key, NOT when it's just 'not configured' fallback text.
+     if (!msg.includes("عذراً، تشغيل المزود فشل:") && (msg.includes("API key not valid") || msg.includes("API_KEY_INVALID"))) {
+         throw new Error("يبدو أنك قمت بإضافة مفتاح غير صالح يدوياً في الإعدادات. ليعمل التطبيق طبيعياً وبدون أي مفاتيح، يرجى فتح الإعدادات (Settings) ومسح المفتاح بالكامل (GEMINI_API_KEY) وسيعمل النظام تلقائياً.");
+     }
+     throw err;
   }
 }
 
@@ -439,30 +478,46 @@ export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve
 
 async function callWithRetry(
   fn: () => Promise<any>,
-  retries = 7,  // Increased to 7 to give it a better chance if quota is exhausted
-  baseDelay = 3000,
+  retries = 3,
+  baseDelay = 2000,
+  signal?: AbortSignal
 ): Promise<any> {
   for (let i = 0; i < retries; i++) {
     try {
+      if (signal?.aborted) throw new DOMException("Aborted", "AbortError");
       return await fn();
     } catch (error: any) {
+      if (signal?.aborted) {
+        console.log("Client cancelled the operation");
+        throw new DOMException("Aborted", "AbortError");
+      }
       if (i === retries - 1) {
         console.error("CRITICAL API FAILURE after max retries:", error);
         throw error; // Let the caller handle the final error
       }
       
       const errorMessage = error?.message?.toLowerCase() || "";
-      const isQuotaError = errorMessage.includes("quota") || errorMessage.includes("429") || errorMessage.includes("resource_exhausted");
+      console.error("API Error during callWithRetry:", error);
+      
+      if (error.name === "AbortError") throw error;
+      
+      // Known unrecoverable proxy errors
+      const isStartingServerError = errorMessage.includes("السيرفر الداخلي") || errorMessage.includes("starting server");
+      const isMissingApiKeys = errorMessage.includes("فشل كلا المزودين") || errorMessage.includes("المفتاح غير صالح");
+      
+      if (!isStartingServerError && (isMissingApiKeys || errorMessage.includes("403") || errorMessage.includes("400") || errorMessage.includes("invalid url") || errorMessage.includes("html"))) {
+         console.error("Unrecoverable error encountered, aborting retries:", error);
+         throw error;
+      }
+      
+      const isQuotaError = errorMessage.includes("quota") || errorMessage.includes("429") || errorMessage.includes("resource_exhausted") || errorMessage.includes("too many requests") || errorMessage.includes("proxy error");
       
       let waitTime = baseDelay * Math.pow(2, i);
       
       if (isQuotaError) {
-        waitTime = 62000; // Enforce a 62 seconds wait for rate limit to reset
-        console.warn(`Quota or Rate Limit reached. Waiting ${waitTime / 1000}s... (Attempt ${i + 1} of ${retries})`);
-      } else {
-        console.warn(`API call failed (Not Quota). Retrying in ${waitTime}ms... (Attempt ${i + 1} of ${retries})`, error?.message);
+        waitTime = 3000; // Wait 3 seconds for quota or transient proxy errors (since backend handles 1st fallback)
       }
-
+      
       await sleep(waitTime);
     }
   }
@@ -470,19 +525,34 @@ async function callWithRetry(
 
 function safeJsonParse(text: string, fallback: any = null) {
   if (!text || typeof text !== "string") return fallback;
+  
+  // Clean markdown backticks common in LLM outputs
+  let cleanedText = text.replace(/^```(json)?|```$/gm, '').trim();
+
   try {
     // Attempt 1: Standard parse
-    return JSON.parse(text);
+    return JSON.parse(cleanedText);
   } catch (e) {
     try {
       // Attempt 2: Extract JSON block
-      const exactMatch = text.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
+      const exactMatch = cleanedText.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
       if (exactMatch && exactMatch[0]) {
         return JSON.parse(exactMatch[0]);
       }
     } catch (e2) {}
-    console.error("❌ Barwaz: JSON Parse Failed. Text was:", text);
-    throw new Error("JSON Parse Failed: " + text.substring(0, 500));
+
+    try {
+      // Attempt 3: Incomplete JSON repair (appending braces / brackets if missing)
+      if (cleanedText.startsWith('{') && !cleanedText.endsWith('}')) {
+          return JSON.parse(cleanedText + '}');
+      }
+      if (cleanedText.startsWith('[') && !cleanedText.endsWith(']')) {
+          return JSON.parse(cleanedText + ']');
+      }
+    } catch(e3) {}
+
+    console.error("❌ Barwaz: JSON Parse Failed. Text was:", cleanedText);
+    throw new Error("JSON Parse Failed: " + cleanedText.substring(0, 500));
   }
 }
 
@@ -492,70 +562,86 @@ export async function generateTitle(
   note: string,
   engine = "gemini",
   onChunk?: (text: string) => void,
+  signal?: AbortSignal
 ): Promise<RadarSuggestion[]> {
   const moodContext = getMoodContext(mood);
-  const prompt = `[Agent: Creative Director]
-${MASTER_PERSONA}
-Task: Generate exactly 3 deeply researched and professional YouTube video ideas/titles.
-Topic: ${topic || "Random fascinating subject based on the mood"}
-Mood: ${mood}
-Research Angle focus: ${moodContext.researchAngle}
-Scripting Style focus: ${moodContext.scriptingStyle}
+  const prompt = `[Agent: Editor in Chief - Archive Desk]
+${getSystemPrompt()}
+Task: Generate exactly 3 deeply researched, highly creative, and culturally significant YouTube video ideas based on raw archival logic.
+Topic/Seed: ${topic || "Random fascinating, buried subject based on the mood"}
+Selected Journalistic Mood: ${mood}
+
+=== RESEARCH ANGLES & RULES FOR THIS MOOD ===
+Research Angle Focus: ${moodContext.researchAngle}
+Scripting Style Focus: ${moodContext.scriptingStyle}
+MUST PULL TREASURES FROM (ARCHIVAL SOURCES RULE): ${moodContext.archivalTreasureRules}
 Additional User Notes: ${note}
 
-Instructions:
-1. Ensure the "hook" is a complete and engaging paragraph in Egyptian Arabic.
-2. The "title" must be catchy, mysterious, or highly clickable, but never clickbait without substance.
-3. The "angle" should briefly explain the strategy of how this video will be structured.
+CRITICAL REQUIREMENTS:
+1. You MUST generate exactly and strictly THREE (3) distinct ideas. Never return less than 3.
+2. "الثعبانية" RULE: The ideas must sound like they were dug out of a dusty, forbidden cabinet. They must mention specific (real or highly plausible historical) Arabic sources, old newspapers (e.g., Ahram 1950s, Akhbar El Yom, old police logs, declassified docs) in the hook.
+3. NO CLICHÉS: Stop generating standard YouTube titles. Think like an Egyptian investigative journalist discovering a treasure.
 
-Output format: A JSON Array of 3 objects:
-[
-  {
-    "id": 1,
-    "title": "Headline",
-    "hook": "Full context paragraph in Egyptian Arabic",
-    "angle": "Brief strategy"
-  }
-]
-STRICTLY return the JSON array only. No markdown. No introductory text.`;
+Output format: A JSON OBJECT.
+{
+  "suggestions": [
+    {
+      "id": 1,
+      "title": "Headline 1 (Catchy, Journalistic, Egyptian/Arab Context)",
+      "hook": "Full context paragraph in Egyptian Arabic explaining the story, WHY it is a treasure, and strictly naming the archaic/rare sources (e.g., 'حسب ما نشر في أرشيف الأهرام سنة 1961...', 'من واقع مذكرات البوليس السري...').",
+      "angle": "Brief strategy on how the script will be executed."
+    },
+    ...
+  ]
+}
+STRICTLY return the JSON Object only. No markdown. No introductory text.`;
 
   return callWithRetry(async () => {
     const text = await generateAIContentRaw(
       prompt,
       {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            id: { type: Type.NUMBER },
-            title: { type: Type.STRING },
-            hook: { type: Type.STRING },
-            angle: { type: Type.STRING },
+        type: Type.OBJECT,
+        properties: {
+          suggestions: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                id: { type: Type.NUMBER },
+                title: { type: Type.STRING },
+                hook: { type: Type.STRING },
+                angle: { type: Type.STRING },
+              },
+              required: ["id", "title", "hook", "angle"],
+            },
           },
-          required: ["id", "title", "hook", "angle"],
         },
+        required: ["suggestions"],
       },
       engine,
       onChunk,
+      signal
     );
 
-    const parsed = safeJsonParse(text, []);
-    if (Array.isArray(parsed) && parsed.length > 0) {
-      return parsed;
+    const parsed = safeJsonParse(text, { suggestions: [] });
+    let validSuggestions: RadarSuggestion[] = [];
+
+    if (parsed && Array.isArray(parsed.suggestions)) {
+      validSuggestions = parsed.suggestions;
+    } else if (Array.isArray(parsed)) {
+      validSuggestions = parsed;
+    } else if (parsed && typeof parsed === "object" && (parsed as any).title) {
+      validSuggestions = [parsed as any];
     }
 
-    // If we got something but it's not an array of 3, maybe it's just one object?
-    if (
-      parsed &&
-      typeof parsed === "object" &&
-      !Array.isArray(parsed) &&
-      (parsed as any).title
-    ) {
-      return [parsed as any];
+    validSuggestions = validSuggestions.filter(s => s && s.title && s.title.trim() !== "" && s.hook && s.hook.trim() !== "");
+
+    if (validSuggestions.length > 0) {
+      return validSuggestions;
     }
 
-    return [];
-  });
+    throw new Error("No valid ideas parsed from text: " + text.substring(0, 150));
+  }, 3, 2000, signal);
 }
 
 export async function generatePackaging(
@@ -564,9 +650,10 @@ export async function generatePackaging(
   allScenes: EpisodeScene[],
   engine = "gemini",
   onChunk?: (text: string) => void,
+  signal?: AbortSignal
 ): Promise<{ packaging: any; shorts: any[] }> {
   const prompt = `[Agent: Final Packaging & Shorts]
-${MASTER_PERSONA}
+${getSystemPrompt()}
 العنوان: ${videoTitle}
 صمم حزمة النشر في يوتيوب (SEO & Thumbnail) و3 أفكار للشورتس.
 RULES:
@@ -624,9 +711,10 @@ RULES:
       },
       engine,
       onChunk,
+      signal
     );
     return safeJsonParse(text, { packaging: {}, shorts: [] });
-  });
+  }, 3, 2000, signal);
 }
 
 export async function generateResearchMap(
@@ -636,18 +724,20 @@ export async function generateResearchMap(
   note: string,
   engine = "gemini",
   onChunk?: (text: string) => void,
+  signal?: AbortSignal
 ): Promise<MasterOutline & { sources: any[]; research_data: string }> {
   const numChapters =
     durationValue >= 60 ? 12 : Math.max(3, Math.round(durationValue / 5));
   const moodContext = getMoodContext(mood);
   const prompt = `[Long-form Research Map]
-${MASTER_PERSONA}
+${getSystemPrompt()}
 Video Title: ${title}
 Target Duration: ${durationValue} minutes.
 Mood: ${mood}
 Research Angle Focus: ${moodContext.researchAngle}
 
 Task: Gather deep, factual, and fascinating research data for this topic. Break the video down into exactly ${numChapters} chapters that flow perfectly from one to the next, adhering to the "Research Angle" of the specified mood.
+CRITICAL INSTRUCTION FOR SOURCES: You MUST prioritize authentic, high-quality ARABIC sources (e.g., Al Jazeera, BBC Arabic, Arabic encyclopedias, Arabic historical texts, etc.). Ensure that the citations feel authentic to the Middle Eastern context if applicable.
 
 [CRITICAL]: Response MUST be PURE JSON.
 {
@@ -715,12 +805,13 @@ Task: Gather deep, factual, and fascinating research data for this topic. Break 
       },
       engine,
       onChunk,
+      signal
     );
     const parsed = safeJsonParse(text);
     if (!parsed || !parsed.chapters)
       throw new Error("فشل في استخراج الخريطة البحثية");
     return parsed;
-  });
+  }, 3, 2000, signal);
 }
 
 export async function generateChapter(
@@ -734,10 +825,11 @@ export async function generateChapter(
   targetWords: number,
   engine = "gemini",
   onChunk?: (text: string) => void,
+  signal?: AbortSignal
 ): Promise<EpisodeScene[]> {
   const moodContext = getMoodContext(mood);
   const prompt = `[Scriptwriter - Chapter Expansion]
-${MASTER_PERSONA}
+${getSystemPrompt()}
 
 Video Title: ${videoTitle}
 Overall Series Mood: ${mood} (${moodContext.visualAudioStyle})
@@ -756,70 +848,91 @@ ${previousSummary}
 
 [CRITICAL INSTRUCTIONS]:
 1. DIALECT & READABILITY: 
-   - The "voice_over" MUST ALWAYS be written in 100% Egyptian slang/dialect (عامية مصرية دارجة), conversational, and highly engaging.
+    - The "voice_over" MUST ALWAYS be written in 100% Egyptian slang/dialect (عامية مصرية دارجة in the style of Al Daheeh), conversational, and highly engaging.
+    - REPETITION BAN: Never repeat phrases like "يا جماعة" or "هذه الأسطورة" or "في هذا الفصل". Speak naturally and deliver NEW facts in every single sentence. Do not re-use sentences or concepts from previous scenes. Avoid repeating the same visuals.
    - FORMAT FOR VOICE ACTOR: Write the script exactly as it should be read. Spell out numbers as words (e.g., "خمسة آلاف" instead of "5000"). Use punctuation (..., !, ؟) clearly to indicate pauses and tone changes. 
    - No formal Arabic.
-2. FLOW: This is just ONE segment of a larger continuous video. 
+2. SCRIPT LENGTH AND PACING (CRITICAL):
+   - You MUST write approximately ${targetWords} words of voice_over content for this chapter in total across the generated scenes.
+   - To achieve this, create VERY long, detailed voice_over paragraphs for each scene, or create many scenes. Failure to reach the word count will ruin the video's pacing.
+3. FLOW: This is just ONE segment of a larger continuous video. 
    - ${isFirst ? "This is the FIRST chapter. You MUST include a strong hook directly into the subject." : "This is a MIDDLE chapter. DO NOT include a welcome, just start immediately where the last chapter left off."}
    - ${isLast ? "This is the FINAL chapter. Provide a conclusion to the whole video and an outro." : 'This is a MIDDLE chapter. DO NOT conclude the video or say "استنونا في الحلقات الجاية".'}
-3. ASSET ID: Set "asset_id" sequentially like "Scene_XX" (e.g., Scene_01, Scene_02). Do NOT use generic terms like "first_frame".
-4. JSON SAFETY: NEVER use raw double quotes (\") inside any JSON string value. If you need to quote something inside a string, use SINGLE QUOTES (').
-5. VISUAL FRAMING (Faceless Barwaz Style): The creator DOES NOT show their face. Visuals rely entirely on contextual layouts matching the mood (e.g., mysterious maps, old newspapers, 3D whiteboards, abstract concepts).
-6. IMAGE & VIDEO PROMPTS: 
+4. ASSET ID: Set "asset_id" sequentially like "Scene_XX" (e.g., Scene_01, Scene_02). Do NOT use generic terms like "first_frame".
+5. JSON SAFETY: NEVER use raw double quotes (\\") inside any JSON string value. If you need to quote something inside a string, use SINGLE QUOTES (').
+6. VISUAL FRAMING (Faceless Barwaz Style): The creator DOES NOT show their face. Visuals rely entirely on contextual layouts matching the mood (e.g., mysterious maps, old newspapers, 3D whiteboards, abstract concepts).
+7. IMAGE & VIDEO PROMPTS: 
    - For "image_prompt_nano_banana", if the scene requires Arabic text (like headlines, signs, documents), explicitly include the Arabic phrase in single quotes (e.g., The large Arabic text 'سقوط الإمبراطورية' is printed on the wall...). Keep the prompt descriptive in English.
    - For "ai_video_prompt", write a professional prompt suitable for Runway/Luma/Kling. Describe the clear camera movement (e.g., 'Slow pan left', 'Fast zoom in'), the lighting, and the subject's strict motion. Keep it highly cinematic and English only.
-7. FORMAT: Response MUST be a PURE JSON Array of scene objects.
+8. FORMAT: Response MUST be a PURE JSON Array of scene objects.
 
-[
-  {
-    "asset_id": "Scene_01",
-    "voice_over": "string (Egyptian Dialect)",
-    "visual_cue": "string (Arabic description of the visual scene)",
-    "montage_instructions": "string (Arabic notes for editing/cuts)",
-    "sound_design": "string (Arabic SFX notes)",
-    "image_prompt_nano_banana": "string (Detailed English prompt for Nano Banana. Add Arabic text quotes if needed)",
-    "ai_video_prompt": "string (Detailed English prompt for Runway/Luma describing camera motion and lighting)",
-    "b_roll_keywords": "string (Search terms for stock footage, e.g. 'vintage clock ticking 4k')",
-    "sources": []
-  }
-]`;
+Output format: A JSON OBJECT containing a single property "timeline" which is an array of scene objects:
+{
+  "timeline": [
+    {
+      "asset_id": "Scene_01",
+      "voice_over": "string (Egyptian Dialect)",
+      "visual_cue": "string (Arabic description of the visual scene)",
+      "montage_instructions": "string (Arabic notes for editing/cuts)",
+      "sound_design": "string (Arabic SFX notes)",
+      "image_prompt_nano_banana": "string (Detailed English prompt for Nano Banana. Add Arabic text quotes if needed)",
+      "ai_video_prompt": "string (Detailed English prompt for Runway/Luma describing camera motion and lighting)",
+      "b_roll_keywords": "string (Search terms for stock footage, e.g. 'vintage clock ticking 4k')",
+      "sources": []
+    }
+  ]
+}`;
 
   return callWithRetry(async () => {
     const text = await generateAIContentRaw(
       prompt,
       {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            asset_id: { type: Type.STRING },
-            voice_over: { type: Type.STRING },
-            visual_cue: { type: Type.STRING },
-            montage_instructions: { type: Type.STRING },
-            sound_design: { type: Type.STRING },
-            image_prompt_nano_banana: { type: Type.STRING },
-            ai_video_prompt: { type: Type.STRING },
-            b_roll_keywords: { type: Type.STRING },
-            sources: { type: Type.ARRAY, items: { type: Type.STRING } },
+        type: Type.OBJECT,
+        properties: {
+          timeline: {
+            type: Type.ARRAY,
+            items: {
+              type: Type.OBJECT,
+              properties: {
+                asset_id: { type: Type.STRING },
+                voice_over: { type: Type.STRING },
+                visual_cue: { type: Type.STRING },
+                montage_instructions: { type: Type.STRING },
+                sound_design: { type: Type.STRING },
+                image_prompt_nano_banana: { type: Type.STRING },
+                ai_video_prompt: { type: Type.STRING },
+                b_roll_keywords: { type: Type.STRING },
+                sources: { type: Type.ARRAY, items: { type: Type.STRING } },
+              },
+              required: [
+                "asset_id",
+                "voice_over",
+                "visual_cue",
+                "montage_instructions",
+                "sound_design",
+                "image_prompt_nano_banana",
+                "ai_video_prompt",
+                "b_roll_keywords",
+                "sources",
+              ],
+            },
           },
-          required: [
-            "asset_id",
-            "voice_over",
-            "visual_cue",
-            "montage_instructions",
-            "sound_design",
-            "image_prompt_nano_banana",
-            "ai_video_prompt",
-            "b_roll_keywords",
-            "sources",
-          ],
         },
+        required: ["timeline"],
       },
       engine,
       onChunk,
+      signal
     );
-    return safeJsonParse(text, []);
-  });
+    const parsed = safeJsonParse(text, { timeline: [] });
+    if (parsed && Array.isArray(parsed.timeline)) {
+      return parsed.timeline;
+    }
+    if (Array.isArray(parsed)) {
+      return parsed; // Fallback
+    }
+    return [];
+  }, 3, 2000, signal);
 }
 
 export async function generateEpisode(
@@ -830,6 +943,7 @@ export async function generateEpisode(
   onProgress?: (p: number, status: string) => void,
   engine = "gemini",
   onChunk?: (text: string) => void,
+  signal?: AbortSignal
 ): Promise<EpisodeData> {
   onProgress?.(10, "المرحلة الأولى: جاري هيكلة البحث...");
   const design = await generateResearchMap(
@@ -839,6 +953,7 @@ export async function generateEpisode(
     note,
     engine,
     onChunk,
+    signal
   );
 
   onProgress?.(30, "المرحلة الثانية: بناء المشاهد...");
@@ -866,6 +981,7 @@ export async function generateEpisode(
       targetWordsPerChapter,
       engine,
       onChunk,
+      signal
     );
     allScenes = allScenes.concat(scenes);
 
@@ -889,6 +1005,7 @@ export async function generateEpisode(
     allScenes,
     engine,
     onChunk,
+    signal
   );
 
   const processedScenes = allScenes.map((s, idx) => ({
@@ -964,6 +1081,7 @@ Output ONLY the revised text. Ensure it remains in the same language and tone un
 
 export async function executeNode0_OSINT(
   topic: string,
+  mood: MoodType,
   persona: PersonaType,
   engine = "gemini",
   onChunk?: (text: string) => void
@@ -975,16 +1093,22 @@ export async function executeNode0_OSINT(
   }
 
   const personaContext = getPersonaInstructions(persona);
+  const moodContext = getMoodContext(mood);
 
-  const prompt = `You are the "OSINT & RAG Engine" (Node 0) of the Nabash Production Engine. Your ONLY job is to perform a deep mock-investigation on the provided topic and output a strictly verified 'Dossier' in JSON format.
+  const prompt = `[Node 0: OSINT & RAG Engine - The Archive Room]
+${getSystemPrompt()}
+
+You are the "OSINT & RAG Engine" (Node 0) of the Production Engine. Your ONLY job is to perform a deep investigation on the provided topic using WEB SEARCH if available, and output a strictly verified 'Dossier' in JSON format.
   
-PERSONA CONTEXT: ${personaContext}
-
 RULES:
-1. DEPTH: Find the core conflict, mystery, or controversial elements.
-2. HIDDEN PATTERNS: Read between the lines. Identify contradictions or secrets not commonly known.
-3. VISUAL ANCHORS: Provide vivid, real-world historical or contextual visual details (e.g., "1940s Fedora", "Brutalist architecture").
-4. OUTPUT: You MUST return ONLY a valid JSON object matching the exact schema below. No markdown, no preambles.
+1. NO HALLUCINATIONS: You must base your findings on verifiable facts. Ground your response using real dates, names, and historical events.
+2. DEPTH: Find the core conflict, mystery, or controversial elements.
+3. HIDDEN PATTERNS: Read between the lines. Identify contradictions or secrets not commonly known.
+4. VISUAL ANCHORS: Provide vivid, real-world historical or contextual visual details (e.g., "1940s Fedora", "Brutalist architecture").
+5. ARCHIVAL TREASURES (CRITICAL): You MUST prioritize authentic, high-quality ARABIC sources that fit the current journalistic mood. 
+   MOOD ARCHIVE RULES: ${moodContext.archivalTreasureRules}
+   Citations MUST feel like they were pulled from old Egyptian/Arab newspapers, declassified physical files, rare memoirs, or deep-web forums depending on the mood.
+6. OUTPUT: You MUST return ONLY a valid JSON object matching the exact schema below. No markdown, no preambles.
 
 JSON SCHEMA:
 {
@@ -992,18 +1116,19 @@ JSON SCHEMA:
   "topic": "${topic}",
   "created_at": "ISO date string",
   "last_updated": "ISO date string",
-  "executive_summary": "Comprehensive overview",
+  "executive_summary": "Comprehensive overview blending verified facts with the archival mood.",
   "timeline": [{"date_or_period": "...", "event_description": "...", "impact": "..."}],
   "key_entities": [{"name": "...", "role_or_type": "Person" | "Organization" | "Location" | "Concept" | "Other", "description": "...", "key_connections": ["..."]}],
   "core_conflict_or_mystery": "The dramatic core",
   "verified_facts": ["fact 1", "fact 2"],
   "hidden_patterns_or_contradictions": ["pattern 1", "contradiction 2"],
   "historical_visual_anchors": ["visual 1", "visual 2"],
-  "sources": [{"title": "...", "url": "...", "credibility_score": 9, "key_takeaway": "..."}],
+  "sources": [{"title": "Name of the archaic newspaper/book/report", "url": "URL or Physical Location (e.g., دار الكتب)", "credibility_score": 9, "key_takeaway": "..."}],
   "compiled_research_context": "A compressed string summarizing all the above for the next LLM node"
 }
 
 Topic to Investigate: ${topic}
+Mood: ${mood}
 `;
 
   return callWithRetry(async () => {
@@ -1064,7 +1189,9 @@ Topic to Investigate: ${topic}
         required: ["id", "topic", "created_at", "last_updated", "executive_summary", "timeline", "key_entities", "core_conflict_or_mystery", "verified_facts", "hidden_patterns_or_contradictions", "historical_visual_anchors", "sources", "compiled_research_context"]
       },
       engine,
-      onChunk
+      onChunk,
+      undefined,
+      true // Enable Google Search Grounding for OSINT
     );
 
     const parsedData = safeJsonParse(text);
@@ -1093,29 +1220,29 @@ export async function executeNode1_Structure(
   
   const personaContext = getPersonaInstructions(persona);
   const totalWords = targetDurationMinutes * 140;
-  const minScenes = Math.max(Math.ceil(targetDurationMinutes / 1.25), targetDurationMinutes > 15 ? 30 : Math.round(targetDurationMinutes * 2));
+  const targetScenes = Math.max(Math.ceil(targetDurationMinutes / 1.5), targetDurationMinutes > 15 ? 20 : Math.round(targetDurationMinutes * 1.5));
   
   let dynamicBranchingRule = "";
   if (targetDurationMinutes > 15) {
     dynamicBranchingRule = `\nDYNAMIC BRANCHING (LONG-FORM): This is a long episode (${targetDurationMinutes} minutes). Do NOT just stretch out the core scenes or rely on fluff.\nInstead, expand the topic horizontally:\n- Introduce new, deep sub-topics related to the core theme (e.g., historical roots, economic effects, geopolitical relationships, fictional/hypothetical interview angles).\n- Build the outline with logical, ascending transitions where each new block opens a whole new dimension of the topic.`;
   }
 
-  const prompt = `You are the "Architect Node" (Node 1) of the Nabash Production Engine. Your ONLY job is to take an OSINT Dossier and output a strict JSON outline for a narrative video episode.
+  const prompt = `[Node 1: Architecting Structure]
+${getSystemPrompt()}
 
-PERSONA CONTEXT: ${personaContext}
+You are the "Architect Node" (Node 1) of the Production Engine. Your ONLY job is to take an OSINT Dossier and output a strict JSON outline for a narrative video episode.
 
 RULES:
 1. SCENE COUNT AND PACING: 
    - Target duration is ${targetDurationMinutes} minutes.
    - Target Word Count: Approximately ${totalWords} words total for the episode's voiceover.
    - Scene Constraint: Each scene must represent 1 to 1.5 minutes max (around 150-200 words).
-   - Therefore, you MUST generate NO LESS THAN ${minScenes} independent but sequentially connected scenes.
+   - Therefore, you MUST generate EXACTLY ${targetScenes} independent but sequentially connected scenes. DO NOT get lazy. If you generate fewer than ${targetScenes} items in the array, the entire system will fail. You must fulfill the quota.
 2. NARRATIVE ARC: Each scene must push the story forward with documented facts. No inventing facts. No endless loops.${dynamicBranchingRule}
 3. ANTI-CLICHÉ: The narrative format must be smart, sober, and read between the lines.
 4. IDENTITY GUARD: Visual concepts must NEVER describe human faces or embody people directly. Use physical metaphors (hands, shadows, tools, objects, wide angles).
 5. VISUAL TEXT LOCK: No texts or watermarks overlaying the visual concept descriptions.
-6. COLOR PALETTE: You MUST incorporate these colors in every visual concept: (Deep Navy #1F2A44, Warm Ivory #F5F1E8, Muted Gold #B89B6A).
-7. OUTPUT: You MUST return ONLY a valid JSON object matching the exact schema below.
+6. OUTPUT: You MUST return ONLY a valid JSON object matching the exact schema below.
 
 DOSSIER DATA:
 - Core Conflict: ${dossier.core_conflict_or_mystery}
@@ -1131,7 +1258,7 @@ JSON SCHEMA:
       "core_fact": "المعلومة الحقيقية الموثقة التي يعتمد عليها المشهد بالتفصيل",
       "visual_concept": "وصف بصري يلتزم بقاعدة (Identity Guard) وبالألوان المحددة وبدون نصوص"
     }
-  ]
+  ] // MUST CONTAIN EXACTLY ${targetScenes} ITEMS
 }
 
 
@@ -1193,21 +1320,22 @@ export async function executeNode2_Batch(
   const moodContext = getMoodContext(mood);
   const personaContext = getPersonaInstructions(persona);
   
-  const prompt = `You are the "Scripting Node" (Node 2) of the Nabash Production Engine. Your task is to write the voiceover script and visual prompts for a batch of consecutive scenes based on the OSINT chapter structure.
+  const prompt = `[Node 2: Scripting & Directing]
+${getSystemPrompt()}
 
-PERSONA CONTEXT: ${personaContext}
+You are the "Scripting Node" (Node 2) of the Production Engine. Your task is to write the voiceover script and visual prompts for a batch of consecutive scenes based on the OSINT chapter structure.
 
 RULES (BRAND CONSTITUTION):
 1. THE PERSONA SHIFT (Object Personification): Do not limit voiceover strictly to the human narrator. When contextually appropriate, let places or objects speak (e.g., Imbaba bridge talking about its history). Also, provide deep sociological analysis (Why people act like this in the shadow economy) instead of just stating facts. It must be philosophical and deep.
-2. VISUAL COLOR PALETTE & MOTIFS: All visual concepts and image prompts MUST explicitly incorporate these colors: Deep Navy (#1F2A44), Warm Ivory (#F5F1E8), Muted Gold (#B89B6A). Never use default AI colors. Use "The Microfilm Effect" (leaked documents, yellowed paper, faded stamps, overlapping texts) when presenting shocking information.
-3. ART DIRECTION (IDENTITY GUARD): The english_image_prompt MUST NOT contain descriptions of human faces or specific people. IT IS STRICTLY FORBIDDEN. Use Macro shots, physical metaphors, focus on hands, ancient tools, scattered documents, traces left behind, dramatic shadows.
-4. VOICEOVER PROTOCOL: 
-   - Language: Clean Cairene (لهجة قاهرية نظيفة) merging seriousness with street realism. Make it dense, thrilling, and full of psychological tension. Introduce cognitive dissonance - break the viewer's expectations.
-   - Filter Cliches: NEVER use "يا عزيزي", "صديقي", "طمني عليك", "في البداية", "خلينا نتفق". The tone must be calm, deep, and investigative without cheap emotional hooks.
+2. VOICEOVER PROTOCOL: 
+   - Language: MUST strictly adhere to the dialect and rules defined in the Channel DNA (Clean Cairene).
+   - Word Count Constraint (CRITICAL): Each scene's "voiceover_text" MUST be long and detailed, containing between 100 to 200 words per scene to ensure the final ${topic} episode hits the correct duration. Short fragments will break the video pacing.
+   - Filter Cliches: NEVER use phrases forbidden by the DNA. The tone must be calm, deep, and investigative without cheap emotional hooks.
    - Breathing Space: You MUST insert dramatic pauses explicitly using "[صمت درامي]" and include ambient sound markers using "🔊" to help the sound editor.
-5. ASMR SOUND LAYERING: Provide "rough", hyper-realistic ASMR soundscapes for Lyria 3 (e.g., paper sliding, footsteps on asphalt, coffee boiling). The ASMR sound is the "hero" compensating for the lack of human faces.
-6. EDITOR'S ROADMAP & PRODUCTION METADATA: Be mathematically precise. Specify camera movements for VEO 2/Runway (e.g., "Slow Dolly-In", "Macro Pan right"), exact music BPM (e.g., Cello solo 60 BPM), graphic overlays, and separate structural JSON fields.
-7. SCRIPTING STYLE: ${moodContext.scriptingStyle}
+3. ART DIRECTION (IDENTITY GUARD): The english_image_prompt MUST respect the Global Style defined in the Channel DNA. DO NOT add "Navy, Ivory, Gold" unless requested.
+4. ASMR SOUND LAYERING: Provide "rough", hyper-realistic ASMR soundscapes for Lyria 3 (e.g., paper sliding, footsteps on asphalt, coffee boiling). The ASMR sound is the "hero" compensating for the lack of human faces.
+5. EDITOR'S ROADMAP & PRODUCTION METADATA: Be mathematically precise. Specify camera movements for VEO 2/Runway (e.g., "Slow Dolly-In", "Macro Pan right"), exact music BPM (e.g., Cello solo 60 BPM), graphic overlays, and separate structural JSON fields.
+6. SCRIPTING STYLE: ${moodContext.scriptingStyle}
 
 PREVIOUS SCRIPT CONTEXT (Continue seamlessly from this):
 "${previousScript}"
@@ -1378,10 +1506,10 @@ export async function executePipeline_Orchestrator(
   engineNode2 = "gemini",
   engineNode3 = "gemini"
 ): Promise<EpisodeData> {
-  onProgress?.(5, "Node 0: OSINT & RAG Engine Working...");
-  const dossier = await executeNode0_OSINT(topic, persona, engineNode1, onChunk);
+  onProgress?.(5, "المدير الفني: جاري جمع المصادر والأبحاث (OSINT)...");
+  const dossier = await executeNode0_OSINT(topic, mood, persona, engineNode1, onChunk);
 
-  onProgress?.(10, "Node 1: Gathering Research Map (Legacy)...");
+  onProgress?.(10, "الباحث: جاري تصميم الخريطة البحثية المعمقة...");
   const design = await generateResearchMap(
     topic,
     durationValue,
@@ -1391,10 +1519,10 @@ export async function executePipeline_Orchestrator(
     onChunk
   );
 
-  onProgress?.(15, "Node 1: Architecting Structure...");
+  onProgress?.(15, "مخرج العمل: جاري بناء الهيكل السردي للحلقة...");
   const structure = await executeNode1_Structure(topic, dossier, durationValue, persona, engineNode1, onChunk);
 
-  onProgress?.(25, "Node 2: Prompt Chaining Pipeline Started...");
+  onProgress?.(25, "كاتب السيناريو: تم بدء كتابة المشاهد...");
   let allScenes: EpisodeScene[] = [];
   let previousScript = "";
 
@@ -1404,7 +1532,7 @@ export async function executePipeline_Orchestrator(
     
     onProgress?.(
       25 + Math.floor((60 * i) / structure.scenes_outline.length),
-      `Node 2: Writing & Directing Scenes ${i + 1} to ${Math.min(i + BATCH_SIZE, structure.scenes_outline.length)} / ${structure.scenes_outline.length}...`
+      `فريق الإنتاج: يتم الآن معالجة وكتابة المشاهد ${i + 1} إلى ${Math.min(i + BATCH_SIZE, structure.scenes_outline.length)} من أصل ${structure.scenes_outline.length}...`
     );
     const generatedBatch = await executeNode2_Batch(
       batchOutline,
@@ -1454,13 +1582,13 @@ export async function executePipeline_Orchestrator(
     if (i + BATCH_SIZE < structure.scenes_outline.length) {
       onProgress?.(
         25 + Math.floor((60 * i) / structure.scenes_outline.length),
-        `Waiting for 4 seconds to prevent API Rate Limits...`
+        `استراحة قصيرة لحماية الخوادم (تجنب الحظر)...`
       );
       await sleep(4000);
     }
   }
 
-  onProgress?.(90, "Finalizing Packaging & Shorts...");
+  onProgress?.(90, "قسم المونتاج: جاري تغليف الحلقة وصناعة المقاطع القصيرة (Shorts)...");
   const packaging = await generatePackaging(
     design.video_title,
     design.research_data,
@@ -1474,7 +1602,7 @@ export async function executePipeline_Orchestrator(
     visual_instructions: applyGlobalStyle(s.visual_instructions || ""),
   }));
 
-  onProgress?.(100, "Pipeline Completed Successfully!");
+  onProgress?.(100, "مبروك! اكتملت المعالجة بنجاح.");
 
   return {
     video_title: structure.episode_theme || design.video_title || topic,

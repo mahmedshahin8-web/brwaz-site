@@ -34,5 +34,9 @@ service cloud.firestore {
                data.userId == request.auth.uid;
       }
     }
+
+    match /projects/{projectId} {
+      allow read, write: if true;
+    }
   }
 }

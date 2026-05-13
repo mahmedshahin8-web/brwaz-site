@@ -46,31 +46,25 @@ h1, h2, h3, h4 {
   border-bottom: 4px double #1a1a1a;
 }
 
-.manila-tab {
-  background-color: var(--color-surface);
-  border: 1px solid #1a1a1a;
-  box-shadow: 2px 2px 0px #1a1a1a;
+.dossier-card {
+  @apply bg-[#fdfbf7] border border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] relative;
+  background-image: repeating-linear-gradient(0deg, transparent, transparent 27px, #e5e5e5 28px);
+  background-attachment: local;
+}
+.dossier-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: 40px;
+  width: 2px;
+  border-left: 2px double #8b0000;
+  z-index: 0;
 }
 
-.atmospheric-bg {
-  display: none; /* No glowing background in classic newspaper */
-}
-
-/* Hard borders and solid backgrounds instead of glass */
-.glass-card {
-  @apply bg-white border-2 border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] transition-all duration-300;
-}
-
-.input-field {
-  @apply w-full bg-white border-2 border-[#1a1a1a] px-4 py-3 text-sm focus:outline-none focus:border-[#8b0000] transition-all;
-}
-
-.label-caps {
-  @apply text-sm font-bold uppercase mb-2 block text-[#1a1a1a] border-b-2 border-black/20 pb-1;
-}
-
-table, th, td {
-  border-color: #1a1a1a !important;
+.newspaper-column {
+  @apply bg-white border-x border-[#1a1a1a] shadow-[2px_2px_0_#1a1a1a] relative overflow-hidden;
+  column-gap: 2rem;
 }
 
 /* Classic scrollbar */

@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { EpisodeScene } from "../types";
-import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square } from "lucide-react";
+import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp } from "lucide-react";
 import { rewriteScript } from "../lib/gemini";
 import { generateNanoBananaImage, editNanoBananaImageText } from "../services/imageService";
 
@@ -13,6 +13,7 @@ interface SceneCardProps {
 }
 
 export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: SceneCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedVoiceOver, setEditedVoiceOver] = useState(scene.voice_over);
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
@@ -20,6 +21,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
   const [isRewriting, setIsRewriting] = useState(false);
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const status = scene.status || "pending";
 
   const handleApprove = () => {
@@ -33,21 +35,60 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
     setIsEditing(!isEditing);
   };
 
-  const handlePlayTTS = () => {
+  const handlePlayTTS = async () => {
     if (isPlayingTTS) {
-      window.speechSynthesis.cancel();
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } else {
+        window.speechSynthesis.cancel();
+      }
       setIsPlayingTTS(false);
       return;
     }
     
-    // Fallback to browser TTS for preview
-    // In production, this would call ElevenLabs API:
-    // fetch('https://api.elevenlabs.io/v1/text-to-speech/voice-id', ...)
-    
     // Clean text by preserving pauses conceptually
     let cleanText = editedVoiceOver.replace(/\[صمت درامي\]/g, "... ");
     cleanText = cleanText.replace(/🔊/g, "");
-    
+
+    const elKey = localStorage.getItem("elevenLabsKey")?.trim();
+    const elVoiceId = localStorage.getItem("elevenLabsVoiceId")?.trim() || "pNInz6obbfDQGcgMyIGC"; // Default to a deep voice id
+
+    if (elKey) {
+      setIsPlayingTTS(true);
+      try {
+        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}?output_format=mp3_44100_128`, {
+          method: "POST",
+          headers: {
+             "Content-Type": "application/json",
+             "xi-api-key": elKey
+          },
+          body: JSON.stringify({
+            text: cleanText,
+            model_id: "eleven_multilingual_v2"
+          })
+        });
+
+        if (!res.ok) {
+           throw new Error("ElevenLabs API failed");
+        }
+        
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => setIsPlayingTTS(false);
+        audio.onerror = () => setIsPlayingTTS(false);
+        audio.play();
+      } catch(e) {
+         console.error(e);
+         alert("فشل توليد الصوت عبر ElevenLabs، يرجى التأكد من المفتاح.");
+         setIsPlayingTTS(false);
+      }
+      return;
+    }
+
+    // Fallback to browser TTS for preview
     const utterance = new SpeechSynthesisUtterance(cleanText);
     utterance.lang = "ar-EG";
     utterance.rate = 0.9; // Slightly slower for dramatic effect
@@ -58,6 +99,44 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
     
     setIsPlayingTTS(true);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const handleDownloadMp3 = async () => {
+    const elKey = localStorage.getItem("elevenLabsKey")?.trim();
+    const elVoiceId = localStorage.getItem("elevenLabsVoiceId")?.trim() || "pNInz6obbfDQGcgMyIGC";
+    
+    if (!elKey) {
+      alert("يرجى إضافة مفتاح ElevenLabs من الإعدادات للتمكين من تحميل الـ MP3");
+      return;
+    }
+    
+    try {
+      let cleanText = editedVoiceOver.replace(/\[صمت درامي\]/g, "... ");
+      cleanText = cleanText.replace(/🔊/g, "");
+
+      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}?output_format=mp3_44100_128`, {
+          method: "POST",
+          headers: {
+             "Content-Type": "application/json",
+             "xi-api-key": elKey
+          },
+          body: JSON.stringify({
+            text: cleanText,
+            model_id: "eleven_multilingual_v2"
+          })
+      });
+      if (!res.ok) throw new Error("API Limit or Invalid Key");
+      
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Scene_${scene.asset_id.replace(/\W+/g, "_")}.mp3`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch(err) {
+      alert("فشل تحميل الملف الصوتي، تأكد من مفتاح الـ API");
+    }
   };
 
   const colorCodeScript = (text: string) => {
@@ -146,6 +225,13 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
         </span>
         <div className="flex gap-2">
           <button
+            onClick={handleDownloadMp3}
+            className="p-2 border-2 border-[#1a1a1a] text-xs font-bold bg-[#eae5d8] text-[#1a1a1a] active:bg-[#1a1a1a] active:text-white flex items-center justify-center gap-1"
+            title="Download MP3 (Requires ElevenLabs Key)"
+          >
+            تحميل MP3
+          </button>
+          <button
             onClick={handlePlayTTS}
             className={`p-2 border-2 border-[#1a1a1a] flex gap-2 font-bold ${isPlayingTTS ? 'bg-red-600 text-white active:bg-red-800' : 'bg-yellow-400 text-[#1a1a1a] active:bg-yellow-600'}`}
             title="Teleprompter Voice Preview"
@@ -215,97 +301,110 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
           </div>
         )}
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {scene.visual_cue && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">الوصف البصري:</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.visual_cue}</span>
-            </div>
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center justify-center gap-2 py-2 bg-[#eae5d8] border-2 border-[#1a1a1a] font-bold mt-2"
+        >
+          {isExpanded ? (
+            <><ChevronUp className="w-5 h-5" /> إخفاء تفاصيل المشهد الفنية</>
+          ) : (
+            <><ChevronDown className="w-5 h-5" /> إظهار تفاصيل المشهد الفنية (البرومبتات، المونتاج)</>
           )}
-          {scene.visual_motif && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎞️ الموتيف البصري:</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.visual_motif}</span>
-            </div>
-          )}
-          {scene.cinematic_movement && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎥 اللقطة الحركية (B-Roll):</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.cinematic_movement}</span>
-            </div>
-          )}
-          {scene.voiceover_notes && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎙️ إرشادات الفويس أوفر:</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.voiceover_notes}</span>
-            </div>
-          )}
-          {scene.sound_design && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🔊 الهندسة الصوتية:</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.sound_design}</span>
-            </div>
-          )}
-          {scene.asmr_soundscape && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎧 تصميم الـ ASMR (Lyria 3):</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.asmr_soundscape}</span>
-            </div>
-          )}
-          {scene.music_prompt && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎵 برومبت الموسيقى (Lyria 3):</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.music_prompt}</span>
-            </div>
-          )}
-          {scene.sfx_prompt && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🔊 برومبت المؤثرات (Lyria 3):</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.sfx_prompt}</span>
-            </div>
-          )}
-          {scene.montage_instructions && (
-            <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a] hidden">
-              <strong className="text-[#8b0000] block mb-1 newspaper text-lg">المخرج:</strong>
-              <span className="font-serif leading-relaxed text-sm">{scene.montage_instructions}</span>
-            </div>
-          )}
-          {scene.b_roll_keywords && (
-            <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative">
-              <strong className="text-[#1a1a1a] block mb-1 underline">كلمات بحث (B-Roll):</strong>
-              <div className="text-[#555] text-sm break-words">{scene.b_roll_keywords}</div>
-            </div>
-          )}
-          {scene.image_prompt_nano_banana && (
-            <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative flex flex-col gap-2">
-              <strong className="text-[#1a1a1a] block mb-1 underline">برومبت الصور (Nano Banana):</strong>
-              <div className="text-[#555] text-sm break-words">{scene.image_prompt_nano_banana}</div>
-              
-              {!scene.generated_image_url && (
-                 <button onClick={handleGenerateImage} disabled={isGeneratingImage} className="mt-2 bg-[#1a1a1a] text-white p-2 flex justify-center gap-2 items-center text-sm disabled:opacity-50">
-                    <ImageIcon className="w-4 h-4" /> 
-                    {isGeneratingImage ? "جاري التوليد..." : "توليد كادر المعاينة"}
-                 </button>
-              )}
-              {scene.generated_image_url && (
-                 <div className="mt-2 flex flex-col gap-2">
-                   <div className="barwaz-frame">
-                     <img src={scene.generated_image_url} alt="Scene Visual preview" className="w-full aspect-video object-cover" />
-                     {scene.visual_cue && (
-                       <div className="barwaz-text-overlay">
-                         {scene.visual_cue.substring(0, 100)}...
-                       </div>
-                     )}
-                   </div>
-                   <button onClick={handleEditImageArabic} disabled={isGeneratingImage} className="bg-yellow-400 text-[#1a1a1a] p-2 flex justify-center gap-2 items-center text-sm disabled:opacity-50 border-2 border-[#1a1a1a]">
-                      <Edit3 className="w-4 h-4" /> 
-                      {isGeneratingImage ? "جاري المعالجة..." : "تعديل الصورة لضبط النصوص العربية"}
+        </button>
+
+        {isExpanded && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
+            {scene.visual_cue && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">الوصف البصري:</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.visual_cue}</span>
+              </div>
+            )}
+            {scene.visual_motif && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎞️ الموتيف البصري:</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.visual_motif}</span>
+              </div>
+            )}
+            {scene.cinematic_movement && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎥 اللقطة الحركية (B-Roll):</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.cinematic_movement}</span>
+              </div>
+            )}
+            {scene.voiceover_notes && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎙️ إرشادات الفويس أوفر:</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.voiceover_notes}</span>
+              </div>
+            )}
+            {scene.sound_design && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🔊 الهندسة الصوتية:</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.sound_design}</span>
+              </div>
+            )}
+            {scene.asmr_soundscape && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎧 تصميم الـ ASMR (Lyria 3):</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.asmr_soundscape}</span>
+              </div>
+            )}
+            {scene.music_prompt && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎵 برومبت الموسيقى (Lyria 3):</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.music_prompt}</span>
+              </div>
+            )}
+            {scene.sfx_prompt && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🔊 برومبت المؤثرات (Lyria 3):</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.sfx_prompt}</span>
+              </div>
+            )}
+            {scene.montage_instructions && (
+              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a] hidden">
+                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">المخرج:</strong>
+                <span className="font-serif leading-relaxed text-sm">{scene.montage_instructions}</span>
+              </div>
+            )}
+            {scene.b_roll_keywords && (
+              <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative">
+                <strong className="text-[#1a1a1a] block mb-1 underline">كلمات بحث (B-Roll):</strong>
+                <div className="text-[#555] text-sm break-words">{scene.b_roll_keywords}</div>
+              </div>
+            )}
+            {scene.image_prompt_nano_banana && (
+              <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative flex flex-col gap-2 md:col-span-2">
+                <strong className="text-[#1a1a1a] block mb-1 underline">برومبت الصور (Nano Banana):</strong>
+                <div className="text-[#555] text-sm break-words">{scene.image_prompt_nano_banana}</div>
+                
+                {!scene.generated_image_url && (
+                   <button onClick={handleGenerateImage} disabled={isGeneratingImage} className="mt-2 bg-[#1a1a1a] text-white p-2 flex justify-center gap-2 items-center text-sm disabled:opacity-50">
+                      <ImageIcon className="w-4 h-4" /> 
+                      {isGeneratingImage ? "جاري التوليد..." : "توليد كادر المعاينة"}
                    </button>
-                 </div>
-              )}
-            </div>
-          )}
-        </div>
+                )}
+                {scene.generated_image_url && (
+                   <div className="mt-2 flex flex-col gap-2">
+                     <div className="barwaz-frame">
+                       <img src={scene.generated_image_url} alt="Scene Visual preview" className="w-full aspect-video object-cover" />
+                       {scene.visual_cue && (
+                         <div className="barwaz-text-overlay">
+                           {scene.visual_cue.substring(0, 100)}...
+                         </div>
+                       )}
+                     </div>
+                     <button onClick={handleEditImageArabic} disabled={isGeneratingImage} className="bg-yellow-400 text-[#1a1a1a] p-2 flex justify-center gap-2 items-center text-sm disabled:opacity-50 border-2 border-[#1a1a1a]">
+                        <Edit3 className="w-4 h-4" /> 
+                        {isGeneratingImage ? "جاري المعالجة..." : "تعديل الصورة لضبط النصوص العربية"}
+                     </button>
+                   </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
         
         <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[#1a1a1a]">
           <button 
