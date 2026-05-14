@@ -35,6 +35,40 @@ h1, h2, h3, h4 {
 
 .typewriter {
   font-family: var(--font-typewriter);
+  position: relative;
+}
+
+.typewriter-cursor::after {
+  content: '█';
+  animation: blink 1s step-start infinite;
+  color: #8b0000;
+  margin-right: 4px;
+}
+
+@keyframes blink {
+  50% { opacity: 0; }
+}
+
+.top-secret-stamp {
+  font-family: var(--font-newspaper);
+  color: #8b0000;
+  border: 4px solid #8b0000;
+  padding: 4px 12px;
+  transform: rotate(-15deg);
+  display: inline-block;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  opacity: 0.8;
+  mask-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png');
+  -webkit-mask-image: url('https://s3-us-west-2.amazonaws.com/s.cdpn.io/8399/grunge.png');
+}
+
+.red-underline {
+  text-decorationLine: underline;
+  text-decorationStyle: wavy;
+  text-decorationColor: #8b0000;
+  text-decorationThickness: 2px;
 }
 
 .newspaper {

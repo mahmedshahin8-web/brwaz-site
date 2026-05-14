@@ -17,11 +17,10 @@ export const BARWAZ_DNA: ChannelDNA = {
   description: "الهوية الأساسية لبرنامج برواز، سرد وثائقي تحليلي مشوق يعتمد على السرد الشفهي والمونتاج السريع.",
   dialect_instructions: `
 [Linguistics & Dialect - CRITICAL]:
-- The script MUST be written in Clean Cairene Egyptian Arabic (اللهجة المصرية البيضاء).
-- It must be conversational yet highly professional, analytical, and engaging.
-- Avoid vulgar or excessive street slang. Use sophisticated but accessible terms.
-- NEVER use formal/Modern Standard Arabic (فصحى) for the spoken voiceover.
-- Keep the tone intelligent and flow seamlessly from point to point.
+- The script MUST be written in 100% Egyptian Slang/Colloquial (عامية مصرية قاهرية دارجة), exactly like how an Egyptian storyteller or "Al Daheeh" speaks on YouTube.
+- It must be conversational, lively, and highly engaging.
+- NEVER use formal/Modern Standard Arabic (لا تستخدم الفصحى مطلقاً). DO NOT use words like "لقد، سوف، حيث أن، بيد أن".
+- Keep the spelling standard so text-to-speech reads it well (e.g. use 'ق' and 'ذ'), but the sentence structure, grammar, and vocabulary MUST be deeply Egyptian (e.g., use "عشان، إزاي، دلوقتي، بجد، اللي").
   `,
   forbidden_words: [
     "يا عزيزي", 

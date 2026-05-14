@@ -43,7 +43,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
             </div>
             <button
               onClick={() => window.location.reload()}
-              className="w-full px-6 py-3 bg-[#1a1a1a] hover:bg-[#8b0000] text-white font-bold transition-all flex items-center justify-center gap-2"
+              className="w-full px-6 py-3 bg-[#1a1a1a] active:bg-[#8b0000] text-white font-bold transition-all flex items-center justify-center gap-2"
             >
               <RefreshCcw className="w-4 h-4" />
               أعد تشغيل الصفحة

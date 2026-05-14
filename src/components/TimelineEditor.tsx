@@ -56,7 +56,7 @@ function SortableSceneNode({ id, scene, index, onUpdate, copyToClipboard }: any)
           className="absolute bottom-0 left-0 right-0 bg-red-700 opacity-80" 
           style={{ height: `${heightIntensity * 100}%`, transition: 'height 0.3s' }} 
         />
-        <div {...attributes} {...listeners} className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing text-white opacity-0 group-hover:opacity-100 transition-opacity">
+        <div {...attributes} {...listeners} className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing text-white opacity-100 transition-opacity">
           <GripHorizontal className="w-8 h-8" />
         </div>
         <span className="relative z-10 text-white font-mono text-xs shadow-black drop-shadow-md">

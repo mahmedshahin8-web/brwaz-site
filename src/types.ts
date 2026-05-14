@@ -75,7 +75,7 @@ export interface MasterOutline {
   sources: (string | SourceDef)[];
 }
 
-export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو";
+export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو" | "برواز الحكاوي";
 
 export interface EpisodeScene {
   asset_id: string;
@@ -93,6 +93,7 @@ export interface EpisodeScene {
   visual_motif?: string; // Microfilm effect, leaked docs, etc.
   asmr_soundscape?: string; // ASMR immersive sound to replace human action
   voiceover_notes?: string; // Notes for human VO artist
+  estimated_duration_seconds?: number; // Estimated time in seconds
   asset_prompts?: string[];
   sources?: SourceDef[];
   status?: "pending" | "approved" | "regenerating";

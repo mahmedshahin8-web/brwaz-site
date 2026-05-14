@@ -15,7 +15,7 @@ interface SceneCardProps {
 export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: SceneCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  const [editedVoiceOver, setEditedVoiceOver] = useState(scene.voice_over);
+  const [editedVoiceOver, setEditedVoiceOver] = useState(scene.voice_over || "");
   const [isGeneratingImage, setIsGeneratingImage] = useState(false);
   const [interactiveInstruction, setInteractiveInstruction] = useState("");
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
@@ -219,10 +219,15 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
         status === "approved" ? "shadow-[8px_8px_0_#15803d] border-[#15803d]" : "shadow-[8px_8px_0_#1a1a1a]"
       }`}
     >
-      <div className="flex justify-between items-center border-b-2 border-[#1a1a1a] pb-2">
-        <span className={`px-3 py-1 text-white font-bold text-lg border-2 border-[#1a1a1a] typewriter ${status === "approved" ? "bg-green-700" : "bg-[#1a1a1a]"}`}>
-          {scene.asset_id} {status === "approved" && "✓"}
-        </span>
+      <div className="flex justify-between items-center border-b-2 border-[#1a1a1a] pb-2 flex-wrap gap-2">
+        <div className="flex items-center gap-2">
+          <span className={`px-3 py-1 text-white font-bold text-lg border-2 border-[#1a1a1a] typewriter ${status === "approved" ? "bg-green-700" : "bg-[#1a1a1a]"}`}>
+            {scene.asset_id} {status === "approved" && "✓"}
+          </span>
+          <span className="text-xs bg-[#f4eee0] border border-[#1a1a1a] px-2 py-1 font-bold font-mono">
+            ⏱️ ~{scene.estimated_duration_seconds || Math.ceil((scene.voice_over?.length || 100) / 15)}s
+          </span>
+        </div>
         <div className="flex gap-2">
           <button
             onClick={handleDownloadMp3}
@@ -260,7 +265,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
           </div>
         ) : (
           <div className="font-arabic-body text-xl leading-10 text-[#1a1a1a] bg-[#fdfdfd] p-4 border border-dashed border-[#1a1a1a]">
-            {editedVoiceOver.split(/([.؟!]+)/).map((sentence, idx) => {
+            {(editedVoiceOver || "").split(/([.؟!]+)/).map((sentence, idx) => {
               if (!sentence.trim()) return <span key={idx}>{sentence}</span>;
               const isSelected = selectedSentence === sentence;
 
@@ -270,7 +275,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
                 <span
                   key={idx}
                   onClick={() => setSelectedSentence(isSelected ? null : sentence)}
-                  className={`cursor-pointer transition-colors ${isSelected ? 'bg-yellow-200 shadow-[2px_2px_0_#1a1a1a]' : 'hover:bg-gray-100'}`}
+                  className={`cursor-pointer transition-colors ${isSelected ? 'bg-yellow-200 shadow-[2px_2px_0_#1a1a1a]' : 'active:bg-gray-200'}`}
                   dangerouslySetInnerHTML={formattedSentence}
                 />
               );
@@ -374,6 +379,12 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
                 <div className="text-[#555] text-sm break-words">{scene.b_roll_keywords}</div>
               </div>
             )}
+            {scene.ai_video_prompt && (
+              <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative">
+                <strong className="text-[#1a1a1a] block mb-1 underline">برومبت الفيديو (Runway/Kling):</strong>
+                <div className="text-[#555] text-sm break-words">{scene.ai_video_prompt}</div>
+              </div>
+            )}
             {scene.image_prompt_nano_banana && (
               <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative flex flex-col gap-2 md:col-span-2">
                 <strong className="text-[#1a1a1a] block mb-1 underline">برومبت الصور (Nano Banana):</strong>
@@ -411,7 +422,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
             onClick={handleApprove}
             disabled={status === "approved" || isEditing}
             className={`flex-1 min-w-[120px] py-3 font-bold text-white border-2 border-[#1a1a1a] flex items-center justify-center gap-2 transition-colors ${
-              status === "approved" ? "bg-green-800 opacity-50 cursor-not-allowed" : "bg-green-700 hover:bg-green-800 active:bg-green-900"
+              status === "approved" ? "bg-green-800 opacity-50 cursor-not-allowed" : "bg-green-700 active:bg-green-900"
             }`}
           >
             <CheckCircle className="w-5 h-5" />
@@ -420,7 +431,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
 
           <button 
             onClick={handleEditToggle}
-            className="flex-1 min-w-[120px] py-3 font-bold text-[#1a1a1a] bg-yellow-400 border-2 border-[#1a1a1a] hover:bg-yellow-500 active:bg-yellow-600 flex items-center justify-center gap-2"
+            className="flex-1 min-w-[120px] py-3 font-bold text-[#1a1a1a] bg-yellow-400 border-2 border-[#1a1a1a] active:bg-yellow-600 flex items-center justify-center gap-2"
           >
             <Edit2 className="w-5 h-5" />
             {isEditing ? "حفظ التعديل" : "تعديل السكريبت"}
@@ -430,7 +441,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
             onClick={handleRegenerate}
             disabled={status === "regenerating" || isEditing}
             className={`flex-1 min-w-[120px] py-3 font-bold text-white border-2 border-[#1a1a1a] flex items-center justify-center gap-2 ${
-              status === "regenerating" ? "bg-red-800 opacity-50 cursor-wait" : "bg-red-700 hover:bg-red-800 active:bg-red-900"
+              status === "regenerating" ? "bg-red-800 opacity-50 cursor-wait" : "bg-red-700 active:bg-red-900"
             }`}
           >
             <RefreshCw className={`w-5 h-5 ${status === "regenerating" ? "animate-spin" : ""}`} />

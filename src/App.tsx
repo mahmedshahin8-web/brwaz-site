@@ -71,6 +71,7 @@ import {
   Video,
   Settings,
   Volume2,
+  BookOpen,
 } from "lucide-react";
 import {
   extractAndCleanScript,
@@ -127,12 +128,13 @@ export default function App() {
 
       
   const loadingTips = [
-    "الذكاء الاصطناعي ينقّب الآن في بطون الكتب والمصادر المنسية...",
-    "يتم الآن صياغة السكربت بلهجة مصرية تليق بـ 'النبّاش'..",
-    "تصميم المشاهد البصرية يحتاج لدقة عالية لضمان احترافية الحلقة..",
-    "نحن لا نكتب سكربت عادي، نحن نصنع تجربة بصرية متكاملة..",
-    "جاري استدعاء مراجع من الأرشيف السري لقصتك..",
-    "لحظات ويخرج لك محتوى يكسر الدنيا!",
+    "الذكاء الاصطناعي ينقّب الآن في بطون الكتب والمقالات القديمة...",
+    "[!] يتم استدعاء مراجع من صحف الستينات... واستنطاق دفاتر البوليس السري...",
+    "يتم مطابقة الوقائع المذكورة مع سجلات الشهر العقاري ومحاضر النيابة...",
+    "تصنيف الأدلة وربط الخيوط المبعثرة في أرشيف الحوادث...",
+    "تجهيز الصياغة الدرامية وفق أسلوب المحقق الصحفي العتيق...",
+    "تشفير البيانات وتوثيق المصادر الحصرية للتقرير...",
+    "استخراج الميكروفيلم الخاص بالقضية من الدور السفلي للأرشيف..."
   ];
 
   useEffect(() => {
@@ -193,7 +195,7 @@ export default function App() {
     const stored = localStorage.getItem("ollamaUrl");
     return (stored && stored !== "http://127.0.0.1:11434") ? stored : "http://localhost:11434";
   });
-  const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("ollamaModel") || "llama3.1");
+  const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("ollamaModel") || "gemini-3-flash-preview");
   const [elevenLabsKey, setElevenLabsKey] = useState(() => localStorage.getItem("elevenLabsKey") || "");
   const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState(() => localStorage.getItem("elevenLabsVoiceId") || "pNInz6obbfDQGcgMyIGC");
 
@@ -375,6 +377,12 @@ export default function App() {
       description: "قصص الجواسيس وعمليات الذئاب المنفردة",
     },
     {
+      type: "حكاوي الأجداد",
+      icon: Ghost,
+      color: "#c2410c",
+      description: "حكايات الجدات، الغولة والسلعوة، أساطير الشارع ونوستالجيا الرعب",
+    },
+    {
       type: "خرائط دموية (Faceless)",
       icon: Radar,
       color: "#8b0000",
@@ -513,7 +521,8 @@ export default function App() {
     setData(null);
     setSuggestedTitles([]);
     setIsGeneratingTitle(true);
-    setStatus(`جاري صيد الأفكار...`);
+    setStreamedChunk("");
+    setStatus(`[!] اتصال آمن: يتم سحب الملفات السرية...`);
     abortControllerRef.current = new AbortController();
     try {
       const titles = await generateTitle(
@@ -521,8 +530,7 @@ export default function App() {
         mood,
         note,
         undefined,
-        (chunk) =>
-          setStatus(`جاري التوليد (Streaming)...\n\n${chunk.slice(-1000)}`),
+        (chunk) => setStreamedChunk(chunk),
         abortControllerRef.current.signal
       );
       if (abortControllerRef.current?.signal.aborted) return;
@@ -582,14 +590,14 @@ export default function App() {
     setIsLoading(true);
     setProgress(0);
     setEstimatedTime(duration * 12); // rough estimate 12s per minute of video
-    setStatus(`جاري البدء...`);
+    setStatus(`يتم الآن تجهيز غرفة العمليات...`);
     setIsSaved(false);
     let hasError = false;
     abortControllerRef.current = new AbortController();
     try {
       if (duration >= 4) {
         setIsLongForm(true);
-        setStatus(`جاري جمع المصادر الأولية...`);
+        setStatus(`[!] يتم الآن التنقيب في سجلات التحقيق...`);
         setProgress(5);
 
         const progressInterval = setInterval(() => {
@@ -603,7 +611,7 @@ export default function App() {
           setStatus((prevStatus) => {
             if (abortControllerRef.current?.signal.aborted) return prevStatus;
             const statuses = [
-              "جاري جمع المصادر الأولية...",
+              "[!] يتم الآن التنقيب في سجلات التحقيق...",
               "يتم الآن استخلاص المعلومات التاريخية الدقيقة...",
               "يتم تقسيم المحاور وتحديد (الشرخ) في كل فصل...",
               "يتم بناء الخريطة البحثية وربط الوثائق (قد يستغرق هذا وقتاً طويلاً)...",
@@ -779,7 +787,7 @@ export default function App() {
           throw new Error("AbortError");
         setCurrentChapterIndex(i);
         setStatus(
-          `جاري كتابة الفصل ${i + 1} من ${researchMap.chapters.length}: ${researchMap.chapters[i].chapter_title}...`,
+          `[!] يتم تحميض أحداث الفصل ${i + 1} من ${researchMap.chapters.length}: ${researchMap.chapters[i].chapter_title}...`,
         );
         setProgress(10 + Math.round((i / researchMap.chapters.length) * 70));
 
@@ -831,7 +839,7 @@ export default function App() {
 
       if (abortControllerRef.current?.signal.aborted)
         throw new Error("AbortError");
-      setStatus("جاري تغليف الحلقة والشورتس...");
+      setStatus("[!] يتم تجميع ملف القضية والأدلة النهائية...");
       setProgress(90);
       const packagingResult = await generatePackaging(
         researchMap.video_title,
@@ -894,7 +902,7 @@ export default function App() {
           topic,
           mood,
           persona,
-          data: finalData,
+          dataString: JSON.stringify(finalData),
           createdAt: serverTimestamp()
         });
         console.log("Project saved to Firebase with ID: ", docRef.id);
@@ -902,7 +910,7 @@ export default function App() {
         console.error("Error saving to Firebase: ", e);
       }
 
-      const allVoiceovers = [finalData.opening_sketch, ...finalData.scenes]
+      const allVoiceovers = [finalData.opening_sketch, ...(finalData.scenes || [])]
         .map((s) => s.voice_over)
         .join("\n\n");
       setRawScriptText(allVoiceovers);
@@ -1012,10 +1020,16 @@ export default function App() {
     content += `---\n\n`;
     content += `## 🎬 المشاهد والأسكريبت (Scene by Scene & Montage Instructions)\n\n`;
 
-    const allScenes = [data.opening_sketch, ...data.scenes];
+    const allScenes = [data.opening_sketch, ...(data.scenes || [])];
     allScenes.forEach((scene, index) => {
       content += `### 🎬 المشهد ${index === 0 ? "[00 - المقدمة والتمهيد]" : `[0${index}]`}\n`;
-      content += `**🔖 Asset ID:** \`${scene.asset_id}\`\n\n`;
+      content += `**🔖 Asset ID:** \`${scene.asset_id}\`\n`;
+      if (scene.estimated_duration_seconds) {
+        content += `**⏱️ المدة التقديرية:** ${scene.estimated_duration_seconds} ثانية\n`;
+      } else {
+        content += `**⏱️ المدة التقديرية:** ~${Math.ceil(((scene.voice_over?.length) || 100) / 15)} ثانية\n`;
+      }
+      content += `\n`;
 
       content += `#### 🎙️ التعليق الصوتي (Voiceover):\n`;
       content += `> ${scene.voice_over}\n\n`;
@@ -1065,11 +1079,11 @@ export default function App() {
     }
 
     setIsProcessingAudio(true);
-    showToast("جاري توليد ملفات الصوت وإعداد الـ ZIP...", "info");
+    showToast("[!] يتم الآن سحب الملفات الصوتية وإعداد التسجيلات السرية...", "success");
     
     try {
       const zip = new JSZip();
-      const allScenes = [data.opening_sketch, ...data.scenes];
+      const allScenes = [data.opening_sketch, ...(data.scenes || [])];
       const audioFolder = zip.folder("Voice_Tracks");
       
       let failCount = 0;
@@ -1117,11 +1131,11 @@ export default function App() {
 
   const handleExportZip = async () => {
     if (!data) return;
-    showToast("جاري تجهيز الأصول وبناء المصنع المغلق...");
+    showToast("[!] يتم تحضير الأصول السرية وتشفير المستودع المغلق...");
     
     try {
       const zip = new JSZip();
-      const allScenes = [data.opening_sketch, ...data.scenes];
+      const allScenes = [data.opening_sketch, ...(data.scenes || [])];
       const assetsFolder = zip.folder("Assets");
       
       // 1. Text script
@@ -1197,7 +1211,7 @@ export default function App() {
     content += `*خاص بفريق الجرافيك والموشن*\n\n`;
     content += `---\n\n`;
 
-    const allScenes = [data.opening_sketch, ...data.scenes];
+    const allScenes = [data.opening_sketch, ...(data.scenes || [])];
     allScenes.forEach((scene, index) => {
       if (
         !scene.image_prompt_nano_banana &&
@@ -1299,7 +1313,7 @@ export default function App() {
             <div className="flex gap-4">
               <button
                 onClick={() => setShowSettings(true)}
-                className={`px-4 py-1.5 border-x-2 border-[#1a1a1a] transition-all text-xs font-bold flex items-center gap-2 ${useOllama ? "bg-green-100 text-green-900" : "hover:bg-[#1a1a1a] hover:text-white"}`}
+                className={`px-4 py-1.5 border-x-2 border-[#1a1a1a] transition-all text-xs font-bold flex items-center gap-2 ${useOllama ? "bg-green-100 text-green-900" : "active:bg-[#1a1a1a] active:text-white"}`}
                 title="إعدادات المحرك"
               >
                 <Settings className="w-4 h-4" />
@@ -1307,7 +1321,7 @@ export default function App() {
               </button>
               <button
                 onClick={() => setShowArchive(true)}
-                className="px-4 py-1.5 bg-[#1a1a1a] text-white hover:bg-[#8b0000] transition-all text-xs font-bold flex items-center gap-2"
+                className="px-4 py-1.5 bg-[#1a1a1a] text-white active:bg-[#8b0000] transition-all text-xs font-bold flex items-center gap-2"
               >
                 <Archive className="w-4 h-4" />
                 <span>غرفة الأرشيف</span>
@@ -1341,14 +1355,14 @@ export default function App() {
             }}
           />
           {[
-            { step: 1, label: "تجهيز المطبخ", active: true },
+            { step: 1, label: "غرفة الأخبار", active: true },
             {
               step: 2,
-              label: "اختيار المانشيت",
+              label: "تحديد المانشيت",
               active: suggestedTitles.length > 0 || researchMap || data,
             },
-            { step: 3, label: "الخريطة البحثية", active: researchMap || data },
-            { step: 4, label: "الأرشيف النهائي", active: !!data },
+            { step: 3, label: "هيكل التحقيق", active: researchMap || data },
+            { step: 4, label: "الطبعة النهائية", active: !!data },
           ].map((s, i) => (
             <div
               key={i}
@@ -1392,7 +1406,7 @@ export default function App() {
                       `أنا صانع محتوى وأبحث عن أفكار مبتكرة باستخدام قالب: "${mood}". الرجاء اقتراح 5 أفكار غير تقليدية لحلقات.`,
                     );
                   }}
-                  className="text-xs bg-white hover:bg-[#1a1a1a] hover:text-white text-[#1a1a1a] px-3 py-1.5 transition-all border-2 border-[#1a1a1a] flex items-center gap-2 font-bold shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px]"
+                  className="text-xs bg-white active:bg-[#1a1a1a] active:text-white text-[#1a1a1a] px-3 py-1.5 transition-all border-2 border-[#1a1a1a] flex items-center gap-2 font-bold shadow-[2px_2px_0_#1a1a1a] active:shadow-none active:translate-y-[2px]"
                 >
                   <Copy className="w-4 h-4" /> برومبت العصف
                 </button>
@@ -1428,7 +1442,7 @@ export default function App() {
                   </div>
                   <div
                     onClick={() => setShowMoodModal(true)}
-                    className="w-full p-4 border-2 border-[#1a1a1a] bg-white cursor-pointer hover:bg-[#1a1a1a] hover:text-white transition-colors flex items-center gap-4 group shadow-[4px_4px_0_#1a1a1a]"
+                    className="w-full p-4 border-2 border-[#1a1a1a] bg-white cursor-pointer active:bg-[#1a1a1a] active:text-white transition-colors flex items-center gap-4 group shadow-[4px_4px_0_#1a1a1a]"
                   >
                     <div className="w-10 h-10 border-2 border-[#1a1a1a] group-hover:border-white bg-[#f4eee0] group-hover:bg-[#1a1a1a] flex items-center justify-center transition-colors">
                       {React.createElement(
@@ -1472,15 +1486,31 @@ export default function App() {
                     isGeneratingTitle ? handleStopGeneration : handleSpinRadar
                   }
                   disabled={(cooldown > 0 && !isGeneratingTitle) || isLoading}
-                  className={`w-full py-5 px-4 text-white font-bold text-2xl newspaper border-2 transition-all flex flex-col items-center justify-center gap-2 ${(cooldown > 0 && !isGeneratingTitle) || isLoading ? "bg-gray-400 border-gray-500 cursor-not-allowed" : "bg-[#8b0000] border-[#1a1a1a] hover:bg-[#1a1a1a] shadow-[6px_6px_0_#1a1a1a] hover:shadow-none hover:translate-y-[4px] hover:translate-x-[4px]"}`}
+                  className={`w-full py-5 px-4 text-white font-bold text-2xl newspaper border-2 transition-all flex flex-col items-center justify-center gap-2 ${(cooldown > 0 && !isGeneratingTitle) || isLoading ? "bg-gray-400 border-gray-500 cursor-not-allowed" : "bg-[#8b0000] border-[#1a1a1a] active:bg-[#1a1a1a] shadow-[6px_6px_0_#1a1a1a] active:shadow-none active:translate-y-[4px] active:translate-x-[4px]"}`}
                 >
                   {isGeneratingTitle ? (
                     <>
-                      <div className="flex items-center justify-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span>جاري المسح... (انقر للإلغاء)</span>
+                      <div className="flex flex-col items-center justify-center w-full">
+                        <div className="flex items-center justify-center gap-2 mb-2 pb-2 w-full border-b border-[#f4eee0]/20">
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                          <span className="font-bold">إلغاء التنقيب (انقر هنا)</span>
+                        </div>
+                        {streamedChunk ? (
+                          <div className="flex flex-col w-full text-right mt-2" dir="rtl">
+                            <div className="text-[10px] text-[#ff4d4d] font-bold uppercase tracking-widest flex items-center gap-1 mb-2 bg-[#1a1a1a] p-1 w-max border border-[#ff4d4d]/30 rounded-sm self-end" dir="ltr">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#ff4d4d] animate-ping" /> INCOMING CLASSIFIED DATA
+                            </div>
+                            <div className="text-sm text-[#f4eee0] font-arabic-body leading-relaxed bg-[#2a0808] border border-[#ff4d4d]/30 p-3 w-full h-[100px] overflow-hidden relative shadow-inner rounded-sm" style={{ wordBreak: "break-word" }}>
+                              <div className="absolute bottom-0 left-0 w-full h-6 bg-gradient-to-t from-[#2a0808] to-transparent z-10 pointer-events-none" />
+                              <div className="translate-y-1 font-semibold text-right">
+                                {streamedChunk.length > 400 ? "..." + streamedChunk.slice(-400).replace(/["\{\}\[\]]/g, "").replace(/([a-zA-Z0-9_]+):/g, "\n") : streamedChunk.replace(/["\{\}\[\]]/g, "").replace(/([a-zA-Z0-9_]+):/g, "\n")}
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-xs sm:text-sm text-gray-300 font-mono mt-1 opacity-80 whitespace-pre-wrap text-center overflow-hidden max-h-20 w-full px-2">{status}</span>
+                        )}
                       </div>
-                      <span className="text-xs sm:text-sm text-gray-300 font-mono mt-1 opacity-80 whitespace-pre-wrap text-center overflow-hidden max-h-20 w-full px-2" dir="ltr">{status}</span>
                     </>
                   ) : cooldown > 0 ? (
                     <>
@@ -1519,7 +1549,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => setSuggestedTitles([])}
-                  className="px-6 py-3 bg-white border-2 border-[#1a1a1a] text-[#1a1a1a] font-bold text-lg flex items-center gap-2 hover:bg-[#1a1a1a] hover:text-white transition-all shadow-[4px_4px_0_#1a1a1a] hover:shadow-none hover:translate-y-[4px]"
+                  className="px-6 py-3 bg-white border-2 border-[#1a1a1a] text-[#1a1a1a] font-bold text-lg flex items-center gap-2 active:bg-[#1a1a1a] active:text-white transition-all shadow-[4px_4px_0_#1a1a1a] active:shadow-none active:translate-y-[4px]"
                 >
                   <ChevronRight className="w-5 h-5" /> مسح المكتب
                 </button>
@@ -1529,7 +1559,7 @@ export default function App() {
                 {suggestedTitles.map((suggestion, idx) => (
                   <div
                     key={suggestion.id}
-                    className="bg-[#f0ece1] border border-[#1a1a1a] flex flex-col justify-between shadow-[6px_6px_0_#1a1a1a] hover:shadow-[10px_10px_0_#8b0000] hover:-translate-y-2 transition-all p-2 group relative"
+                    className="bg-[#f0ece1] border border-[#1a1a1a] flex flex-col justify-between shadow-[6px_6px_0_#1a1a1a] active:shadow-[10px_10px_0_#8b0000] active:-translate-y-2 transition-all p-2 group relative"
                   >
                     <div className="border border-[#1a1a1a] border-dashed p-6 flex flex-col h-full relative bg-white">
                       
@@ -1557,7 +1587,7 @@ export default function App() {
                         <button
                           onClick={() => handleGenerateEpisode(suggestion.title)}
                           disabled={isLoading}
-                          className={`w-full py-4 border-2 border-[#1a1a1a] font-bold text-xl newspaper transition-all flex items-center justify-center gap-3 ${isLoading ? "opacity-50 cursor-not-allowed text-gray-500 bg-gray-200" : "bg-black text-white hover:bg-[#8b0000] shadow-[4px_4px_0_rgba(0,0,0,0.5)] hover:shadow-none hover:translate-y-[2px]"}`}
+                          className={`w-full py-4 border-2 border-[#1a1a1a] font-bold text-xl newspaper transition-all flex items-center justify-center gap-3 ${isLoading ? "opacity-50 cursor-not-allowed text-gray-500 bg-gray-200" : "bg-black text-white active:bg-[#8b0000] shadow-[4px_4px_0_rgba(0,0,0,0.5)] active:shadow-none active:translate-y-[2px]"}`}
                         >
                           <FileText className="w-5 h-5" />
                           <span>توليد واصدار هذا التحقيق</span>
@@ -1633,7 +1663,7 @@ export default function App() {
                         setIsLoading(false);
                         setError("");
                       }}
-                      className="px-6 py-2 bg-[#1a1a1a] hover:bg-[#8b0000] text-white font-bold transition-all border-2 border-transparent"
+                      className="px-6 py-2 bg-[#1a1a1a] active:bg-[#8b0000] text-white font-bold transition-all border-2 border-transparent"
                     >
                       العودة للتحرير
                     </button>
@@ -1658,14 +1688,21 @@ export default function App() {
                       <h4 className="text-xl font-bold newspaper text-[#1a1a1a] mb-2">
                         صالة التحرير تعكف على إعداد التحقيق...
                       </h4>
-                      <div className="mx-auto max-w-2xl text-sm font-bold text-[#1a1a1a] bg-[#f4eee0] px-6 py-4 border-l-8 border-[#8b0000] border-y border-r border-[#1a1a1a] font-serif whitespace-pre-wrap text-right shadow-[4px_4px_0_#1a1a1a]">
-                        <div className="text-lg mb-2 flex items-center gap-2">
-                           <span className="w-2 h-2 rounded-full bg-[#8b0000] animate-ping" />
-                           <span className="typewriter">{status}</span>
+                      <div className="mx-auto w-full max-w-3xl text-sm font-bold text-[#1a1a1a] bg-[#f4eee0] px-6 py-4 border-l-8 border-[#8b0000] border-y border-r border-[#1a1a1a] font-serif text-right shadow-[8px_8px_0_#1a1a1a] relative overflow-hidden transition-all duration-300">
+                        <div className="absolute top-0 right-0 w-full h-1 bg-[#8b0000]"></div>
+                        <div className="text-lg mb-4 flex items-center gap-2 pb-3 border-b-2 border-dashed border-[#1a1a1a]/30">
+                           <span className="w-3 h-3 rounded-full bg-[#8b0000] animate-pulse shadow-[0_0_8px_#8b0000]" />
+                           <span className="typewriter text-[#1a1a1a] font-bold tracking-wide">{status}</span>
                         </div>
                         {streamedChunk && (
-                          <div className="font-mono text-xs text-left bg-[#1a1a1a] text-[#f4eee0] p-3 mt-4 rounded-sm overflow-hidden border border-[#8b0000]" dir="ltr" style={{ maxHeight: "150px", overflowY: "auto" }}>
-                            {streamedChunk}
+                          <div className="mt-4 font-arabic-body text-base leading-relaxed bg-[#f2eadd] border-2 border-[#1a1a1a]/30 p-4 shadow-inner relative max-h-[140px] overflow-hidden flex flex-col justify-end" style={{ direction: "rtl", wordBreak: "break-word" }}>
+                            <div className="absolute top-2 left-2 text-[10px] text-[#8b0000] font-bold uppercase tracking-widest flex items-center gap-1 z-10 bg-[#f2eadd] px-2 py-0.5 border border-[#8b0000]/30 rounded-sm" dir="ltr">
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#8b0000] animate-ping" /> LIVE DECRYPTION
+                            </div>
+                            <div className="absolute bottom-0 left-0 w-full h-8 bg-gradient-to-t from-[#f2eadd] to-transparent z-10 pointer-events-none" />
+                            <div className="text-[#1a1a1a] font-bold text-sm leading-relaxed whitespace-pre-wrap text-right mt-4 opacity-80 decoration-slice">
+                              {streamedChunk.length > 500 ? "..." + streamedChunk.slice(-500).replace(/["\{\}\[\]]/g, "").replace(/([a-zA-Z0-9_]+):/g, "\n► ") : streamedChunk.replace(/["\{\}\[\]]/g, "").replace(/([a-zA-Z0-9_]+):/g, "\n► ")}
+                            </div>
                           </div>
                         )}
                       </div>
@@ -1713,7 +1750,7 @@ export default function App() {
 
                     <button
                       onClick={handleStopGeneration}
-                      className="mt-6 px-6 py-2 border-2 border-[#1a1a1a] bg-white text-xs font-bold hover:bg-[#8b0000] hover:text-white transition-all flex items-center gap-2 mx-auto shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px]"
+                      className="mt-6 px-6 py-2 border-2 border-[#1a1a1a] bg-white text-xs font-bold active:bg-[#8b0000] active:text-white transition-all flex items-center gap-2 mx-auto shadow-[2px_2px_0_#1a1a1a] active:shadow-none active:translate-y-[2px]"
                     >
                       <X className="w-4 h-4" />
                       إلغاء العملية
@@ -1755,7 +1792,7 @@ export default function App() {
               <div className="flex gap-3">
                 <button
                   onClick={handleApproveResearchMap}
-                  className="bg-white hover:bg-[#8b0000] text-[#1a1a1a] hover:text-white font-bold py-2 px-6 border-2 border-[#1a1a1a] flex items-center gap-2 transition-all shadow-[2px_2px_0_#8b0000]"
+                  className="bg-white active:bg-[#8b0000] text-[#1a1a1a] active:text-white font-bold py-2 px-6 border-2 border-[#1a1a1a] flex items-center gap-2 transition-all shadow-[2px_2px_0_#8b0000]"
                 >
                   <Wand2 className="w-4 h-4" />
                   <span>اعتماد الخريطة وبدء الكتابة</span>
@@ -1784,7 +1821,7 @@ export default function App() {
                     {researchMap.chapters.map((c, i) => (
                       <div
                         key={i}
-                        className="bg-white border-2 border-[#1a1a1a] p-5 relative group hover:bg-[#f4eee0]/50 transition-all shadow-[2px_2px_0_#1a1a1a]"
+                        className="bg-white border-2 border-[#1a1a1a] p-5 relative group active:bg-[#f4eee0]/50 transition-all shadow-[2px_2px_0_#1a1a1a]"
                       >
                         <div className="absolute top-0 right-0 p-1 bg-[#1a1a1a] text-white text-[10px] font-mono font-bold px-2">
                           CH-0{i + 1}
@@ -1818,12 +1855,12 @@ export default function App() {
                     <button
                       onClick={handleApproveResearchMap}
                       disabled={isLoading}
-                      className={`w-full py-2 flex items-center justify-center gap-2 font-bold transition-all border-2 border-[#1a1a1a] ${isLoading ? "opacity-50 cursor-not-allowed bg-gray-200" : "bg-[#1a1a1a] text-white hover:bg-[#8b0000] shadow-[2px_2px_0_#8b0000] hover:shadow-none hover:translate-y-[2px]"}`}
+                      className={`w-full py-2 flex items-center justify-center gap-2 font-bold transition-all border-2 border-[#1a1a1a] ${isLoading ? "opacity-50 cursor-not-allowed bg-gray-200" : "bg-[#1a1a1a] text-white active:bg-[#8b0000] shadow-[2px_2px_0_#8b0000] active:shadow-none active:translate-y-[2px]"}`}
                     >
                       {isLoading ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                          <span className="text-xs">جاري...</span>
+                          <span className="text-xs">نسخ...</span>
                         </>
                       ) : (
                         <span className="text-sm">ابدأ الكتابة</span>
@@ -1864,7 +1901,7 @@ export default function App() {
                               href={url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-[10px] text-blue-600 hover:underline mr-3 truncate block"
+                              className="text-[10px] text-blue-600 active:underline mr-3 truncate block"
                             >
                               {url}
                             </a>
@@ -1883,20 +1920,24 @@ export default function App() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="space-y-8 p-4"
+            className="space-y-8 p-4 relative"
           >
-            <div className="flex flex-col sm:flex-row items-center justify-between bg-white p-6 border-4 border-double border-[#1a1a1a] shadow-[8px_8px_0_#1a1a1a] gap-4">
+            <div className="absolute top-0 left-10 z-50 pointer-events-none hidden sm:block">
+               <div className="top-secret-stamp">وثيقة سرية حصـرية</div>
+            </div>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-between bg-white p-6 border-4 border-double border-[#1a1a1a] shadow-[8px_8px_0_#1a1a1a] gap-4 relative">
               <div>
-                <h2 className="text-4xl font-bold text-[#8b0000] mb-2 newspaper">
+                <h2 className="text-4xl sm:text-5xl font-bold text-[#8b0000] mb-2 newspaper leading-tight">
                   {data.video_title}
                 </h2>
                 <div className="flex gap-4 text-sm font-serif text-[#555] mt-4">
                   <span className="flex items-center gap-1">
                     <Clock className="w-4 h-4" /> مدة المشاهدة:{" "}
                     {Math.ceil(
-                      [data.opening_sketch, ...data.scenes].reduce(
+                      [data.opening_sketch, ...(data.scenes || [])].reduce(
                         (acc, s) =>
-                          acc + (s.voice_over?.split(/\s+/).length || 0),
+                          acc + ((s?.voice_over || "").split(/\s+/).length),
                         0,
                       ) / 130,
                     )}{" "}
@@ -1904,15 +1945,15 @@ export default function App() {
                   </span>
                   <span className="flex items-center gap-1">
                     <FileText className="w-4 h-4" /> الكلمات:{" "}
-                    {[data.opening_sketch, ...data.scenes].reduce(
+                    {[data.opening_sketch, ...(data.scenes || [])].reduce(
                       (acc, s) =>
-                        acc + (s.voice_over?.split(/\s+/).length || 0),
+                        acc + ((s?.voice_over || "").split(/\s+/).length),
                       0,
                     )}
                   </span>
                   <span className="flex items-center gap-1">
                     <Camera className="w-4 h-4" /> المشاهد:{" "}
-                    {data.scenes.length + 1}
+                    {(data?.scenes?.length || 0) + 1}
                   </span>
                 </div>
               </div>
@@ -1920,7 +1961,7 @@ export default function App() {
                 <button
                   onClick={saveDossier}
                   disabled={isSaving || isSaved}
-                  className={`px-4 py-2 font-bold border-2 flex items-center gap-2 transition-all shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px] ${isSaved ? "bg-[#f4eee0] text-[#1a1a1a] border-[#1a1a1a]" : "bg-transparent hover:bg-[#1a1a1a] text-[#1a1a1a] hover:text-white border-[#1a1a1a]"}`}
+                  className={`px-4 py-2 font-bold border-2 flex items-center gap-2 transition-all shadow-[2px_2px_0_#1a1a1a] active:shadow-none active:translate-y-[2px] ${isSaved ? "bg-[#f4eee0] text-[#1a1a1a] border-[#1a1a1a]" : "bg-transparent active:bg-[#1a1a1a] text-[#1a1a1a] active:text-white border-[#1a1a1a]"}`}
                 >
                   {isSaved ? (
                     <CheckCircle2 className="w-4 h-4" />
@@ -1931,7 +1972,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={handleDownloadNote}
-                  className="px-4 py-2 bg-transparent hover:bg-[#1a1a1a] text-[#1a1a1a] hover:text-white font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px] transition-all"
+                  className="px-4 py-2 bg-transparent active:bg-[#1a1a1a] text-[#1a1a1a] active:text-white font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] active:shadow-none active:translate-y-[2px] transition-all"
                   title="تحميل الملف كامل (Markdown)"
                 >
                   <Download className="w-4 h-4" />
@@ -1939,7 +1980,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={handleExportZip}
-                  className="px-4 py-2 bg-[#8b0000] text-white font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px] transition-all"
+                  className="px-4 py-2 bg-[#8b0000] text-white font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] active:shadow-none active:translate-y-[2px] transition-all"
                   title="تصدير للإنتاج البصري والمونتاج (ZIP)"
                 >
                   <Archive className="w-4 h-4" />
@@ -1948,15 +1989,15 @@ export default function App() {
                 <button
                   onClick={handleExportAudioZip}
                   disabled={isProcessingAudio}
-                  className="px-4 py-2 bg-[#1a1a1a] text-[#f4eee0] font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px] transition-all disabled:opacity-50"
+                  className="px-4 py-2 bg-[#1a1a1a] text-[#f4eee0] font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] active:shadow-none active:translate-y-[2px] transition-all disabled:opacity-50"
                   title="تصدير حزمة الأصوات (ElevenLabs MP3s)"
                 >
                   <Volume2 className={`w-4 h-4 ${isProcessingAudio ? "animate-pulse" : ""}`} />
-                  <span>{isProcessingAudio ? "جاري المعالجة..." : "حزمة الأصوات (ElevenLabs)"}</span>
+                  <span>{isProcessingAudio ? "يتم التفريغ..." : "حزمة الأصوات (ElevenLabs)"}</span>
                 </button>
                 <button
                   onClick={handleDownloadVoiceScript}
-                  className="px-4 py-2 bg-[#f4eee0] hover:bg-[#e6dfcc] text-[#1a1a1a] font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px] transition-all"
+                  className="px-4 py-2 bg-[#f4eee0] active:bg-[#e6dfcc] text-[#1a1a1a] font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] active:shadow-none active:translate-y-[2px] transition-all"
                   title="تحميل التعليق الصوتي فقط (Text)"
                 >
                   <Mic className="w-4 h-4" />
@@ -1964,7 +2005,7 @@ export default function App() {
                 </button>
                 <button
                   onClick={handleDownloadVisuals}
-                  className="px-4 py-2 bg-[#eae5d8] hover:bg-[#dcd3b6] text-[#1a1a1a] font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] hover:shadow-none hover:translate-y-[2px] transition-all"
+                  className="px-4 py-2 bg-[#eae5d8] active:bg-[#dcd3b6] text-[#1a1a1a] font-bold border-2 border-[#1a1a1a] flex items-center gap-2 shadow-[2px_2px_0_#1a1a1a] active:shadow-none active:translate-y-[2px] transition-all"
                   title="تحميل أوامر التصميم للصور والتحريك"
                 >
                   <ImageIcon className="w-4 h-4" />
@@ -1978,7 +2019,7 @@ export default function App() {
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
-                  className={`flex-1 min-w-[120px] py-3 text-lg font-bold transition-all newspaper border-x border-[#1a1a1a] ${activeTab === tab ? "bg-white text-[#8b0000] border-b-0" : "text-[#1a1a1a] hover:bg-[#eae5d8]"}`}
+                  className={`flex-1 min-w-[120px] py-3 text-lg font-bold transition-all newspaper border-x border-[#1a1a1a] ${activeTab === tab ? "bg-white text-[#8b0000] border-b-0" : "text-[#1a1a1a] active:bg-[#eae5d8]"}`}
                 >
                   {tab === "script"
                     ? "نص التحقيق"
@@ -1993,12 +2034,12 @@ export default function App() {
 
             {activeTab === "script" && (
               <TimelineEditor
-                scenes={[data.opening_sketch, ...data.scenes].filter(s => s && (s.asset_id || s.voice_over))}
+                scenes={[data.opening_sketch, ...(data.scenes || [])].filter(s => s && (s.asset_id || s.voice_over))}
                 onUpdateScene={(index, updatedScene) => {
                   if (index === 0) {
                     setData({ ...data, opening_sketch: updatedScene });
                   } else {
-                    const newScenes = [...data.scenes];
+                    const newScenes = [...(data.scenes || [])];
                     newScenes[index - 1] = updatedScene;
                     setData({ ...data, scenes: newScenes });
                   }
@@ -2033,7 +2074,7 @@ export default function App() {
                     </h3>
                     <button
                       onClick={handlePlayVoice}
-                      className={`p-2 border border-[#1a1a1a] transition-all font-bold ${isPlayingVoice ? "bg-[#8b0000] text-white" : "bg-transparent text-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-white"}`}
+                      className={`p-2 border border-[#1a1a1a] transition-all font-bold ${isPlayingVoice ? "bg-[#8b0000] text-white" : "bg-transparent text-[#1a1a1a] active:bg-[#1a1a1a] active:text-white"}`}
                     >
                       {isPlayingVoice ? (
                         <Square className="w-4 h-4" />
@@ -2074,7 +2115,7 @@ export default function App() {
                           </span>
                           <button
                             onClick={() => copyToClipboard(t, "تم نسخ العنوان")}
-                            className="opacity-0 group-hover:opacity-100 p-2 bg-white border border-[#1a1a1a] hover:bg-[#1a1a1a] hover:text-white transition-all"
+                            className="opacity-100 p-2 bg-white border border-[#1a1a1a] active:bg-[#1a1a1a] active:text-white transition-all"
                           >
                             <Copy className="w-4 h-4" />
                           </button>
@@ -2112,7 +2153,7 @@ export default function App() {
                                   "تم نسخ برومبت الصورة المصغرة",
                                 )
                               }
-                              className="absolute top-2 right-0 opacity-0 group-hover:opacity-100 p-1.5 border border-[#1a1a1a] bg-white hover:bg-[#1a1a1a] hover:text-white transition-all"
+                              className="absolute top-2 right-0 opacity-100 p-1.5 border border-[#1a1a1a] bg-white active:bg-[#1a1a1a] active:text-white transition-all"
                             >
                               <Copy className="w-4 h-4" />
                             </button>
@@ -2134,7 +2175,7 @@ export default function App() {
                           "تم نسخ الوصف",
                         )
                       }
-                      className="p-2 border border-[#1a1a1a] hover:bg-[#1a1a1a] text-[#1a1a1a] hover:text-white transition-all"
+                      className="p-2 border border-[#1a1a1a] active:bg-[#1a1a1a] text-[#1a1a1a] active:text-white transition-all"
                     >
                       <Copy className="w-4 h-4" />
                     </button>
@@ -2153,7 +2194,7 @@ export default function App() {
                 {data.shorts.map((short, i) => (
                   <div
                     key={i}
-                    className="bg-white p-6 border-2 border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] space-y-4 flex flex-col hover:-translate-y-1 transition-transform"
+                    className="bg-white p-6 border-2 border-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] space-y-4 flex flex-col active:-translate-y-1 transition-transform"
                   >
                     <div className="w-10 h-10 bg-[#1a1a1a] flex items-center justify-center text-white font-bold text-xl newspaper">
                       {i + 1}
@@ -2183,7 +2224,7 @@ export default function App() {
                             "تم نسخ سكريبت الشورت",
                           )
                         }
-                        className="absolute top-2 left-2 opacity-0 group-hover/script:opacity-100 p-2 bg-white hover:bg-[#1a1a1a] text-[#1a1a1a] border border-[#1a1a1a] hover:text-white transition-all"
+                        className="absolute top-2 left-2 opacity-100 p-2 bg-white active:bg-[#1a1a1a] text-[#1a1a1a] border border-[#1a1a1a] active:text-white transition-all"
                       >
                         <Copy className="w-4 h-4" />
                       </button>
@@ -2200,7 +2241,7 @@ export default function App() {
                             "تم نسخ التعليمات",
                           )
                         }
-                        className="absolute top-3 right-0 opacity-0 group-hover/prompt:opacity-100 p-1.5 border border-[#1a1a1a] bg-white hover:bg-[#1a1a1a] text-[#1a1a1a] hover:text-white transition-all"
+                        className="absolute top-3 right-0 opacity-100 p-1.5 border border-[#1a1a1a] bg-white active:bg-[#1a1a1a] text-[#1a1a1a] active:text-white transition-all"
                       >
                         <Copy className="w-3 h-3" />
                       </button>
@@ -2247,7 +2288,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => setShowMoodModal(false)}
-                  className="p-2 bg-white text-[#1a1a1a] border-2 border-transparent hover:border-[#8b0000] hover:text-[#8b0000] transition-all shadow-[2px_2px_0_rgba(255,255,255,0.5)]"
+                  className="p-2 bg-white text-[#1a1a1a] border-2 border-transparent active:border-[#8b0000] active:text-[#8b0000] transition-all shadow-[2px_2px_0_rgba(255,255,255,0.5)]"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2263,7 +2304,7 @@ export default function App() {
                           setMood(m.type);
                           setShowMoodModal(false);
                         }}
-                        className={`p-4 border-2 border-[#1a1a1a] cursor-pointer transition-all group flex flex-col gap-2 ${isActive ? "bg-[#1a1a1a] text-white shadow-[4px_4px_0_#8b0000]" : "bg-white text-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] hover:-translate-y-1 hover:shadow-[6px_6px_0_#1a1a1a]"}`}
+                        className={`p-4 border-2 border-[#1a1a1a] cursor-pointer transition-all group flex flex-col gap-2 ${isActive ? "bg-[#1a1a1a] text-white shadow-[4px_4px_0_#8b0000]" : "bg-white text-[#1a1a1a] shadow-[4px_4px_0_#1a1a1a] active:-translate-y-1 active:shadow-[6px_6px_0_#1a1a1a]"}`}
                       >
                         <div className="flex justify-between items-start">
                           <div
@@ -2328,7 +2369,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => setShowArchive(false)}
-                  className="p-2 bg-white text-[#1a1a1a] border-2 border-transparent hover:border-[#8b0000] hover:text-[#8b0000] transition-all shadow-[2px_2px_0_rgba(255,255,255,0.5)]"
+                  className="p-2 bg-white text-[#1a1a1a] border-2 border-transparent active:border-[#8b0000] active:text-[#8b0000] transition-all shadow-[2px_2px_0_rgba(255,255,255,0.5)]"
                 >
                   <X className="w-5 h-5" />
                 </button>
@@ -2349,7 +2390,7 @@ export default function App() {
                     {archive.map((item) => (
                       <div
                         key={item.id}
-                        className="bg-white border-2 border-[#1a1a1a] p-4 flex items-center justify-between group hover:bg-[#1a1a1a] hover:text-white transition-colors cursor-pointer shadow-[2px_2px_0_#1a1a1a] hover:shadow-none"
+                        className="bg-white border-2 border-[#1a1a1a] p-4 flex items-center justify-between group active:bg-[#1a1a1a] active:text-white transition-colors cursor-pointer shadow-[2px_2px_0_#1a1a1a] active:shadow-none"
                         onClick={() => {
                           setData(item);
                           setShowArchive(false);
@@ -2376,12 +2417,12 @@ export default function App() {
                         <div className="flex gap-2 shrink-0">
                           <button
                             onClick={(e) => handleDeleteArchive(item.id, e)}
-                            className="p-2 border border-[#1a1a1a] group-hover:border-white text-[#1a1a1a] group-hover:text-white hover:bg-red-600 hover:border-red-600 transition-colors z-10"
+                            className="p-2 border border-[#1a1a1a] group-hover:border-white text-[#1a1a1a] group-hover:text-white active:bg-red-600 active:border-red-600 transition-colors z-10"
                             title="مسح من الأرشيف"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
-                          <ChevronLeft className="w-6 h-6 opacity-30 group-hover:opacity-100 group-hover:-translate-x-1 transition-all self-center" />
+                          <ChevronLeft className="w-6 h-6 opacity-100 transition-all self-center" />
                         </div>
                       </div>
                     ))}
@@ -2421,7 +2462,7 @@ export default function App() {
                 </div>
                 <button
                   onClick={() => setShowSettings(false)}
-                  className="p-1 hover:bg-[#8b0000] hover:text-white transition-colors"
+                  className="p-1 active:bg-[#8b0000] active:text-white transition-colors"
                 >
                   <X className="w-6 h-6" />
                 </button>
@@ -2461,7 +2502,7 @@ export default function App() {
                       dir="ltr"
                       value={ollamaModel}
                       onChange={(e) => setOllamaModel(e.target.value)}
-                      placeholder="llama3.1"
+                      placeholder="gemini-3-flash-preview"
                     />
                   </div>
                   

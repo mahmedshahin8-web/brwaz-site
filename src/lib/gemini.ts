@@ -27,6 +27,8 @@ import {
 
 export function getPersonaForMood(mood: MoodType): PersonaType {
   switch (mood) {
+    case "حكاوي الأجداد":
+      return "برواز الحكاوي";
     case "كلاكيت وتزوير":
     case "خرافات شعبية":
     case "صراع العروش العربي":
@@ -45,6 +47,8 @@ export function getPersonaForMood(mood: MoodType): PersonaType {
 
 export function getPersonaInstructions(persona: PersonaType): string {
   switch (persona) {
+    case "برواز الحكاوي":
+      return "You are 'برواز الحكاوي', a nostalgic storyteller of folklore and traditional myths. Focus on nostalgia, warm storytelling, urban legends, spooky classical vibes, mysterious shadows, and childhood memories. The tone is mysterious, warm, slightly spooky, and deeply nostalgic.";
     case "برواز التاريخ":
       return "You are 'برواز التاريخ', a historical narrator. Focus heavily on ancient myths, lost empires, old-world style, classical architecture, handwritten manuscripts, sepia tones, and dramatic historical conflicts. The tone is epic, ancient, and scholarly.";
     case "برواز التكنو":
@@ -70,6 +74,7 @@ export const Node2Schema = z.object({
   scene_id: z.string(),
   voiceover_text: z.string().describe("النص بالتعليق الصوتي. يجب دمج علامات [صمت درامي] في المساحات الصامتة، و 🔊 للإشارة لمؤثر صوتي بشكل صريح"),
   voiceover_notes: z.string().describe("إرشادات للمعلق الصوتي البشري (نبرة، سرعة، إحساس)"),
+  estimated_duration_seconds: z.number().describe("المدة الزمنية التقريبية للمشهد بالثواني بناءً على طول النص الصوتي"),
   dramatic_pause_seconds: z.number().describe("مدة الصمت المطلوب إن وجدت"),
   camera_and_vision: z.string().describe("الرؤية البصرية: وصف كادر الكاميرا والظلال (فقط استعارة مادية، بدون بشر)"),
   cinematic_movement: z.string().describe("حركة الكاميرا السينمائية للـ B-Roll (مثال: Slow Dolly in, Dutch angle, Parallax effect)"),
@@ -77,6 +82,8 @@ export const Node2Schema = z.object({
   visual_color_grading: z.string().describe("توزيع باليتة برواز (Navy #1F2A44, Gold #B89B6A, Ivory #F5F1E8) في هذا المشهد"),
   montage_instructions: z.string().describe("توجيهات المونتاج: تعليمات تقنية للمونتير البشري حول سرعة التقطيع، نوع الانتقالات، وكثافة الجرافيكس"),
   english_image_prompt: z.string().describe("Prompt for AI generation (NO HUMAN FACES). MUST explicitly mention Color palette (Navy blue, muted gold, warm ivory)."),
+  ai_video_prompt: z.string().describe("Motion prompt for Runway/Kling based on the camera and vision (English)."),
+  b_roll_keywords: z.string().describe("Comma separated English keywords for stock footage search (e.g. vintage newspaper, crowded street silhouette)."),
   sound_and_sfx: z.string().describe("المؤثرات الصوتية المحيطية بدقة"),
   asmr_soundscape: z.string().describe("صوت ASMR خشن يعزز الواقعية ليحل محل غياب الوجوه (مثال: احتكاك ورق، خطوات، غليان)"),
   music_prompt: z.string().describe("Music prompt for Lyria 3 based on mood, including recommended instruments and pacing state"),
@@ -106,6 +113,7 @@ export type MoodType =
   | "كلاكيت وتزوير"
   | "ملفات متقفلش"
   | "خرافات شعبية"
+  | "حكاوي الأجداد"
   | "سبوبة ولا ابتكار"
   | "حواديت شوارع"
   | "صراع العروش العربي"
@@ -158,6 +166,13 @@ export function getMoodContext(mood: MoodType): {
       scriptingStyle: "Skeptical, logic-driven yet mocking. ساخر مبني على المنطق.",
       visualAudioStyle: "Macro shots of talismans being destroyed, clean white lab light.",
       archivalTreasureRules: "يجب استخراج المصادر من: كتب التراث مثل (البداية والنهاية)، مخطوطات السحر القديمة (شمس المعارف) ومقارنتها بالدراسات الأنثروبولوجية الحديثة لمجلة المقتطف.",
+    };
+  } else if (mood === "حكاوي الأجداد") {
+    return {
+      researchAngle: "سرد أصول قصص الرعب التراثية والأساطير المصرية والعربية بطريقة مشوقة، مع ربطها بالأحداث التي جعلت الناس تؤمن بها زمان (مثل توقيت ظهور أسطورة السلعوة في التسعينات).",
+      scriptingStyle: "أسلوب الحكّاء الغامض، الغني بالنوستالجيا، والذي يترك مساحة صغيرة للشك والخوف، لكي يجذب انتباه الجيل الأصغر.",
+      visualAudioStyle: "إيحاءات الرعب الكلاسيكية (إضاءة خافتة، ظلال، زوايا كاميرا واسعة للقرى أو الحارات القديمة).",
+      archivalTreasureRules: "الاعتماد على حكايات الرواة الشفهية المطلية بالطابع الرسمي (مثل أخبار الحوادث الغريبة في الجرائد القديمة، ومقالات الفلكلور الشعبي في المجلات القديمة).",
     };
   } else if (mood === "سبوبة ولا ابتكار") {
     return {
@@ -274,14 +289,14 @@ export function getSystemPrompt(): string {
 }
 
 const GLOBAL_IMAGE_STYLE = "Cinematic lighting, 8k resolution, highly detailed, masterpieces style, hyper-realistic textures, ultra photorealistic";
-const GLOBAL_NEGATIVE_PROMPT = "no people, no humans, no faces, no characters, no text, no letters, no typography, no Arabic, no words, no clones, no duplicates, low quality, blurry, distorted";
+const GLOBAL_NEGATIVE_PROMPT = "people, humans, faces, characters, text, letters, typography, Arabic, words, watermarks, signatures, clones, duplicates, mutants, low quality, blurry, distorted";
 
 export function applyGlobalStyle(prompt: string): string {
   if (!prompt || prompt.trim() === "") return prompt;
 
   let finalPrompt = prompt;
   // Ensure we don't duplicate global styling
-  if (!finalPrompt.includes(GLOBAL_IMAGE_STYLE)) {
+  if (!finalPrompt.includes("Cinematic lighting")) {
     finalPrompt = `${finalPrompt}, ${GLOBAL_IMAGE_STYLE}`;
   }
   if (!finalPrompt.includes(GLOBAL_NEGATIVE_PROMPT)) {
@@ -303,7 +318,7 @@ function cleanUrl(url: string): string {
   return url.trim().replace(/\/$/, "");
 }
 
-async function generateAIContentRaw(
+export async function generateAIContentRaw(
   prompt: string,
   schema?: any,
   engine = "gemini",
@@ -323,7 +338,8 @@ async function generateAIContentRaw(
 2. قاعدة مكافحة الكليشيهات والنبرة (Anti-Cliché & Tone Rule):
 - يُمنع تماماً استخدام العبارات المستهلكة (مثل: "يا عزيزي"، "دعني أخبرك"، "هل تساءلت يوماً"، أو النبرة الحماسية المبالغ فيها).
 - النبرة يجب أن تكون واقعية، رصينة، وتدخل في صلب الموضوع مباشرة.
-- التعليق الصوتي يجب أن يُكتب باللهجة القاهرية النظيفة (Clean Cairene) أو اللهجة البيضاء لتناسب السرد الاحترافي.
+- التعليق الصوتي يجب أن يُكتب باللهجة المصرية العامية (القاهرية) بأسلوب الشارع وسرد القهاوي. يُمنع منعاً باتاً استخدام اللغة العربية الفصحى أو اللهجة البيضاء. استخدم صياغات كلاسيكية مصرية مثل "علشان، كدة، إزاي، ياترى، بجد، اللي، تخيل معايا".
+- تحذير هام: رغم استخدام اللهجة المصرية الدارجة، اكتب الكلمات بحروفها القياسية لتسهيل قراءة الذكاء الاصطناعي الصوتي لها (مثال: اكتب "القهوة" أو "قهوة" بالقاف وليس "الأهوة"، ولكن التراكيب والكلمات مصرية أصيلة).
 
 3. قاعدة حماية النصوص البصرية (Visual Text Lock):
 - أي نصوص مطلوبة للظهور داخل التصميمات أو الرؤية البصرية يجب أن تظل EXACTLY كما هي باللغة العربية. 
@@ -344,7 +360,7 @@ async function generateAIContentRaw(
     const useOllama = localStorage.getItem("useOllama") === "true";
     const storedUrl = localStorage.getItem("ollamaUrl");
     const ollamaUrl = (storedUrl && storedUrl !== "http://127.0.0.1:11434") ? storedUrl : "http://localhost:11434";
-    const ollamaModel = localStorage.getItem("ollamaModel") || "llama3.1";
+    const ollamaModel = localStorage.getItem("ollamaModel") || "gemini-3-flash-preview";
 
     let fetchUrl = "/api/generate";
     let requestBody: any = {
@@ -367,8 +383,10 @@ async function generateAIContentRaw(
       requestBody.model = ollamaModel;
       requestBody.format = "json"; // Ollama works best with strict "json" when prompt has template
       requestBody.options = { 
-        temperature: 0.7,
+        temperature: 0.8,
         repeat_penalty: 1.15,
+        top_k: 40,
+        top_p: 0.9,
         num_ctx: 32768, // Ensure enough context limit for long generations
         num_predict: -1 // Unlimited predicting
       }; // Ollama specific format
@@ -462,7 +480,14 @@ async function generateAIContentRaw(
      const useOllama = localStorage.getItem("useOllama") === "true";
      
      if (useOllama && err.name === "TypeError" && msg.includes("fetch")) {
-         throw new Error("فشل الاتصال بسيرفر Ollama المحلي. المتصفح يمنع الاتصال، يرجى مراجعة إعدادات Ollama في التطبيق للتأكد من تفعيل CORS (OLLAMA_ORIGINS=\"*\").");
+         const isHttps = typeof window !== "undefined" && window.location.protocol === "https:";
+         const isHttpTarget = typeof window !== "undefined" && (localStorage.getItem("ollamaUrl")?.startsWith("http://") || !localStorage.getItem("ollamaUrl"));
+         
+         if (isHttps && isHttpTarget) {
+             throw new Error("فشل الاتصال بسيرفر Ollama. أنت تستخدم الموقع بنظام (HTTPS) وتتصل بـ (HTTP). المتصفح يمنع ذلك (Mixed Content). يرجى الرجوع للإعدادات لمعرفة كيفية استخدام ngrok لعمل رابط HTTPS.");
+         } else {
+             throw new Error("فشل الاتصال بسيرفر Ollama المحلي. المتصفح يمنع الاتصال، يرجى مراجعة إعدادات Ollama في التطبيق للتأكد من تفعيل CORS (OLLAMA_ORIGINS=\"*\").");
+         }
      }
 
      // If the error comes from the backend proxy natively via our fallback system, it will have a detailed message.
@@ -476,7 +501,7 @@ async function generateAIContentRaw(
 
 export const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-async function callWithRetry(
+export async function callWithRetry(
   fn: () => Promise<any>,
   retries = 3,
   baseDelay = 2000,
@@ -504,8 +529,9 @@ async function callWithRetry(
       // Known unrecoverable proxy errors
       const isStartingServerError = errorMessage.includes("السيرفر الداخلي") || errorMessage.includes("starting server");
       const isMissingApiKeys = errorMessage.includes("فشل كلا المزودين") || errorMessage.includes("المفتاح غير صالح");
+      const isOllamaCorsError = errorMessage.includes("ollama");
       
-      if (!isStartingServerError && (isMissingApiKeys || errorMessage.includes("403") || errorMessage.includes("400") || errorMessage.includes("invalid url") || errorMessage.includes("html"))) {
+      if (!isStartingServerError && (isOllamaCorsError || isMissingApiKeys || errorMessage.includes("403") || errorMessage.includes("400") || errorMessage.includes("invalid url") || errorMessage.includes("html"))) {
          console.error("Unrecoverable error encountered, aborting retries:", error);
          throw error;
       }
@@ -523,26 +549,41 @@ async function callWithRetry(
   }
 }
 
-function safeJsonParse(text: string, fallback: any = null) {
+export function safeJsonParse(text: string, fallback: any = null) {
   if (!text || typeof text !== "string") return fallback;
   
   // Clean markdown backticks common in LLM outputs
-  let cleanedText = text.replace(/^```(json)?|```$/gm, '').trim();
+  let cleanedText = text.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+  // If there's text before the first [ or {, strip it out
+  const firstBrace = cleanedText.indexOf('{');
+  const firstBracket = cleanedText.indexOf('[');
+  
+  let startIndex = -1;
+  if (firstBrace !== -1 && firstBracket !== -1) {
+    startIndex = Math.min(firstBrace, firstBracket);
+  } else if (firstBrace !== -1) {
+    startIndex = firstBrace;
+  } else if (firstBracket !== -1) {
+    startIndex = firstBracket;
+  }
+  
+  if (startIndex !== -1) {
+    const lastBrace = cleanedText.lastIndexOf('}');
+    const lastBracket = cleanedText.lastIndexOf(']');
+    let endIndex = Math.max(lastBrace, lastBracket);
+    
+    if (endIndex !== -1 && endIndex > startIndex) {
+        cleanedText = cleanedText.substring(startIndex, endIndex + 1);
+    } else {
+        cleanedText = cleanedText.substring(startIndex);
+    }
+  }
 
   try {
-    // Attempt 1: Standard parse
     return JSON.parse(cleanedText);
   } catch (e) {
     try {
-      // Attempt 2: Extract JSON block
-      const exactMatch = cleanedText.match(/(\[[\s\S]*\]|\{[\s\S]*\})/);
-      if (exactMatch && exactMatch[0]) {
-        return JSON.parse(exactMatch[0]);
-      }
-    } catch (e2) {}
-
-    try {
-      // Attempt 3: Incomplete JSON repair (appending braces / brackets if missing)
       if (cleanedText.startsWith('{') && !cleanedText.endsWith('}')) {
           return JSON.parse(cleanedText + '}');
       }
@@ -565,11 +606,20 @@ export async function generateTitle(
   signal?: AbortSignal
 ): Promise<RadarSuggestion[]> {
   const moodContext = getMoodContext(mood);
+  let specificRules = "";
+  if (mood === "حكاوي الأجداد" && (!topic || topic.trim() === "")) {
+    specificRules = `\nCRITICAL OVERRIDE FOR THIS MOOD (NO TOPIC PROVIDED): You MUST generate these exact or very closely related concepts: 
+1. "القصة الحقيقية وراء اختراع السلعوة" (The real story behind the Silawea myth in the 90s)
+2. "النداهة: رعب ليالي الدلتا" (El Naddaha: Horrors of the Delta nights)
+3. "أمنا الغولة وأبو رجل مسلوخة" (The origin of childhood bogeymen).`;
+  }
+
   const prompt = `[Agent: Editor in Chief - Archive Desk]
 ${getSystemPrompt()}
-Task: Generate exactly 3 deeply researched, highly creative, and culturally significant YouTube video ideas based on raw archival logic.
+Task: Generate exactly 3 highly creative, deeply researched, and culturally significant YouTube video ideas based on raw archival logic for an Egyptian audience.
 Topic/Seed: ${topic || "Random fascinating, buried subject based on the mood"}
 Selected Journalistic Mood: ${mood}
+${specificRules}
 
 === RESEARCH ANGLES & RULES FOR THIS MOOD ===
 Research Angle Focus: ${moodContext.researchAngle}
@@ -578,20 +628,20 @@ MUST PULL TREASURES FROM (ARCHIVAL SOURCES RULE): ${moodContext.archivalTreasure
 Additional User Notes: ${note}
 
 CRITICAL REQUIREMENTS:
-1. You MUST generate exactly and strictly THREE (3) distinct ideas. Never return less than 3.
-2. "الثعبانية" RULE: The ideas must sound like they were dug out of a dusty, forbidden cabinet. They must mention specific (real or highly plausible historical) Arabic sources, old newspapers (e.g., Ahram 1950s, Akhbar El Yom, old police logs, declassified docs) in the hook.
-3. NO CLICHÉS: Stop generating standard YouTube titles. Think like an Egyptian investigative journalist discovering a treasure.
+1. OVERALL TONE: The ideas and hooks MUST be written in an Egyptian Journalist tone (مصرية صحفية دارجة، أسلوب الدحيح). NEVER use rigid, translated, or formal Arabic (لا تكتب الفصحى الجامدة). Do NOT use fake documentary meta-words (e.g. don't write "ثعبانية الشوارع" or "مانشيتات عاجلة"). The title should sound like a viral, high-quality YouTube video (e.g., "السر اللي خفوه في أرشيف الأهرام", "إزاي كتاب قديم غير تاريخ الشارع").
+2. THE FORBIDDEN ARCHIVE: The ideas must sound like they were dug out of a dusty cabinet. You MUST incorporate specific (real or highly plausible historical) Arabic sources seamlessly into the hook narrative.
+3. NO CLICHÉS: Stop generating standard AI titles. Think like a real human Egyptian investigative journalist.
+4. EXACT COUNT: You MUST return exactly 3 ideas.
 
 Output format: A JSON OBJECT.
 {
   "suggestions": [
     {
       "id": 1,
-      "title": "Headline 1 (Catchy, Journalistic, Egyptian/Arab Context)",
-      "hook": "Full context paragraph in Egyptian Arabic explaining the story, WHY it is a treasure, and strictly naming the archaic/rare sources (e.g., 'حسب ما نشر في أرشيف الأهرام سنة 1961...', 'من واقع مذكرات البوليس السري...').",
+      "title": "Headline 1 (Catchy, Viral, Egyptian storytelling Context without clichés)",
+      "hook": "Full context paragraph in engaging Egyptian slang (عامية مصرية) explaining the story, why it's a treasure, and naming the archaic/rare sources naturally.",
       "angle": "Brief strategy on how the script will be executed."
-    },
-    ...
+    }
   ]
 }
 STRICTLY return the JSON Object only. No markdown. No introductory text.`;
@@ -733,18 +783,32 @@ export async function generateResearchMap(
 ${getSystemPrompt()}
 Video Title: ${title}
 Target Duration: ${durationValue} minutes.
-Mood: ${mood}
-Research Angle Focus: ${moodContext.researchAngle}
+User Note / Context: ${note}
+Selected Journalistic Mood: ${mood}
 
-Task: Gather deep, factual, and fascinating research data for this topic. Break the video down into exactly ${numChapters} chapters that flow perfectly from one to the next, adhering to the "Research Angle" of the specified mood.
-CRITICAL INSTRUCTION FOR SOURCES: You MUST prioritize authentic, high-quality ARABIC sources (e.g., Al Jazeera, BBC Arabic, Arabic encyclopedias, Arabic historical texts, etc.). Ensure that the citations feel authentic to the Middle Eastern context if applicable.
+=== MOOD & STYLE CONSTRAINTS ===
+Research Angle Focus: ${moodContext.researchAngle}
+Scripting Style Focus: ${moodContext.scriptingStyle}
+MUST PULL TREASURES FROM: ${moodContext.archivalTreasureRules}
+
+Task: Gather mind-blowing, deeply researched, factual, and fascinating data for this topic. Break the video down into exactly ${numChapters} chapters that flow perfectly from one to the next, adhering to the "Research Angle" of the specified mood. The content MUST be dense, highly educational, yet presented with the narrative hooks of a master storyteller (like "Al Daheeh").
+
+CRITICAL INSTRUCTIONS FOR CHAPTERS & RESEARCH:
+1. YOU MUST NEVER REPEAT CHAPTER TITLES OR DESCRIPTIONS. EACH CHAPTER MUST BE 100% UNIQUE.
+2. EXTREME DETAIL: Do not use generic summaries. Each chapter must explore a SPECIFIC, DISTINCT, and UNIQUE sub-topic, event, scientific phenomenon, or dimension of the story. 
+3. Include fascinating historical anecdotes, weird statistics, or crazy facts that nobody knows. We want the audience to feel like they learned something incredibly valuable and niche.
+4. If chapters represent chronologies, ensure they move forward logically. If they represent themes, ensure NO overlap.
+5. Provide a strong hook or conflict for every single chapter in its description.
+6. The "research_data" MUST be an extensive, highly informative essay-like compilation of facts, dates, names, theories, and analogies. It must serve as a rich encyclopedia for the scriptwriter later. DO NOT skim.
+
+CRITICAL INSTRUCTION FOR SOURCES: You MUST prioritize authentic, high-quality ARABIC sources (e.g., historical documents, academic papers, books, encyclopedias, trusted journalism). Ensure that the citations are real, highly relevant, and impressive.
 
 [CRITICAL]: Response MUST be PURE JSON.
 {
   "research_data": "string (A massive consolidated block of all the factual research, historical data, or deep insights about the topic. This acts as the brain for the entire script.)",
   "sources": [ { "title": "string", "url": "string (Real looking URLs if possible)", "info": "string" } ],
-  "video_title": "string",
-  "chapters": [ { "chapter_number": number, "chapter_title": "string", "chapter_description": "string (Detailed explanation of what this chapter covers)", "key_points": ["string"] } ],
+  "video_title": "string (A catchy title based on the mood)",
+  "chapters": [ { "chapter_number": number, "chapter_title": "string (UNIQUE)", "chapter_description": "string (Detailed explanation of what this unique chapter covers)", "key_points": ["string", "string"] } ],
   "thumbnail": { "image_prompt": "string", "text_on_image": "string" }
 }`;
 
@@ -846,25 +910,24 @@ ${previousSummary ? `Previous Chapter Summary (DO NOT REPEAT information from he
 ${previousSummary}
 ` : ""}
 
-[CRITICAL INSTRUCTIONS]:
-1. DIALECT & READABILITY: 
-    - The "voice_over" MUST ALWAYS be written in 100% Egyptian slang/dialect (عامية مصرية دارجة in the style of Al Daheeh), conversational, and highly engaging.
-    - REPETITION BAN: Never repeat phrases like "يا جماعة" or "هذه الأسطورة" or "في هذا الفصل". Speak naturally and deliver NEW facts in every single sentence. Do not re-use sentences or concepts from previous scenes. Avoid repeating the same visuals.
-   - FORMAT FOR VOICE ACTOR: Write the script exactly as it should be read. Spell out numbers as words (e.g., "خمسة آلاف" instead of "5000"). Use punctuation (..., !, ؟) clearly to indicate pauses and tone changes. 
-   - No formal Arabic.
-2. SCRIPT LENGTH AND PACING (CRITICAL):
+[CRITICAL INSTRUCTIONS - "AL DAHEEH" MASTERCLASS METHOD]:
+1. THE VOICE & TONE (عامية مصرية دايركت): 
+   - The "voice_over" MUST ALWAYS be written in 100% Egyptian slang/dialect (عامية مصرية دارجة), conversational, dynamic, and highly engaging.
+   - It MUST sound exactly like popular YouTube science/history storytellers (e.g., Al-Daheeh - الدحيح). Use humor, sarcasm, sudden energy shifts, and talk directly to the viewer ("بص يا سيدي", "تخيل معايا كده", "الموضوع مش زي ما إنت فاكر").
+2. STORYTELLING & STRUCTURE:
+   - Use Analogies: Explain complex or dry topics by comparing them to everyday Egyptian situations (e.g., riding a microbus, buying a shawarma, dealing with your landlord).
+   - Show, Don't Tell: Drive the narrative through specific stories of people, exact dates, and funny incidents, not just dry facts.
+   - Pace & Retention: Change the pacing. Ask rhetorical questions. Introduce a mystery, then solve it with an academic or historical fact.
+3. REPETITION BAN: Never repeat generic transitional phrases. Speak naturally and deliver NEW, mind-blowing facts in every single sentence. Do not re-use sentences or concepts from previous scenes. 
+4. FORMAT FOR VOICE ACTOR: Write the script exactly as it should be read. Spell out numbers as words (e.g., "خمسة آلاف"). Use punctuation (..., !, ؟) clearly to indicate pauses and tone changes. Include acting notes in brackets inside the voice over if needed, e.g. "(بصوت درامي)" or "(بسرعة)".
+5. SCRIPT LENGTH AND DENSITY (CRITICAL):
    - You MUST write approximately ${targetWords} words of voice_over content for this chapter in total across the generated scenes.
-   - To achieve this, create VERY long, detailed voice_over paragraphs for each scene, or create many scenes. Failure to reach the word count will ruin the video's pacing.
-3. FLOW: This is just ONE segment of a larger continuous video. 
-   - ${isFirst ? "This is the FIRST chapter. You MUST include a strong hook directly into the subject." : "This is a MIDDLE chapter. DO NOT include a welcome, just start immediately where the last chapter left off."}
-   - ${isLast ? "This is the FINAL chapter. Provide a conclusion to the whole video and an outro." : 'This is a MIDDLE chapter. DO NOT conclude the video or say "استنونا في الحلقات الجاية".'}
-4. ASSET ID: Set "asset_id" sequentially like "Scene_XX" (e.g., Scene_01, Scene_02). Do NOT use generic terms like "first_frame".
-5. JSON SAFETY: NEVER use raw double quotes (\\") inside any JSON string value. If you need to quote something inside a string, use SINGLE QUOTES (').
-6. VISUAL FRAMING (Faceless Barwaz Style): The creator DOES NOT show their face. Visuals rely entirely on contextual layouts matching the mood (e.g., mysterious maps, old newspapers, 3D whiteboards, abstract concepts).
-7. IMAGE & VIDEO PROMPTS: 
-   - For "image_prompt_nano_banana", if the scene requires Arabic text (like headlines, signs, documents), explicitly include the Arabic phrase in single quotes (e.g., The large Arabic text 'سقوط الإمبراطورية' is printed on the wall...). Keep the prompt descriptive in English.
-   - For "ai_video_prompt", write a professional prompt suitable for Runway/Luma/Kling. Describe the clear camera movement (e.g., 'Slow pan left', 'Fast zoom in'), the lighting, and the subject's strict motion. Keep it highly cinematic and English only.
-8. FORMAT: Response MUST be a PURE JSON Array of scene objects.
+   - Fill the runtime with DENSE INFORMATION. Do not fluff it up. The viewer must learn something profound. If you run out of things to say, dive deeper into the microscopic details of the 'Research Data'.
+6. FLOW: This is just ONE segment of a larger continuous video. 
+   - ${isFirst ? "This is the FIRST chapter. You MUST include a massive, attention-grabbing HOOK in the first 10 seconds. Shock the viewer." : "This is a MIDDLE chapter. DO NOT include a welcome, just dive straight into the next mind-blowing detail."}
+   - ${isLast ? "This is the FINAL chapter. Provide a memorable philosophical conclusion, summarize the moral of the story, and deliver a classic memorable outro." : 'This is a MIDDLE chapter. DO NOT conclude the video or say "استنونا". Give a cliffhanger at the end of this chapter leading to the next.'}
+7. ASSET ID & VISUALS: Set "asset_id" sequentially (Scene_01, Scene_02). Visual cues must be wildly creative, complementing the comedy or the drama (e.g., "Meme of someone crying in front of a spreadsheet" or "Dramatic old footage of a sinking ship").
+8. SOURCES & CITATIONS: Naturally mention sources in the script when citing crazy facts (e.g., "زي ما بيقول كتاب كذا...", "دراسة في جامعة كذا سنة كذا اكتشفت إن...").
 
 Output format: A JSON OBJECT containing a single property "timeline" which is an array of scene objects:
 {
@@ -1086,7 +1149,7 @@ export async function executeNode0_OSINT(
   engine = "gemini",
   onChunk?: (text: string) => void
 ): Promise<OsintDossier> {
-  const cached = await getCachedDossier(topic);
+  const cached = await getCachedDossier(topic, mood);
   if (cached) {
     if (onChunk) onChunk("[CACHE HIT] Loaded OSINT Dossier from local storage.");
     return cached;
@@ -1196,7 +1259,7 @@ Mood: ${mood}
 
     const parsedData = safeJsonParse(text);
     const dossierResult = parsedData as OsintDossier;
-    await saveCachedDossier(topic, dossierResult);
+    await saveCachedDossier(topic, mood, dossierResult);
     return dossierResult;
   });
 }
@@ -1205,11 +1268,12 @@ export async function executeNode1_Structure(
   topic: string,
   dossier: OsintDossier,
   targetDurationMinutes: number,
+  mood: MoodType,
   persona: PersonaType,
   engine = "gemini",
   onChunk?: (text: string) => void
 ): Promise<Node1Structure> {
-  const cached = await getCachedStructure(topic);
+  const cached = await getCachedStructure(topic, mood);
   if (cached && (Date.now() % 2 !== 0)) { // Just bypass caching for now
   }
   
@@ -1219,6 +1283,7 @@ export async function executeNode1_Structure(
   }
   
   const personaContext = getPersonaInstructions(persona);
+  const moodContext = getMoodContext(mood);
   const totalWords = targetDurationMinutes * 140;
   const targetScenes = Math.max(Math.ceil(targetDurationMinutes / 1.5), targetDurationMinutes > 15 ? 20 : Math.round(targetDurationMinutes * 1.5));
   
@@ -1227,10 +1292,15 @@ export async function executeNode1_Structure(
     dynamicBranchingRule = `\nDYNAMIC BRANCHING (LONG-FORM): This is a long episode (${targetDurationMinutes} minutes). Do NOT just stretch out the core scenes or rely on fluff.\nInstead, expand the topic horizontally:\n- Introduce new, deep sub-topics related to the core theme (e.g., historical roots, economic effects, geopolitical relationships, fictional/hypothetical interview angles).\n- Build the outline with logical, ascending transitions where each new block opens a whole new dimension of the topic.`;
   }
 
-  const prompt = `[Node 1: Architecting Structure]
+  const prompt = `[Node 1: Story Architect - Editor's Desk]
 ${getSystemPrompt()}
 
 You are the "Architect Node" (Node 1) of the Production Engine. Your ONLY job is to take an OSINT Dossier and output a strict JSON outline for a narrative video episode.
+
+MOOD & STYLE CONSTRAINTS:
+Research/Story Angle Focus: ${moodContext.researchAngle}
+Scripting Style Focus: ${moodContext.scriptingStyle}
+Archival Rules Focus: ${moodContext.archivalTreasureRules}
 
 RULES:
 1. SCENE COUNT AND PACING: 
@@ -1294,7 +1364,7 @@ Topic: ${topic}
     const parsedData = safeJsonParse(text);
     try {
       const validatedData = Node1Schema.parse(parsedData);
-      await saveCachedStructure(topic, validatedData);
+      await saveCachedStructure(topic, mood, validatedData);
       return validatedData;
     } catch (e) {
       console.error("Zod Validation Error:", e);
@@ -1320,22 +1390,23 @@ export async function executeNode2_Batch(
   const moodContext = getMoodContext(mood);
   const personaContext = getPersonaInstructions(persona);
   
-  const prompt = `[Node 2: Scripting & Directing]
+  const prompt = `[Node 2: Master Scriptwriter & Director - The Storytelling Genius]
 ${getSystemPrompt()}
 
 You are the "Scripting Node" (Node 2) of the Production Engine. Your task is to write the voiceover script and visual prompts for a batch of consecutive scenes based on the OSINT chapter structure.
 
-RULES (BRAND CONSTITUTION):
-1. THE PERSONA SHIFT (Object Personification): Do not limit voiceover strictly to the human narrator. When contextually appropriate, let places or objects speak (e.g., Imbaba bridge talking about its history). Also, provide deep sociological analysis (Why people act like this in the shadow economy) instead of just stating facts. It must be philosophical and deep.
-2. VOICEOVER PROTOCOL: 
-   - Language: MUST strictly adhere to the dialect and rules defined in the Channel DNA (Clean Cairene).
-   - Word Count Constraint (CRITICAL): Each scene's "voiceover_text" MUST be long and detailed, containing between 100 to 200 words per scene to ensure the final ${topic} episode hits the correct duration. Short fragments will break the video pacing.
-   - Filter Cliches: NEVER use phrases forbidden by the DNA. The tone must be calm, deep, and investigative without cheap emotional hooks.
+RULES FOR WORLD-CLASS STORYTELLING (BEATING THE BEST):
+1. **THE ALDAHEEH / DOCUMENTARY STANDARD**: Your script must be breathtaking. Do NOT just rattle off facts. You must build suspense, ask philosophical questions, give brilliant analogies (like comparing quantum mechanics to a Cairo microbus, or a geopolitical war to a game of dominoes on a sidewalk).
+2. **THE PERSONA SHIFT (Object Personification)**: Do not limit voiceover strictly to the human narrator. When contextually appropriate, let places or objects speak (e.g., Imbaba bridge talking about its history). Also, provide deep sociological analysis (Why people act like this in the shadow economy) instead of just stating facts. It must be philosophical and deep.
+3. **VOICEOVER PROTOCOL**: 
+   - Language: MUST strictly adhere to the dialect rules: 100% Egyptian slang/dialect (عامية مصرية قاهرية صميمة in the style of Al Daheeh). DO NOT use formal Arabic (لا تستخدم الفصحى أبداً). Use classic Egyptian filler words like "علشان، كدة، إزاي، ياترى، بجد، اللي، تخيل معايا". However, KEEP standard spelling for pronunciation (e.g., write "المقاهي" not "المأاهي", use "ق" and "ذ").
+   - Word Count Constraint (CRITICAL): Each scene's "voiceover_text" MUST be long and detailed, containing between 100 to 200 words per scene to ensure the final ${topic} episode hits the correct duration. Short fragments will break the pacing.
+   - Masterful Pacing: End scenes with cliffhangers or profound thoughts that force the user to pay attention.
    - Breathing Space: You MUST insert dramatic pauses explicitly using "[صمت درامي]" and include ambient sound markers using "🔊" to help the sound editor.
-3. ART DIRECTION (IDENTITY GUARD): The english_image_prompt MUST respect the Global Style defined in the Channel DNA. DO NOT add "Navy, Ivory, Gold" unless requested.
-4. ASMR SOUND LAYERING: Provide "rough", hyper-realistic ASMR soundscapes for Lyria 3 (e.g., paper sliding, footsteps on asphalt, coffee boiling). The ASMR sound is the "hero" compensating for the lack of human faces.
-5. EDITOR'S ROADMAP & PRODUCTION METADATA: Be mathematically precise. Specify camera movements for VEO 2/Runway (e.g., "Slow Dolly-In", "Macro Pan right"), exact music BPM (e.g., Cello solo 60 BPM), graphic overlays, and separate structural JSON fields.
-6. SCRIPTING STYLE: ${moodContext.scriptingStyle}
+4. **ART DIRECTION & VISUALS**: All visual prompts for image generation and video sequences MUST be written strictly in ENGLISH. The english_image_prompt MUST respect the Global Style defined in the Channel DNA and MUST contain absolutely NO HUMAN FACES.
+5. **ASMR SOUND LAYERING**: Provide "rough", hyper-realistic ASMR soundscapes. 
+6. MOOD ARCHIVE RULES: ${moodContext.archivalTreasureRules}
+   Scripting Style: ${moodContext.scriptingStyle}
 
 PREVIOUS SCRIPT CONTEXT (Continue seamlessly from this):
 "${previousScript}"
@@ -1353,6 +1424,7 @@ You MUST return ONLY a valid JSON object with the following structure:
       "scene_id": "string",
       "voiceover_text": "string (with [صمت درامي] and 🔊)",
       "voiceover_notes": "string (notes for human VO artist, tone, pacing)",
+      "estimated_duration_seconds": number,
       "dramatic_pause_seconds": number,
       "camera_and_vision": "string (abstract metaphors, macro shots only)",
       "cinematic_movement": "string (exact camera commands like Slow Dolly-In, Pan, Tilt, Tracking)",
@@ -1360,6 +1432,8 @@ You MUST return ONLY a valid JSON object with the following structure:
       "visual_color_grading": "string (How Navy, Gold, Ivory are distributed here)",
       "montage_instructions": "string (cut speed, transitions, graphic overlays)",
       "english_image_prompt": "string (NO HUMAN FACES. Mention Navy, Ivory, Gold)",
+      "ai_video_prompt": "string (Motion prompt for Runway/Kling based on the camera and vision, in English)",
+      "b_roll_keywords": "string (Comma separated English keywords for stock footage search)",
       "sound_and_sfx": "string",
       "asmr_soundscape": "string (ASMR elements like paper rustling, footsteps)",
       "music_prompt": "string (instruments, genre for Lyria 3)",
@@ -1385,6 +1459,7 @@ STRICTLY return the JSON object only. No markdown. No introductory text.
                 scene_id: { type: Type.STRING },
                 voiceover_text: { type: Type.STRING },
                 voiceover_notes: { type: Type.STRING },
+                estimated_duration_seconds: { type: Type.NUMBER },
                 dramatic_pause_seconds: { type: Type.NUMBER },
                 camera_and_vision: { type: Type.STRING },
                 cinematic_movement: { type: Type.STRING },
@@ -1392,13 +1467,15 @@ STRICTLY return the JSON object only. No markdown. No introductory text.
                 visual_color_grading: { type: Type.STRING },
                 montage_instructions: { type: Type.STRING },
                 english_image_prompt: { type: Type.STRING },
+                ai_video_prompt: { type: Type.STRING },
+                b_roll_keywords: { type: Type.STRING },
                 sound_and_sfx: { type: Type.STRING },
                 asmr_soundscape: { type: Type.STRING },
                 music_prompt: { type: Type.STRING },
                 music_bpm: { type: Type.NUMBER },
                 sfx_prompt: { type: Type.STRING },
               },
-              required: ["scene_id", "voiceover_text", "voiceover_notes", "dramatic_pause_seconds", "camera_and_vision", "cinematic_movement", "visual_motif", "visual_color_grading", "montage_instructions", "english_image_prompt", "sound_and_sfx", "asmr_soundscape", "music_prompt", "music_bpm", "sfx_prompt"]
+              required: ["scene_id", "voiceover_text", "voiceover_notes", "dramatic_pause_seconds", "camera_and_vision", "cinematic_movement", "visual_motif", "visual_color_grading", "montage_instructions", "english_image_prompt", "ai_video_prompt", "b_roll_keywords", "sound_and_sfx", "asmr_soundscape", "music_prompt", "music_bpm", "sfx_prompt"]
             }
           }
         },
@@ -1447,7 +1524,8 @@ JSON SCHEMA:
       "montage_instructions": "Arabic notes",
       "sound_design": "Arabic SFX notes",
       "image_prompt_nano_banana": "English image prompt",
-      "ai_video_prompt": "English motion prompt for runway/kling"
+      "ai_video_prompt": "English motion prompt for runway/kling",
+      "b_roll_keywords": "comma separated english keywords for stock footage search"
     }
   ]
 }
@@ -1475,8 +1553,9 @@ ${scriptText}
                 sound_design: { type: Type.STRING },
                 image_prompt_nano_banana: { type: Type.STRING },
                 ai_video_prompt: { type: Type.STRING },
+                b_roll_keywords: { type: Type.STRING },
               },
-              required: ["asset_id", "voice_over", "visual_cue", "montage_instructions", "sound_design", "image_prompt_nano_banana", "ai_video_prompt"]
+              required: ["asset_id", "voice_over", "visual_cue", "montage_instructions", "sound_design", "image_prompt_nano_banana", "ai_video_prompt", "b_roll_keywords"]
             }
           }
         },
@@ -1506,10 +1585,10 @@ export async function executePipeline_Orchestrator(
   engineNode2 = "gemini",
   engineNode3 = "gemini"
 ): Promise<EpisodeData> {
-  onProgress?.(5, "المدير الفني: جاري جمع المصادر والأبحاث (OSINT)...");
+  onProgress?.(5, "[!] رئيس التحرير: يتم الآن فتح ملف القضية والبحث في الأرشيف المنسي...");
   const dossier = await executeNode0_OSINT(topic, mood, persona, engineNode1, onChunk);
 
-  onProgress?.(10, "الباحث: جاري تصميم الخريطة البحثية المعمقة...");
+  onProgress?.(10, "[!] قسم الأبحاث: جاري فحص الوثائق وبناء الخريطة البحثية المعمقة...");
   const design = await generateResearchMap(
     topic,
     durationValue,
@@ -1519,76 +1598,86 @@ export async function executePipeline_Orchestrator(
     onChunk
   );
 
-  onProgress?.(15, "مخرج العمل: جاري بناء الهيكل السردي للحلقة...");
-  const structure = await executeNode1_Structure(topic, dossier, durationValue, persona, engineNode1, onChunk);
+  onProgress?.(15, "[!] الكاتب الصحفي: يتم كتابة النص الكامل بناءً على المعطيات... (يُرجى الانتظار، السرد يتشكل)");
+  const { executeAgent1_Scriptwriter, executeAgent2_Director, executeAgent3_ArtDirector } = await import('./agents');
+  
+  const masterScript = await executeAgent1_Scriptwriter(
+    topic,
+    dossier.compiled_research_context,
+    durationValue,
+    mood,
+    persona,
+    engineNode1,
+    onChunk
+  );
 
-  onProgress?.(25, "كاتب السيناريو: تم بدء كتابة المشاهد...");
+  onProgress?.(35, "[!] المخرج: يتم تفكيك النص وتوزيعه إلى مشاهد، وحساب المدة الزمنية التقديرية...");
+  const directorScenes = await executeAgent2_Director(
+    masterScript,
+    engineNode1,
+    onChunk
+  );
+
+  onProgress?.(45, "[!] قسم الإخراج الفني: يتم معالجة الرؤية البصرية والتوليد التقني للمشاهد...");
   let allScenes: EpisodeScene[] = [];
-  let previousScript = "";
 
-  const BATCH_SIZE = 2;
-  for (let i = 0; i < structure.scenes_outline.length; i += BATCH_SIZE) {
-    const batchOutline = structure.scenes_outline.slice(i, i + BATCH_SIZE);
+  const BATCH_SIZE = 3;
+  const safeDirectorScenes = directorScenes || [];
+  for (let i = 0; i < safeDirectorScenes.length; i += BATCH_SIZE) {
+    const batch = safeDirectorScenes.slice(i, i + BATCH_SIZE);
     
     onProgress?.(
-      25 + Math.floor((60 * i) / structure.scenes_outline.length),
-      `فريق الإنتاج: يتم الآن معالجة وكتابة المشاهد ${i + 1} إلى ${Math.min(i + BATCH_SIZE, structure.scenes_outline.length)} من أصل ${structure.scenes_outline.length}...`
+      45 + Math.floor((45 * i) / Math.max(1, safeDirectorScenes.length)),
+      `[!] المخرج الفني يحقن بصمته: المشاهد من ${i + 1} إلى ${Math.min(i + BATCH_SIZE, safeDirectorScenes.length)} من أصل ${safeDirectorScenes.length}...`
     );
-    const generatedBatch = await executeNode2_Batch(
-      batchOutline,
-      topic,
-      mood,
-      persona,
-      previousScript,
-      dossier.compiled_research_context,
-      engineNode2,
-      onChunk
-    );
+    
+    // We will run the Art Director agent for each scene in the batch in parallel
+    const enhancedScenes = await Promise.all(batch.map(async (scene: any) => {
+      try {
+        const artResponse = await executeAgent3_ArtDirector(scene, mood, engineNode2, onChunk);
+        return {
+          ...scene,
+          ...artResponse
+        };
+      } catch (err) {
+        console.warn("Art Director failed for a scene, returning original scene", err);
+        return scene;
+      }
+    }));
 
-    for (let j = 0; j < generatedBatch.length; j++) {
-      const generatedScene = generatedBatch[j];
-      const sceneIndex = i + j;
+    for (const generatedScene of enhancedScenes) {
       const processedScene: EpisodeScene = {
-        asset_id: generatedScene.scene_id || `[Scene ${String(sceneIndex + 1).padStart(2, "0")}]`,
+        asset_id: generatedScene.scene_id || `[Scene ${String(allScenes.length + 1).padStart(2, "0")}]`,
         voice_over: generatedScene.voiceover_text,
         voiceover_notes: generatedScene.voiceover_notes,
+        estimated_duration_seconds: generatedScene.estimated_duration_seconds,
         visual_cue: generatedScene.camera_and_vision,
         visual_motif: generatedScene.visual_motif,
-        cinematic_movement: generatedScene.cinematic_movement + (generatedScene.visual_color_grading ? `\n\n🎨 التدرج اللوني: ${generatedScene.visual_color_grading}` : ""),
+        cinematic_movement: generatedScene.cinematic_movement,
         montage_instructions: generatedScene.montage_instructions,
         sound_design: generatedScene.sound_and_sfx,
         asmr_soundscape: generatedScene.asmr_soundscape,
-        music_prompt: generatedScene.music_prompt + (generatedScene.music_bpm ? `\n⏱️ BPM: ${generatedScene.music_bpm}` : ""),
-        sfx_prompt: generatedScene.sfx_prompt,
-        image_prompt_nano_banana: applyGlobalStyle(generatedScene.english_image_prompt || ""),
-        ai_video_prompt: ""
+        image_prompt_nano_banana: applyGlobalStyle(generatedScene.image_prompt_nano_banana || ""),
+        ai_video_prompt: generatedScene.ai_video_prompt || "",
+        b_roll_keywords: generatedScene.b_roll_keywords || ""
       };
       
       allScenes.push(processedScene);
-      
-      // Trigger SSE callback if provided
       if (onSceneReady) {
         onSceneReady(processedScene);
       }
-      
-      // Maintain last 2000 characters of the script for deep semantic context
-      previousScript += "\\n\\n" + processedScene.voice_over;
-      if (previousScript.length > 2000) {
-        previousScript = previousScript.substring(previousScript.length - 2000);
-      }
     }
     
-    // Add 4-second delay between batches to prevent API rate limits (Timeout protection)
-    if (i + BATCH_SIZE < structure.scenes_outline.length) {
+    if (i + BATCH_SIZE < safeDirectorScenes.length) {
       onProgress?.(
-        25 + Math.floor((60 * i) / structure.scenes_outline.length),
-        `استراحة قصيرة لحماية الخوادم (تجنب الحظر)...`
+        45 + Math.floor((45 * i) / Math.max(1, safeDirectorScenes.length)),
+        `[!] تمويه تكتيكي لمدة بضع ثوان (تجنب الإرهاق للمحرك المحلي)...`
       );
-      await sleep(4000);
+      await sleep(2000);
     }
   }
 
-  onProgress?.(90, "قسم المونتاج: جاري تغليف الحلقة وصناعة المقاطع القصيرة (Shorts)...");
+  onProgress?.(90, "[!] غرفة التحميض المظلمة: يتم تغليف الملف واسترجاع أدلة مسربة (Shorts)...");
   const packaging = await generatePackaging(
     design.video_title,
     design.research_data,
@@ -1602,10 +1691,10 @@ export async function executePipeline_Orchestrator(
     visual_instructions: applyGlobalStyle(s.visual_instructions || ""),
   }));
 
-  onProgress?.(100, "مبروك! اكتملت المعالجة بنجاح.");
+  onProgress?.(100, "[!] العملية تمت بنجاح. الأدلة جميعها الآن بين يديك.");
 
   return {
-    video_title: structure.episode_theme || design.video_title || topic,
+    video_title: design.video_title || topic,
     thumbnail: design.thumbnail
       ? {
           ...design.thumbnail,

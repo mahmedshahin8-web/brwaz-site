@@ -15,9 +15,9 @@ const structureStore = localforage.createInstance({
   description: "Caches Node 1 Structures"
 });
 
-export async function getCachedDossier(topic: string): Promise<OsintDossier | null> {
+export async function getCachedDossier(topic: string, mood?: string): Promise<OsintDossier | null> {
   try {
-    const slug = topic.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
+    const slug = `${topic.trim()}_${mood || ""}`;
     const dossier: OsintDossier | null = await dossierStore.getItem(slug);
     return dossier;
   } catch (err) {
@@ -26,9 +26,9 @@ export async function getCachedDossier(topic: string): Promise<OsintDossier | nu
   }
 }
 
-export async function saveCachedDossier(topic: string, dossier: OsintDossier): Promise<void> {
+export async function saveCachedDossier(topic: string, mood: string, dossier: OsintDossier): Promise<void> {
   try {
-    const slug = topic.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
+    const slug = `${topic.trim()}_${mood || ""}`;
     dossier.id = slug;
     await dossierStore.setItem(slug, dossier);
   } catch (err) {
@@ -36,18 +36,18 @@ export async function saveCachedDossier(topic: string, dossier: OsintDossier): P
   }
 }
 
-export async function getCachedStructure(topic: string): Promise<Node1Structure | null> {
+export async function getCachedStructure(topic: string, mood?: string): Promise<Node1Structure | null> {
   try {
-    const slug = topic.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
+    const slug = `${topic.trim()}_${mood || ""}`;
     return await structureStore.getItem(slug);
   } catch (err) {
     return null;
   }
 }
 
-export async function saveCachedStructure(topic: string, structure: Node1Structure): Promise<void> {
+export async function saveCachedStructure(topic: string, mood: string, structure: Node1Structure): Promise<void> {
   try {
-    const slug = topic.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-");
+    const slug = `${topic.trim()}_${mood || ""}`;
     await structureStore.setItem(slug, structure);
   } catch (err) {
     console.error("Cache save error:", err);
