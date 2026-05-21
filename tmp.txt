@@ -1,0 +1,48 @@
+1:import React, { useState, useEffect, useRef } from "react";
+96:  const [topic, setTopic] = useState(() => {
+101:  const [duration, setDuration] = useState(10);
+102:  const [note, setNote] = useState("");
+103:  const [mood, setMood] = useState<MoodType>("التحليل الاستقصائي");
+104:  const [liveTrends, setLiveTrends] = useState<LiveTrend[]>([]);
+105:  const [isSweeping, setIsSweeping] = useState(false);
+106:  const [isTriaging, setIsTriaging] = useState(false);
+111:  const [suggestedTitles, setSuggestedTitles] = useState<RadarSuggestion[]>([]);
+112:  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+114:  const [researchMap, setResearchMap] = useState<MasterOutline | null>(null);
+115:  const [isLongForm, setIsLongForm] = useState(false);
+116:  const [generatedScenes, setGeneratedScenes] = useState<EpisodeScene[]>([]);
+117:  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
+119:  const [isLoading, setIsLoading] = useState(false);
+120:  const [progress, setProgress] = useState(0);
+121:  const [status, setStatus] = useState("");
+122:  const [estimatedTime, setEstimatedTime] = useState(0);
+123:  const [loadingTip, setLoadingTip] = useState("");
+124:  const [data, setData] = useState<EpisodeData | null>(null);
+131:  const [error, setError] = useState("");
+171:  const [activeTab, setActiveTab] = useState<
+174:  const [rawScriptText, setRawScriptText] = useState("");
+175:  const [finalVoiceScript, setFinalVoiceScript] = useState("");
+176:  const [isProcessingAudio, setIsProcessingAudio] = useState(false);
+177:  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
+198:  const [showMoodModal, setShowMoodModal] = useState(false);
+199:  const [showArchive, setShowArchive] = useState(false);
+200:  const [showSettings, setShowSettings] = useState(false);
+201:  const [useOllama, setUseOllama] = useState(() => localStorage.getItem("useOllama") === "true");
+202:  const [ollamaUrl, setOllamaUrl] = useState(() => {
+206:  const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("ollamaModel") || "gemini-3-flash-preview");
+207:  const [elevenLabsKey, setElevenLabsKey] = useState(() => localStorage.getItem("elevenLabsKey") || "");
+208:  const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState(() => localStorage.getItem("elevenLabsVoiceId") || "pNInz6obbfDQGcgMyIGC");
+218:  const [archive, setArchive] = useState<EpisodeData[]>([]);
+219:  const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
+220:  const [titleCache, setTitleCache] = useState<
+231:  const [cooldown, setCooldown] = useState(0);
+246:  const [isSaving, setIsSaving] = useState(false);
+247:  const [isحفظd, setIsحفظd] = useState(false);
+278:  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+279:  const [isDraggingString, setIsDraggingString] = useState(false);
+280:  const [notePos, setNotePos] = useState({ x: 100, y: 150 });
+281:  const [isDraggingNote, setIsDraggingNote] = useState(false);
+282:  const [noteDragOffset, setNoteDragOffset] = useState({ x: 0, y: 0 });
+283:  const [modePositions, setModePositions] = useState<
+287:  const [toast, setToast] = useState<{
+291:  const [streamedChunk, setStreamedChunk] = useState("");

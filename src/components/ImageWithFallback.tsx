@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { Camera, Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
 
 interface ImageWithFallbackProps {
@@ -18,26 +18,26 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, 
 
   if (isGenerating) {
     return (
-      <div className={`aspect-video bg-[#1a1a18] rounded-xl border border-dashed border-white/10 flex flex-col items-center justify-center gap-3 ${className}`}>
+      <div className={`aspect-video bg-[#1a1a18] rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center gap-4 ${className}`}>
         <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-        <span className="text-xs font-bold text-gray-500 font-mono animate-pulse">جاري تحميض الصورة...</span>
+        <span className="text-xs font-bold text-gray-500 font-mono animate-pulse">[DEVELOPING] // استخراج الصورة المودعة...</span>
       </div>
     );
   }
 
   if (!src || error) {
     return (
-      <div className={`relative overflow-hidden group bg-black/40 border border-white/5 rounded-xl flex flex-col items-center justify-center p-6 gap-3 ${className}`}>
+      <div className={`relative overflow-hidden group bg-white shadow-sm border border-gray-200 rounded-xl flex flex-col items-center justify-center p-6 gap-4 ${className}`}>
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
         <div className="relative">
           {error ? (
             <AlertCircle className="w-10 h-10 text-red-900/50" />
           ) : (
-            <Camera className="w-10 h-10 text-gray-800" />
+            <Camera className="w-10 h-10 text-text-primary" />
           )}
         </div>
         <div className="text-center relative">
-          <p className="text-[10px] font-bold text-gray-600 uppercase tracking-widest">
+          <p className="text-micro font-bold text-gray-600 uppercase tracking-widest">
             {error ? 'فشل التحميض - صورة تالفة' : 'لا توجد صورة في الملف'}
           </p>
           <p className="text-[8px] text-gray-700 mt-1 uppercase font-mono">
@@ -69,10 +69,10 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, 
           setError(true);
           setLoading(false);
         }}
-        className={`w-full h-full object-cover transition-transform duration-700 group-hover:scale-105 ${loading ? 'opacity-0' : 'opacity-100'}`}
+        className={`w-full h-full object-cover transition-transform duration-700 group-src/components/ErrorBoundary.tsxscale-105 ${loading ? 'opacity-0' : 'opacity-100'}`}
       />
       {/* Darkroom Overlay Effect */}
-      <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/60 to-transparent opacity-40 group-hover:opacity-20 transition-opacity" />
+      <div className="absolute inset-0 pointer-events-none bg-gradient-to-t from-black/60 to-transparent opacity-40 src/components/ErrorBoundary.tsxopacity-20 transition-opacity" />
     </div>
   );
 };

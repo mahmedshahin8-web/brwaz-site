@@ -47,15 +47,21 @@ export interface OsintDossier {
 
 export interface RadarSuggestion {
   id: number;
+  category?: string;
   title: string;
   hook: string;
   angle: string;
+  hook_instruction?: string;
+  suspense_level?: number;
+  narrative_strategy?: string;
 }
 
 export interface ChapterOutline {
   chapter_number: number;
   chapter_title: string;
   chapter_description: string;
+  core_premise?: string;
+  key_revelations?: string[];
   key_points?: string[];
 }
 
@@ -73,6 +79,8 @@ export interface MasterOutline {
     text_on_image: string;
   };
   sources: (string | SourceDef)[];
+  research_data?: string;
+  central_hypothesis?: string;
 }
 
 export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو" | "برواز الحكاوي";
@@ -81,6 +89,14 @@ export interface EpisodeScene {
   asset_id: string;
   voice_over: string;
   visual_cue: string;
+  b_roll_search_query?: string;
+  sfx?: string;
+  pexelsAsset?: {
+    id: number;
+    url: string;
+    image: string;
+    videoFiles: any[];
+  } | null;
   montage_instructions: string;
   sound_design: string;
   music_prompt?: string;
@@ -92,27 +108,41 @@ export interface EpisodeScene {
   cinematic_movement?: string; // Veo 2 / Runway slow motion guidelines
   visual_motif?: string; // Microfilm effect, leaked docs, etc.
   asmr_soundscape?: string; // ASMR immersive sound to replace human action
+  archive_search_queries?: string[]; // Plan: standardized search queries for archives
   voiceover_notes?: string; // Notes for human VO artist
   estimated_duration_seconds?: number; // Estimated time in seconds
   asset_prompts?: string[];
   sources?: SourceDef[];
   status?: "pending" | "approved" | "regenerating";
+  retention_pattern?: string; // Pattern Interrupt, Fast Cut Formula, etc.
+  psychoacoustic_guidance?: string; // Binaural Beats, ambient suggestions, etc.
   // Optional legacy fields to avoid breaking existing UI
   visual_audio_map?: string;
   overlay_image?: string;
   shot_type?: string;
   motion_prompt_english?: string;
   audio_sfx_music_prompt?: string;
+  audio_url?: string;
+  is_mastered?: boolean;
+  word_timestamps?: { word: string; start: number; end: number; }[];
+  loop_type?: "O" | "C" | null;
+  loop_id?: string;
+  narrative_strategy?: "HCS" | "HAP";
+  visual_treatment?: string;
+  stock_search_queries?: { platform: "pexels" | "mixkit" | "freesound"; query: string }[];
+  comparison_version?: EpisodeScene;
+  engine_source?: "gemini" | "ollama";
 }
 
 export interface PublishingKit {
   youtube_titles: string[];
-  thumbnail_concept: string;
-  thumbnail_midjourney_prompt: string;
-  description_al_daheeh_style: string;
+  thumbnail_prompt: string;
+  description: string;
+  thumbnail_concept?: string;
+  description_al_daheeh_style?: string;
+  thumbnail_midjourney_prompt?: string;
+  chapters?: { title: string; timestamp: string; }[];
   tags: string[];
-  youtube_title?: string;
-  thumbnail_hook_text?: string;
 }
 
 export interface ShortsData {
@@ -123,17 +153,57 @@ export interface ShortsData {
   visual_instructions: string;
 }
 
+export interface OmnichannelKit {
+  twitter_thread: string[];
+  social_posts: { platform: string; content: string }[];
+}
+
+export interface AuditIssue {
+  type: "fact_check" | "logic" | "legal" | "tone";
+  finding: string;
+  recommendation: string;
+  source_reference?: string;
+  severity?: "high" | "medium" | "low";
+  description?: string;
+}
+
+export interface SecurityAudit {
+  status: "verified" | "warning" | "failed";
+  executive_summary: string;
+  issues: AuditIssue[];
+}
+
+export interface EchoChamberData {
+  skeptics: { user: string; comment: string; rebuttal_tip: string }[];
+  hype_men: { user: string; comment: string; viral_hook: string }[];
+  critics: { user: string; comment: string; risk_factor: string }[];
+}
+
+export interface KnowledgeLoopData {
+  suggested_links: { title: string; connection_logic: string; loop_strategy: string }[];
+}
+
+export interface ThumbnailBlueprint {
+  prompt: string;
+  text: string;
+  mood_color_instructions: string;
+}
+
 export interface EpisodeData {
   id?: string;
   video_title: string;
+  mood?: string;
   thumbnail: {
     image_prompt: string;
     text_on_image: string;
   };
+  thumbnail_blueprint?: ThumbnailBlueprint;
   opening_sketch: EpisodeScene;
   scenes: EpisodeScene[];
   sources: (string | SourceDef)[];
   publishing_kit: PublishingKit;
   shorts: ShortsData[];
+  omnichannel?: OmnichannelKit;
+  audit_report?: SecurityAudit;
   createdAt?: any;
 }

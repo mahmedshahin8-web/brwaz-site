@@ -1,18 +1,59 @@
 import React, { useState } from "react";
 import { EpisodeScene } from "../types";
-import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp } from "lucide-react";
-import { rewriteScript } from "../lib/gemini";
+import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp, Archive, Mic, Play, Wand2, Zap, ExternalLink, Video, Music, Swords, X, Search } from "lucide-react";
+import { surgicalEdit } from "../lib/gemini";
 import { generateNanoBananaImage, editNanoBananaImageText } from "../services/imageService";
+import { AudioWaveform } from "./AudioWaveform";
+import { motion, AnimatePresence } from "motion/react";
+import { BRollModal } from "./BRollModal";
 
 interface SceneCardProps {
   key?: React.Key;
   scene: EpisodeScene;
   onUpdate: (updatedScene: EpisodeScene) => void;
   copyToClipboard: (text: string, message?: string) => void;
-  isDraggable?: boolean; // For future Dnd
+  isDraggable?: boolean; 
+  isRecording?: boolean;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
+  onMasterAudio?: () => void;
+  audioUrl?: string;
+  onSeek?: (time: number) => void;
+  seekTo?: number;
+  isHighlighted?: boolean;
+  onLoopClick?: (loopId: string) => void;
+  // Missing Props
+  isOpening?: boolean;
+  onRecord?: () => void;
+  onMaster?: () => void;
+  isProcessingAudio?: boolean;
+  onVSMode?: () => void;
+  onAcceptVersion?: (version: "original" | "comparison") => void;
+  isABTesting?: boolean;
 }
 
-export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: SceneCardProps) {
+export const SceneCard = React.memo(function SceneCard({ 
+  scene, 
+  onUpdate, 
+  copyToClipboard, 
+  isDraggable,
+  isRecording,
+  onStartRecording,
+  onStopRecording,
+  onMasterAudio,
+  audioUrl,
+  onSeek,
+  seekTo,
+  isHighlighted,
+  onLoopClick,
+  isOpening,
+  onRecord,
+  onMaster,
+  isProcessingAudio,
+  onVSMode,
+  onAcceptVersion,
+  isABTesting
+}: SceneCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedVoiceOver, setEditedVoiceOver] = useState(scene.voice_over || "");
@@ -21,6 +62,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
   const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
   const [isRewriting, setIsRewriting] = useState(false);
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
+  const [showBrollModal, setShowBrollModal] = useState(false);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const status = scene.status || "pending";
 
@@ -101,6 +143,15 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
     window.speechSynthesis.speak(utterance);
   };
 
+  const handleOpenSearch = (platform: string, query: string) => {
+    let url = "";
+    if (platform === "pexels") url = `https://www.pexels.com/search/${encodeURIComponent(query)}`;
+    if (platform === "mixkit") url = `https://mixkit.co/free-stock-video/${encodeURIComponent(query).replace(/%20/g, "-")}/`;
+    if (platform === "freesound") url = `https://freesound.org/search/?q=${encodeURIComponent(query)}`;
+    
+    if (url) window.open(url, "_blank");
+  };
+
   const handleDownloadMp3 = async () => {
     const elKey = localStorage.getItem("elevenLabsKey")?.trim();
     const elVoiceId = localStorage.getItem("elevenLabsVoiceId")?.trim() || "pNInz6obbfDQGcgMyIGC";
@@ -125,7 +176,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
             model_id: "eleven_multilingual_v2"
           })
       });
-      if (!res.ok) throw new Error("API Limit or Invalid Key");
+      if (!res.ok) throw new Error("خطأ في المفتاح أو تجاوز الحد الأقصى للاستخدام");
       
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
@@ -164,7 +215,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
       onUpdate({ ...scene, generated_image_url: url });
     } catch (err) {
       console.error(err);
-      alert("Failed to generate image.");
+      alert("فشل في توليد الصورة.");
     } finally {
       setIsGeneratingImage(false);
     }
@@ -177,7 +228,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
       onUpdate({ ...scene, generated_image_url: url });
     } catch (err) {
       console.error(err);
-      alert("Failed to edit image.");
+      alert("فشل في تعديل الصورة.");
     } finally {
       setIsGeneratingImage(false);
     }
@@ -187,7 +238,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
     if (!selectedSentence || !interactiveInstruction) return;
     try {
       setIsRewriting(true);
-      const revised = await rewriteScript(selectedSentence, interactiveInstruction);
+      const revised = await surgicalEdit(selectedSentence, interactiveInstruction, editedVoiceOver);
       const newVoiceOver = editedVoiceOver.replace(selectedSentence, revised);
       setEditedVoiceOver(newVoiceOver);
       onUpdate({ ...scene, voice_over: newVoiceOver });
@@ -195,7 +246,7 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
       setInteractiveInstruction("");
     } catch (e) {
       console.error(e);
-      alert("Failed to rewrite.");
+      alert("فشلت عملية النحت الجراحي.");
     } finally {
       setIsRewriting(false);
     }
@@ -213,94 +264,218 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
     }, 1500);
   };
 
+  const renderWords = React.useMemo(() => {
+    return (editedVoiceOver || "").split(" ").map((word, idx) => {
+      const cleanWord = word.replace(/[^\w\u0621-\u064A]/g, "");
+      const timestamp = scene.word_timestamps?.find(t => t.word === cleanWord);
+      const formattedWord = colorCodeScript(word + " ");
+      
+      return (
+        <span
+          key={idx}
+          onDoubleClick={() => timestamp && onSeek && onSeek(timestamp.start)}
+          className={`cursor-pointer transition-all border-b border-transparent hover:bg-blue-100 ${timestamp ? 'border-amber-500/20 text-amber-900' : ''}`}
+          dangerouslySetInnerHTML={formattedWord}
+        />
+      );
+    });
+  }, [editedVoiceOver, scene.word_timestamps, onSeek]);
+
   return (
-    <div
-      className={`bg-white border-2 border-[#1a1a1a] p-4 flex flex-col space-y-4 transition-all ${
-        status === "approved" ? "shadow-[8px_8px_0_#15803d] border-[#15803d]" : "shadow-[8px_8px_0_#1a1a1a]"
-      }`}
+    <motion.div
+      whileTap={{ scale: 0.995, transition: { duration: 0.05 } }}
+      animate={{ 
+        boxShadow: isHighlighted ? "0 4px 20px rgba(59, 130, 246, 0.15)" : "0 1px 3px rgba(0,0,0,0.05)",
+        borderColor: isHighlighted ? "rgba(59, 130, 246, 0.4)" : "rgba(229, 231, 235, 1)"
+      }}
+      transition={{ duration: 0.8, repeat: isHighlighted ? Infinity : 0, repeatType: "reverse" }}
+      className={`bg-white rounded-xl shadow-sm p-8 flex flex-col space-y-6 transition-all duration-300 relative overflow-hidden border ${
+        status === "approved" ? "border-green-200" : "border-gray-200"
+      } ${isHighlighted ? "z-30 scale-[1.01]" : "hover:shadow-md"}`}
     >
-      <div className="flex justify-between items-center border-b-2 border-[#1a1a1a] pb-2 flex-wrap gap-2">
-        <div className="flex items-center gap-2">
-          <span className={`px-3 py-1 text-white font-bold text-lg border-2 border-[#1a1a1a] typewriter ${status === "approved" ? "bg-green-700" : "bg-[#1a1a1a]"}`}>
-            {scene.asset_id} {status === "approved" && "✓"}
+      {scene.comparison_version && (
+        <div className="absolute inset-0 z-[100] bg-white/95 backdrop-blur-xl flex flex-col p-6 animate-in fade-in zoom-in duration-300">
+           <div className="flex justify-between items-center mb-8 border-b border-gray-200 pb-4">
+              <h3 className="text-xl font-arabic font-bold text-gray-900 flex items-center gap-3">
+                 <Swords className="text-blue-500" /> وضع المقارنة
+              </h3>
+              <button 
+                onClick={() => onAcceptVersion?.("original")}
+                className="text-gray-400 hover:text-gray-700 transition-all"
+              >
+                <X size={24} />
+              </button>
+           </div>
+           
+           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-1 overflow-y-auto pr-2 no-scrollbar">
+              {/* VERSION A: ORIGINAL */}
+              <div className="space-y-6 p-6 border border-gray-200 bg-gray-50 flex flex-col rounded-xl">
+                 <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">Version_A</span>
+                    <span className={`text-[8px] font-mono border px-2 py-0.5 rounded-full ${(!scene.engine_source || scene.engine_source === 'gemini') ? 'border-[#3b82f6] text-[#3b82f6]' : 'border-[#10B981] text-[#10B981]'}`}>
+                       {(scene.engine_source || 'gemini').toUpperCase()}
+                    </span>
+                 </div>
+                 <div className="flex-1 font-arabic text-lg leading-relaxed text-gray-900/80 text-right h-40 overflow-y-auto no-scrollbar">
+                    {scene.voice_over}
+                 </div>
+                 <div className="space-y-4 pt-4 mt-auto border-t border-gray-200">
+                    <div className="text-[10px] font-arabic text-gray-600">
+                       <strong className="block text-gray-600 mb-1">الرؤية البصرية:</strong>
+                       {scene.visual_cue}
+                    </div>
+                    <button 
+                      onClick={() => onAcceptVersion?.("original")}
+                      className="w-full py-3 bg-white border-gray-100 shadow-sm border border-gray-200 text-gray-900 font-arabic font-bold hover:bg-white hover:text-black transition-all"
+                    >
+                      اعتماد النسخة A
+                    </button>
+                 </div>
+              </div>
+
+              {/* VERSION B: COMPARISON */}
+              <div className="space-y-6 p-6 border border-blue-500/20 bg-blue-600/5 flex flex-col">
+                 <div className="flex justify-between items-center">
+                    <span className="text-[10px] font-mono text-blue-600 uppercase tracking-widest">Version_B (New)</span>
+                    <span className={`text-[8px] font-mono border px-2 py-0.5 rounded-full ${(scene.comparison_version.engine_source === 'ollama') ? 'border-[#10B981] text-[#10B981]' : 'border-[#3b82f6] text-[#3b82f6]'}`}>
+                       {(scene.comparison_version.engine_source || 'ollama').toUpperCase()}
+                    </span>
+                 </div>
+                 <div className="flex-1 font-arabic text-lg leading-relaxed text-gray-900 text-right h-40 overflow-y-auto no-scrollbar">
+                    {scene.comparison_version.voice_over}
+                 </div>
+                 <div className="space-y-4 pt-4 mt-auto border-t border-gray-200">
+                    <div className="text-[10px] font-arabic text-gray-600">
+                       <strong className="block text-gray-600 mb-1">الرؤية البصرية:</strong>
+                       {scene.comparison_version.visual_cue}
+                    </div>
+                    <button 
+                      onClick={() => onAcceptVersion?.("comparison")}
+                      className="w-full py-3 bg-blue-600 text-black font-arabic font-bold hover:shadow-md shadow-blue-500/20 transition-all"
+                    >
+                      اعتماد النسخة B
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+      )}
+      <div className={`absolute top-0 right-0 w-1 h-full transition-colors rounded-r-xl ${isHighlighted ? 'bg-blue-500' : 'bg-transparent'}`}></div>
+      
+      <div className="flex justify-between items-center border-b border-gray-100 pb-4 flex-wrap gap-4 relative z-10">
+        <div className="flex items-center gap-4">
+          <span className={`px-3 py-1 text-[10px] font-mono font-bold rounded-lg ${status === "approved" ? "text-green-700 bg-green-50 border border-green-200" : "bg-gray-50 text-gray-400 border border-gray-200"}`}>
+            NODE_{scene.asset_id.replace(/\D/g, "") || "00"} {status === "approved" && "✓"}
           </span>
-          <span className="text-xs bg-[#f4eee0] border border-[#1a1a1a] px-2 py-1 font-bold font-mono">
-            ⏱️ ~{scene.estimated_duration_seconds || Math.ceil((scene.voice_over?.length || 100) / 15)}s
+          {scene.loop_type && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (scene.loop_id && onLoopClick) onLoopClick(scene.loop_id);
+              }}
+              className={`flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-mono font-black transition-all shadow-sm ${
+                scene.loop_type === 'O' 
+                  ? 'border border-orange-200 text-orange-600 bg-orange-50' 
+                  : 'border border-blue-200 text-blue-600 bg-blue-50'
+              } hover:scale-105 active:scale-95`}
+            >
+              {scene.loop_type}
+            </button>
+          )}
+          <span className="text-[10px] font-mono bg-gray-50 border border-gray-100 rounded px-2 py-1 text-gray-500 uppercase">
+             EST_DUR: {scene.estimated_duration_seconds || Math.ceil((scene.voice_over?.length || 100) / 15)}s
           </span>
         </div>
+        
+        {scene.visual_treatment && (
+          <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1">
+             <Video size={12} className="text-amber-500" />
+             <span className="font-sans font-semibold text-amber-700 uppercase text-[10px] pl-1 tracking-wider">Treatment: {scene.visual_treatment}</span>
+          </div>
+        )}
+
         <div className="flex gap-2">
+          {onVSMode && !scene.comparison_version && (
+             <button
+              onClick={onVSMode}
+              disabled={isABTesting}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 ${isABTesting ? 'opacity-50 cursor-wait' : ''}`}
+             >
+               {isABTesting ? <RefreshCw size={12} className="animate-spin" /> : <Swords size={12} />} 
+               VS Mode
+             </button>
+          )}
+          {(onStartRecording || onRecord) && (
+            <button
+              onClick={isRecording ? onStopRecording : (onRecord || onStartRecording)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border ${
+                isRecording 
+                  ? 'border-red-200 bg-red-50 text-red-600 animate-pulse' 
+                  : 'border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50'
+              }`}
+            >
+              {isRecording ? <><Square size={12} className="fill-current" /> Stop</> : <><Mic size={12} /> Rec</>}
+            </button>
+          )}
           <button
             onClick={handleDownloadMp3}
-            className="p-2 border-2 border-[#1a1a1a] text-xs font-bold bg-[#eae5d8] text-[#1a1a1a] active:bg-[#1a1a1a] active:text-white flex items-center justify-center gap-1"
-            title="Download MP3 (Requires ElevenLabs Key)"
+            className="px-3 py-1.5 rounded-lg border border-gray-200 font-sans font-medium uppercase tracking-wider text-[10px] text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-all"
+            title="تحميل MP3 (يتطلب مفتاح ElevenLabs)"
           >
-            تحميل MP3
+            MP3
           </button>
           <button
             onClick={handlePlayTTS}
-            className={`p-2 border-2 border-[#1a1a1a] flex gap-2 font-bold ${isPlayingTTS ? 'bg-red-600 text-white active:bg-red-800' : 'bg-yellow-400 text-[#1a1a1a] active:bg-yellow-600'}`}
-            title="Teleprompter Voice Preview"
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border ${isPlayingTTS ? 'border-red-200 bg-red-50 text-red-600' : 'border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
           >
-            {isPlayingTTS ? <><Square className="w-5 h-5 fill-current" /> إيقاف</> : <><Volume2 className="w-5 h-5" /> اسمع البروفة</>}
-          </button>
-          <button
-            onClick={() => copyToClipboard(scene.voice_over, "تم نسخ السكريبت")}
-            className="p-2 border-2 border-[#1a1a1a] bg-[#f4eee0] text-[#1a1a1a] active:bg-[#1a1a1a] active:text-white"
-            title="نسخ السكريبت"
-          >
-            <Copy className="w-5 h-5" />
+            {isPlayingTTS ? <><Square size={12} className="fill-current" /> Stop</> : <><Volume2 size={12} /> Play</>}
           </button>
         </div>
       </div>
 
-      <div className="flex flex-col space-y-4">
+      <div className="flex flex-col space-y-4 relative z-10">
         {isEditing ? (
-          <div className="flex flex-col gap-2">
-            <textarea
-              value={editedVoiceOver}
-              onChange={(e) => setEditedVoiceOver(e.target.value)}
-              className="w-full h-32 p-4 font-arabic-body text-xl leading-10 text-[#1a1a1a] bg-[#fdfdfd] border-2 border-[#1a1a1a] focus:outline-none focus:ring-0 resize-none"
-              dir="rtl"
-            />
+          <div className="relative">
+             <div className="absolute top-2 left-4 text-gray-400 text-xs font-sans uppercase">Editing...</div>
+             <textarea
+               value={editedVoiceOver}
+               onChange={(e) => setEditedVoiceOver(e.target.value)}
+               className="w-full h-48 p-6 bg-gray-50 border border-gray-200 rounded-xl font-arabic text-xl leading-relaxed text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+               dir="rtl"
+             />
           </div>
         ) : (
-          <div className="font-arabic-body text-xl leading-10 text-[#1a1a1a] bg-[#fdfdfd] p-4 border border-dashed border-[#1a1a1a]">
-            {(editedVoiceOver || "").split(/([.؟!]+)/).map((sentence, idx) => {
-              if (!sentence.trim()) return <span key={idx}>{sentence}</span>;
-              const isSelected = selectedSentence === sentence;
-
-              const formattedSentence = colorCodeScript(sentence);
-
-              return (
-                <span
-                  key={idx}
-                  onClick={() => setSelectedSentence(isSelected ? null : sentence)}
-                  className={`cursor-pointer transition-colors ${isSelected ? 'bg-yellow-200 shadow-[2px_2px_0_#1a1a1a]' : 'active:bg-gray-200'}`}
-                  dangerouslySetInnerHTML={formattedSentence}
-                />
-              );
-            })}
+          <div className="bg-white p-8 border border-gray-100 rounded-xl shadow-sm transition-all group/script hover:shadow-md relative">
+            <div className="absolute top-4 left-6 text-gray-300 uppercase tracking-widest text-xs font-mono">SCENE TEXT</div>
+            <div className="absolute top-4 right-6 opacity-0 group-hover/script:opacity-100 transition-opacity flex gap-2">
+               <button onClick={handleEditToggle} className="text-gray-400 hover:text-blue-500 bg-gray-50 p-2 rounded-lg"><Edit2 size={16} /></button>
+               <button onClick={() => copyToClipboard(scene.voice_over)} className="text-gray-400 hover:text-blue-500 bg-gray-50 p-2 rounded-lg"><Copy size={16} /></button>
+            </div>
+            
+            <div className="font-arabic text-2xl font-medium leading-[2.2] text-gray-800 text-right mt-4 rounded-lg">
+              {renderWords}
+            </div>
           </div>
         )}
 
         {selectedSentence && !isEditing && (
-          <div className="bg-[#f0f0f0] p-4 border-2 border-yellow-400 flex flex-col gap-2">
-            <label className="text-sm font-bold opacity-75">تعديل الجملة المحددة:</label>
+          <div className="bg-white/20 p-4 border border-accent-warning rounded-none flex flex-col gap-4">
+            <label className="text-sm font-['JetBrains_Mono'] tracking-tight text-text-muted">تعديل الجملة المحددة:</label>
             <div className="flex gap-2">
               <input 
                 type="text" 
                 value={interactiveInstruction} 
                 onChange={(e) => setInteractiveInstruction(e.target.value)} 
                 placeholder="مثلاً: اجعلها أقصر، أو حولها لسؤال مشوق..."
-                className="flex-1 p-2 border-2 border-[#1a1a1a]"
+                className="flex-1 p-4 bg-bg-darker border border-gray-200 rounded-none focus:outline-none focus:border-accent-warning text-gray-900"
                 dir="rtl"
               />
               <button 
                 onClick={handleRewriteSentence}
                 disabled={isRewriting || !interactiveInstruction}
-                className="bg-[#1a1a1a] text-white px-4 py-2 font-bold disabled:opacity-50"
+                className="bg-accent-warning text-bg-darker active:bg-yellow-500 px-6 py-2 font-['JetBrains_Mono'] tracking-tight rounded-none disabled:opacity-50 transition-colors"
               >
-                {isRewriting ? "جاري التعديل..." : "نفذ"}
+                {isRewriting ? "[RE-ENGAGING] // المعالجة جارية..." : "[ENGAGE] // نفذ"}
               </button>
             </div>
           </div>
@@ -308,147 +483,162 @@ export function SceneCard({ scene, onUpdate, copyToClipboard, isDraggable }: Sce
 
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-center gap-2 py-2 bg-[#eae5d8] border-2 border-[#1a1a1a] font-bold mt-2"
+          className="w-full flex items-center justify-center gap-2 py-3 bg-gray-50 border border-gray-200 text-gray-500 font-sans font-medium text-sm rounded-xl mt-4 hover:bg-gray-100 transition-colors"
         >
           {isExpanded ? (
-            <><ChevronUp className="w-5 h-5" /> إخفاء تفاصيل المشهد الفنية</>
+            <><ChevronUp className="w-4 h-4" /> إخفاء تفاصيل المشهد الفنية</>
           ) : (
-            <><ChevronDown className="w-5 h-5" /> إظهار تفاصيل المشهد الفنية (البرومبتات، المونتاج)</>
+            <><ChevronDown className="w-4 h-4" /> إظهار التفاصيل والإعدادات الفنية</>
           )}
         </button>
 
-        {isExpanded && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2">
-            {scene.visual_cue && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">الوصف البصري:</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.visual_cue}</span>
-              </div>
-            )}
-            {scene.visual_motif && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎞️ الموتيف البصري:</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.visual_motif}</span>
-              </div>
-            )}
-            {scene.cinematic_movement && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎥 اللقطة الحركية (B-Roll):</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.cinematic_movement}</span>
-              </div>
-            )}
-            {scene.voiceover_notes && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎙️ إرشادات الفويس أوفر:</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.voiceover_notes}</span>
-              </div>
-            )}
-            {scene.sound_design && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🔊 الهندسة الصوتية:</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.sound_design}</span>
-              </div>
-            )}
-            {scene.asmr_soundscape && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎧 تصميم الـ ASMR (Lyria 3):</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.asmr_soundscape}</span>
-              </div>
-            )}
-            {scene.music_prompt && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🎵 برومبت الموسيقى (Lyria 3):</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.music_prompt}</span>
-              </div>
-            )}
-            {scene.sfx_prompt && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a]">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">🔊 برومبت المؤثرات (Lyria 3):</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.sfx_prompt}</span>
-              </div>
-            )}
-            {scene.montage_instructions && (
-              <div className="bg-[#f0f0f0] p-3 border border-[#1a1a1a] hidden">
-                <strong className="text-[#8b0000] block mb-1 newspaper text-lg">المخرج:</strong>
-                <span className="font-serif leading-relaxed text-sm">{scene.montage_instructions}</span>
-              </div>
-            )}
-            {scene.b_roll_keywords && (
-              <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative">
-                <strong className="text-[#1a1a1a] block mb-1 underline">كلمات بحث (B-Roll):</strong>
-                <div className="text-[#555] text-sm break-words">{scene.b_roll_keywords}</div>
-              </div>
-            )}
-            {scene.ai_video_prompt && (
-              <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative">
-                <strong className="text-[#1a1a1a] block mb-1 underline">برومبت الفيديو (Runway/Kling):</strong>
-                <div className="text-[#555] text-sm break-words">{scene.ai_video_prompt}</div>
-              </div>
-            )}
-            {scene.image_prompt_nano_banana && (
-              <div className="bg-[#eae5d8] p-3 border border-[#1a1a1a] relative flex flex-col gap-2 md:col-span-2">
-                <strong className="text-[#1a1a1a] block mb-1 underline">برومبت الصور (Nano Banana):</strong>
-                <div className="text-[#555] text-sm break-words">{scene.image_prompt_nano_banana}</div>
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden"
+            >
+              <div className="grid grid-cols-1 gap-4 mt-4 text-sm text-gray-700 bg-white border border-gray-100 p-6 rounded-xl shadow-sm">
                 
-                {!scene.generated_image_url && (
-                   <button onClick={handleGenerateImage} disabled={isGeneratingImage} className="mt-2 bg-[#1a1a1a] text-white p-2 flex justify-center gap-2 items-center text-sm disabled:opacity-50">
-                      <ImageIcon className="w-4 h-4" /> 
-                      {isGeneratingImage ? "جاري التوليد..." : "توليد كادر المعاينة"}
-                   </button>
+                {(audioUrl || isRecording) && (
+                  <div className="space-y-4 mb-6 pb-6 border-b border-gray-100">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-xs font-mono font-bold text-gray-400 uppercase tracking-widest flex items-center gap-2">
+                          <Zap className="w-3 h-3 text-blue-500" /> Audio Engine
+                        </h3>
+                        {audioUrl && !scene.is_mastered && onMasterAudio && (
+                          <button 
+                            onClick={onMasterAudio}
+                            className="text-xs font-mono text-blue-500 hover:text-blue-700 transition-colors"
+                          >
+                              Run Studio Polish
+                          </button>
+                        )}
+                    </div>
+                    <AudioWaveform 
+                      audioUrl={audioUrl || ""} 
+                      isRecording={isRecording} 
+                      onMaster={onMasterAudio}
+                      seekTo={seekTo} 
+                    />
+                  </div>
                 )}
-                {scene.generated_image_url && (
-                   <div className="mt-2 flex flex-col gap-2">
-                     <div className="barwaz-frame">
-                       <img src={scene.generated_image_url} alt="Scene Visual preview" className="w-full aspect-video object-cover" />
-                       {scene.visual_cue && (
-                         <div className="barwaz-text-overlay">
-                           {scene.visual_cue.substring(0, 100)}...
-                         </div>
-                       )}
+
+                {/* VISUAL & MONTAGE RULES */}
+                <div className="space-y-4">
+                   <h4 className="font-semibold text-gray-900 border-b border-gray-100 pb-2 mb-4">التوجيهات الفنية (Technical Rules)</h4>
+                   
+                   {scene.visual_treatment && (
+                     <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 text-amber-900">
+                       <strong className="block text-xs uppercase tracking-wider text-amber-700 mb-1">Visual Treatment</strong>
+                       <p className="font-medium">{scene.visual_treatment}</p>
                      </div>
-                     <button onClick={handleEditImageArabic} disabled={isGeneratingImage} className="bg-yellow-400 text-[#1a1a1a] p-2 flex justify-center gap-2 items-center text-sm disabled:opacity-50 border-2 border-[#1a1a1a]">
-                        <Edit3 className="w-4 h-4" /> 
-                        {isGeneratingImage ? "جاري المعالجة..." : "تعديل الصورة لضبط النصوص العربية"}
-                     </button>
-                   </div>
-                )}
+                   )}
+                   
+                   {scene.visual_cue && (
+                     <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                       <strong className="block text-xs uppercase tracking-wider text-gray-400 mb-1">Visual Cue</strong>
+                       <p className="text-gray-700">{scene.visual_cue}</p>
+                     </div>
+                   )}
+
+                   {scene.b_roll_search_query && (
+                    <div className="bg-blue-50/50 p-4 rounded-lg border border-blue-100">
+                      <div className="flex justify-between items-start mb-2">
+                        <strong className="text-xs uppercase tracking-wider text-blue-500">Pexels Stock Suggestion</strong>
+                        <button 
+                          onClick={() => setShowBrollModal(true)}
+                          className="flex items-center gap-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 text-[10px] uppercase font-mono tracking-wider transition-colors rounded-full"
+                        >
+                          <Search size={12} /> Search
+                        </button>
+                      </div>
+                      <div className="text-blue-900 font-medium mb-3">Query: {scene.b_roll_search_query}</div>
+                      {scene.pexelsAsset && (
+                        <div className="relative rounded-lg overflow-hidden border border-blue-200 shadow-sm mt-3">
+                           <img src={scene.pexelsAsset.image} alt={scene.b_roll_search_query} className="w-full aspect-video object-cover" />
+                           <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
+                              <a href={scene.pexelsAsset.url} target="_blank" rel="noreferrer" className="text-white text-xs block hover:underline hover:text-blue-300 transition-colors cursor-pointer">
+                                 View on Pexels <ExternalLink size={12} className="inline ml-1" />
+                              </a>
+                           </div>
+                        </div>
+                      )}
+                    </div>
+                   )}
+                   
+                   {scene.sfx && (
+                     <div className="bg-gray-800 p-4 rounded-lg border border-gray-700">
+                       <strong className="block text-xs uppercase tracking-wider text-gray-400 mb-1">Sound Design (SFX)</strong>
+                       <p className="text-gray-200">{scene.sfx}</p>
+                     </div>
+                   )}
+                   
+                   {/* GENERATED ASSET PREVIEW */}
+                   {scene.image_prompt_nano_banana && (
+                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+                        <strong className="block text-xs uppercase tracking-wider text-gray-400 mb-2">AI Image Prompt (Nano Banana)</strong>
+                        <p className="text-gray-500 text-sm mb-4">{scene.image_prompt_nano_banana}</p>
+                        
+                        {scene.generated_image_url && (
+                          <div className="relative rounded-lg overflow-hidden border border-gray-200 shadow-sm">
+                            <img src={scene.generated_image_url} alt="Scene Preview" className="w-full aspect-video object-cover" />
+                          </div>
+                        )}
+                      </div>
+                   )}
+                </div>
+
               </div>
-            )}
-          </div>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
         
-        <div className="flex flex-wrap gap-2 pt-2 border-t-2 border-[#1a1a1a]">
+        <div className="flex flex-wrap gap-4 pt-2">
           <button 
             onClick={handleApprove}
             disabled={status === "approved" || isEditing}
-            className={`flex-1 min-w-[120px] py-3 font-bold text-white border-2 border-[#1a1a1a] flex items-center justify-center gap-2 transition-colors ${
-              status === "approved" ? "bg-green-800 opacity-50 cursor-not-allowed" : "bg-green-700 active:bg-green-900"
+            className={`flex-1 min-w-[120px] py-3 rounded-xl font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${
+              status === "approved" ? "bg-green-100 text-green-700 cursor-not-allowed border border-green-200" : "bg-green-500 hover:bg-green-600 text-gray-900 border-none"
             }`}
           >
-            <CheckCircle className="w-5 h-5" />
+            <CheckCircle className="w-4 h-4" />
             {status === "approved" ? "معتمد" : "اعتماد المشهد"}
           </button>
 
           <button 
             onClick={handleEditToggle}
-            className="flex-1 min-w-[120px] py-3 font-bold text-[#1a1a1a] bg-yellow-400 border-2 border-[#1a1a1a] active:bg-yellow-600 flex items-center justify-center gap-2"
+            className={`flex-1 min-w-[120px] py-3 rounded-xl font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${
+              isEditing ? "bg-blue-500 hover:bg-blue-600 text-gray-900" : "bg-amber-400 hover:bg-amber-500 text-amber-950"
+            }`}
           >
-            <Edit2 className="w-5 h-5" />
+            <Edit2 className="w-4 h-4" />
             {isEditing ? "حفظ التعديل" : "تعديل السكريبت"}
           </button>
 
           <button 
             onClick={handleRegenerate}
             disabled={status === "regenerating" || isEditing}
-            className={`flex-1 min-w-[120px] py-3 font-bold text-white border-2 border-[#1a1a1a] flex items-center justify-center gap-2 ${
-              status === "regenerating" ? "bg-red-800 opacity-50 cursor-wait" : "bg-red-700 active:bg-red-900"
+            className={`flex-1 min-w-[120px] py-3 rounded-xl font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${
+              status === "regenerating" ? "bg-red-100 text-red-500 cursor-wait" : "bg-red-500 hover:bg-red-600 text-gray-900"
             }`}
           >
-            <RefreshCw className={`w-5 h-5 ${status === "regenerating" ? "animate-spin" : ""}`} />
-            {status === "regenerating" ? "جاري..." : "تعديل الزاوية (AI)"}
+            <RefreshCw className={`w-4 h-4 ${status === "regenerating" ? "animate-spin" : ""}`} />
+            {status === "regenerating" ? "جاري الإعادة..." : "الكاتب الآلي (تعديل)"}
           </button>
         </div>
       </div>
-    </div>
+
+      <AnimatePresence>
+        {showBrollModal && scene.b_roll_keywords && (
+          <BRollModal 
+            keyword={scene.b_roll_keywords}
+            onClose={() => setShowBrollModal(false)}
+          />
+        )}
+      </AnimatePresence>
+    </motion.div>
   );
-}
+});

@@ -1,6 +1,6 @@
 {
-  "name": "Berwaz: Investigation Room",
-  "description": "An AI documentary scripting and research engine with a vintage darkroom investigative aesthetic, styled for 'Al Daheeh' content creators.",
-  "requestFramePermissions": [],
-  "majorCapabilities": []
+  "name": "Berwaz: Tactical OS",
+  "description": "An immersive AI-powered military-grade research and scripting interface designed for deep archival investigation and high-stakes content creation.",
+  "requestFramePermissions": ["microphone"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

@@ -76,12 +76,9 @@ export function convertToEgyptian(text: string): string {
       return word;
     }
     
-    // Replace letters
-    return word
-      .replace(/ق/g, 'أ')
-      .replace(/ث/g, 'ت')
-      .replace(/ذ/g, 'د')
-      .replace(/ظ/g, 'ض');
+    // We removed the manual letter replacements (ق -> أ, etc.) per the Tech Lead's instruction
+    // to preserve Arabic orthography.
+    return word;
   });
 
   // 4. Breathing: Inject (...) every 5-7 words to force natural pauses
@@ -141,13 +138,6 @@ export function extractAndCleanScript(rawText: string): string {
 
     // Remove "المشهد X:" or "السكريبت:" labels
     cleanLine = cleanLine.replace(/^(المشهد \d+:|السكريبت:|نص السرد:|الراوي:)/, '');
-
-    // Remove text in brackets [action cues]
-    cleanLine = cleanLine.replace(/\[.*?\]/g, '');
-    cleanLine = cleanLine.replace(/\(.*?\)/g, '');
-
-    // Remove English words/sentences mixed in
-    cleanLine = cleanLine.replace(/[A-Za-z]{3,}/g, '');
 
     // Final trim and check
     const final = cleanLine.trim();

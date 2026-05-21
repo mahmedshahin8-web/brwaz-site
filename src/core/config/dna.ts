@@ -1,0 +1,36 @@
+/**
+ * @file dna.ts
+ * @description البصمة الأساسية لمنصة "برواز"
+ */
+
+export const PlatformDNA = {
+  name: 'Barwaz',
+  vision: 'Edutainment with Egyptian Ammiya Raqiya',
+  targetAudience: 'Youth and curious minds',
+  coreTone: 'Smart, Fast-paced, Humorous',
+  moods: [
+    "أرشيف الضلمة",
+    "كلاكيت وتزوير",
+    "ملفات متقفلش",
+    "خرافات شعبية",
+    "حكاوي الأجداد",
+    "سبوبة ولا ابتكار",
+    "حواديت شوارع",
+    "صراع العروش العربي",
+    "تكنولوجيا مرعبة",
+    "اقتصاد الشارع",
+    "ملفات مخابراتية",
+    "طريقة الدحيح",
+    "خرائط دموية (Faceless)",
+    "سبورة بيضاء (Whiteboard)",
+    "ميمز ومقاطع (Faceless)",
+    "رحلة في عقل مجرم",
+    "المستقبل الديسطوبي",
+    "محاكمة التاريخ",
+    "اقتصاد البقاء",
+    "جبل الجليد (Iceberg)",
+    "همس الحكايات (Dark ASMR)",
+    "شريط ملعون (Found Footage)",
+    "مسافر عبر الزمن"
+  ]
+};

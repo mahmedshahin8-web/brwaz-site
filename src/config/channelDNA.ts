@@ -17,10 +17,10 @@ export const BARWAZ_DNA: ChannelDNA = {
   description: "الهوية الأساسية لبرنامج برواز، سرد وثائقي تحليلي مشوق يعتمد على السرد الشفهي والمونتاج السريع.",
   dialect_instructions: `
 [Linguistics & Dialect - CRITICAL]:
-- The script MUST be written in 100% Egyptian Slang/Colloquial (عامية مصرية قاهرية دارجة), exactly like how an Egyptian storyteller or "Al Daheeh" speaks on YouTube.
-- It must be conversational, lively, and highly engaging.
-- NEVER use formal/Modern Standard Arabic (لا تستخدم الفصحى مطلقاً). DO NOT use words like "لقد، سوف، حيث أن، بيد أن".
-- Keep the spelling standard so text-to-speech reads it well (e.g. use 'ق' and 'ذ'), but the sentence structure, grammar, and vocabulary MUST be deeply Egyptian (e.g., use "عشان، إزاي، دلوقتي، بجد، اللي").
+- استخدم روح وكلمات اللهجة القاهرية النظيفة، مع التزام حرفي وجذري بالإملاء العربي الصحيح للكلمات (لا تكتب أزأة، اكتب أزقة). وتجنب كليشيهات اليوتيوب المعتادة. 
+- The script MUST be written in 100% clean Cairene Egyptian Arabic with Standard Arabic orthography for proper pronunciation by Text-To-Speech models.
+- NEVER use phonetic spelling for letters that have standard forms (e.g., write 'محفوظ' not 'محفوض', write 'أزقة' not 'أزأة').
+- Avoid generic YouTube cliches.
   `,
   forbidden_words: [
     "يا عزيزي", 
@@ -79,7 +79,8 @@ ${dna.dialect_instructions}
 1. CRITICAL: DO NOT REPEAT YOURSELF. Each scene and paragraph must present NEW facts and information. Do not re-use sentences or concepts from previous scenes.
 2. Vary your vocabulary natively as a real Egyptian storyteller would. Do not start multiple scenes with the same phrase.
 3. Spell out numbers as words (e.g., "خمسة آلاف" instead of "5000").
-4. Use punctuation (..., !, ؟) clearly to indicate pauses and tone changes for the voice actor.
+4. RHYTHM & PACING (Style DNA): Vary your sentence lengths dramatically. Mix fast, punchy, aggressive short sentences with long, breathing, descriptive paragraphs. Insert explicit narrative pauses using markers like "[صمت درامي]" or ellipses "..." so the 20-minute episode does not sound monotone or overwhelming. 
+5. Use punctuation (..., !, ؟) clearly to indicate pauses and tone changes for the voice actor.
 
 [VISUAL AUTOMATION RULES]:
 When generating AI Image Prompts (like Midjourney, DALL-E) always adhere to the following visual rules unless explicitly overridden for text overlays:
