@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { notify } from '../lib/notify';
@@ -86,7 +87,7 @@ export const ScriptEditor: React.FC = () => {
       const fetchContext = async () => {
         setIsRetrieving(true);
         try {
-          const req = await fetch("/api/rag/retrieve", {
+          const req = await apiFetch("/api/rag/retrieve", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ query: scenes[scenes.length - 1].text, requiredAgent: null })
@@ -235,7 +236,7 @@ export const ScriptEditor: React.FC = () => {
         }
       };
       
-      const res = await fetch("/api/dossiers", {
+      const res = await apiFetch("/api/dossiers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
@@ -386,7 +387,7 @@ export const ScriptEditor: React.FC = () => {
     notify.topSecret("FACT_CHECK_START");
 
     try {
-      const res = await fetch('/api/intel/factcheck', {
+      const res = await apiFetch('/api/intel/factcheck', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -522,26 +523,26 @@ export const ScriptEditor: React.FC = () => {
            
            <div className="flex gap-4">
              {/* Style DNA Selector */}
-             <div className="flex items-center gap-2 px-4 py-2 hover:bg-white border-gray-100 shadow-sm border border-gray-200 text-xs relative group cursor-pointer z-50 transition-colors duration-100">
+             <div className="flex items-center gap-2 px-4 py-2 active:scale-95 border-gray-100 shadow-sm border border-gray-200 text-xs relative group cursor-pointer z-50 transition-colors duration-100">
                <Type className="w-3 h-3 text-blue-600" />
                <span className="text-blue-600 font-mono tracking-widest uppercase">DNA: {dnaPersona}</span>
-               <div className="absolute top-full mt-0 right-0 w-56 bg-white border border-gray-200 hidden group-hover:block border-t-0">
+               <div className="absolute top-full mt-0 right-0 w-56 bg-white border border-gray-200 hidden group-active:scale-95 border-t-0">
                  <div className="p-3 text-[10px] text-gray-600 border-b border-gray-200 font-mono tracking-widest uppercase">Voice Vault</div>
                  <div className="p-3 bg-white border-gray-100 shadow-sm text-[10px] uppercase font-mono text-gray-900 border-r-2 border-blue-500">CAIRO_SLANG (DEFAULT)</div>
-                 <div className="p-3 hover:bg-white border-gray-100 shadow-sm text-[10px] uppercase font-mono text-gray-600 transition-colors duration-100">DOCU_CLASSIC</div>
-                 <div className="p-3 hover:bg-white border-gray-100 shadow-sm text-[10px] uppercase font-mono text-gray-600 transition-colors duration-100">DARK_NOIR</div>
+                 <div className="p-3 active:scale-95 border-gray-100 shadow-sm text-[10px] uppercase font-mono text-gray-600 transition-colors duration-100">DOCU_CLASSIC</div>
+                 <div className="p-3 active:scale-95 border-gray-100 shadow-sm text-[10px] uppercase font-mono text-gray-600 transition-colors duration-100">DARK_NOIR</div>
                </div>
              </div>
 
-             <button onClick={() => setIsSplitScreen(!isSplitScreen)} className="flex items-center gap-2 px-4 py-2 border border-gray-200 hover:border-cyan-400/50 hover:bg-cyan-500/10 transition-colors duration-100 text-[10px] uppercase font-mono tracking-widest">
+             <button onClick={() => setIsSplitScreen(!isSplitScreen)} className="flex items-center gap-2 px-4 py-2 border border-gray-200 active:scale-95 transition-colors duration-100 text-[10px] uppercase font-mono tracking-widest">
                <Columns className="w-3 h-3 text-cyan-400" />
                SPLIT_VIEW
              </button>
-             <button onClick={() => setIsFocusMode(true)} className="flex items-center gap-2 px-4 py-2 border border-gray-200 hover:border-[#eb2630]/50 hover:bg-[#eb2630]/10 transition-colors duration-100 text-[10px] uppercase font-mono tracking-widest">
+             <button onClick={() => setIsFocusMode(true)} className="flex items-center gap-2 px-4 py-2 border border-gray-200 active:scale-95#eb2630]/50 active:scale-95#eb2630]/10 transition-colors duration-100 text-[10px] uppercase font-mono tracking-widest">
                <Maximize className="w-3 h-3 text-[#eb2630]" />
                ZEN_MODE
              </button>
-             <button onClick={() => setIsTeleprompterMode(true)} className="flex items-center gap-2 px-4 py-2 border border-gray-200 hover:border-blue-500/50 hover:bg-blue-600/10 transition-colors duration-100 text-[10px] uppercase font-mono tracking-widest">
+             <button onClick={() => setIsTeleprompterMode(true)} className="flex items-center gap-2 px-4 py-2 border border-gray-200 active:scale-95 transition-colors duration-100 text-[10px] uppercase font-mono tracking-widest">
                <Mic className="w-3 h-3 text-blue-600" />
                PROMPTER
              </button>
@@ -571,11 +572,11 @@ export const ScriptEditor: React.FC = () => {
                
                <div className="flex items-center gap-4">
                   {isFocusMode && (
-                     <button onClick={() => setIsFocusMode(false)} className="px-4 py-2 hover:bg-gray-100 text-gray-900 border border-gray-200 transition-colors duration-100 text-[10px] uppercase font-mono mr-4 tracking-widest border-l-2 border-l-[#eb2630]">
+                     <button onClick={() => setIsFocusMode(false)} className="px-4 py-2 active:scale-95 text-gray-900 border border-gray-200 transition-colors duration-100 text-[10px] uppercase font-mono mr-4 tracking-widest border-l-2 border-l-[#eb2630]">
                         EXIT_ZEN
                      </button>
                   )}
-                  <button onClick={() => setIsHeatmapEnabled(!isHeatmapEnabled)} className={`flex items-center gap-2 px-4 py-2 border transition-colors duration-100 text-[10px] uppercase font-mono tracking-widest mr-4 ${isHeatmapEnabled ? 'bg-blue-600/10 border-blue-500/50 text-blue-600' : 'bg-white border-gray-200 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm'}`}>
+                  <button onClick={() => setIsHeatmapEnabled(!isHeatmapEnabled)} className={`flex items-center gap-2 px-4 py-2 border transition-colors duration-100 text-[10px] uppercase font-mono tracking-widest mr-4 ${isHeatmapEnabled ? 'bg-blue-600/10 border-blue-500/50 text-blue-600' : 'bg-white border-gray-200 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm'}`}>
                      <List className="w-3 h-3" />
                      {isHeatmapEnabled ? 'HIDE_EVIDENCE' : 'SHOW_EVIDENCE'}
                   </button>
@@ -586,7 +587,7 @@ export const ScriptEditor: React.FC = () => {
                         setIsRetrieving(true);
                         notify.topSecret("SCRIPT_GENERATING");
                         try {
-                           const res = await fetch("/api/drafts/generate", {
+                           const res = await apiFetch("/api/drafts/generate", {
                               method: "POST",
                               headers: { "Content-Type": "application/json" },
                               body: JSON.stringify({ topic, context: scenes.map(s => s.text).join(" ") })
@@ -614,16 +615,16 @@ export const ScriptEditor: React.FC = () => {
                            setIsRetrieving(false);
                         }
                      }} 
-                     className="flex items-center gap-2 px-6 py-2 bg-white border border-[#eb2630]/50 hover:bg-[#eb2630]/10 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4"
+                     className="flex items-center gap-2 px-6 py-2 bg-white border border-[#eb2630]/50 active:scale-95#eb2630]/10 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4"
                   >
                      <Plus className="w-3 h-3 text-[#eb2630]" />
                      MAGIC_DRAFT
                   </button>
-                  <button onClick={handleCommit} className="flex items-center gap-2 px-6 py-2 bg-white border border-gray-200 hover:border-cyan-400/50 hover:bg-cyan-500/10 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4">
+                  <button onClick={handleCommit} className="flex items-center gap-2 px-6 py-2 bg-white border border-gray-200 active:scale-95 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4">
                      <Save className="w-3 h-3 text-cyan-400" />
                      COMMIT
                   </button>
-                  <button onClick={handleExportSources} className="flex items-center gap-2 px-6 py-2 bg-white border border-blue-500/50 hover:bg-blue-600/10 text-blue-600 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase">
+                  <button onClick={handleExportSources} className="flex items-center gap-2 px-6 py-2 bg-white border border-blue-500/50 active:scale-95 text-blue-600 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase">
                      <Link2 className="w-3 h-3 text-[3B82F6]" />
                      SOURCES
                   </button>
@@ -658,7 +659,7 @@ export const ScriptEditor: React.FC = () => {
                                     const textContent = scene.text;
                                     notify.systemVoice("VOICE_GENERATING");
                                     try {
-                                        const req = await fetch('/api/voice/generate', {
+                                        const req = await apiFetch('/api/voice/generate', {
                                             method: 'POST',
                                             headers: {'Content-Type': 'application/json'},
                                             body: JSON.stringify({ text: textContent, referenceVoice: 'EGYPTIAN_INVESTIGATOR_01' })
@@ -697,13 +698,13 @@ export const ScriptEditor: React.FC = () => {
                                         setIsRetrieving(false);
                                     }
                                 }} 
-                                className="p-2 hover:bg-cyan-500/10 border border-transparent hover:border-cyan-500/30 text-gray-600 hover:text-cyan-400 transition-colors duration-100 flex items-center gap-1 text-[9px] font-mono tracking-widest uppercase" 
+                                className="p-2 active:scale-95 border border-transparent active:scale-95 text-gray-600 active:scale-95 transition-colors duration-100 flex items-center gap-1 text-[9px] font-mono tracking-widest uppercase" 
                                 title="Synthesize Voice"
                             >
                               <Mic className="w-3 h-3" />
                               GEN_VOICE
                             </button>
-                            <button onClick={() => duplicateScene(scene.id)} className="p-2 hover:bg-white border-gray-100 shadow-sm border border-transparent hover:border-gray-300 text-gray-600 hover:text-gray-900 transition-colors duration-100" title="DUPLICATE">
+                            <button onClick={() => duplicateScene(scene.id)} className="p-2 active:scale-95 border-gray-100 shadow-sm border border-transparent active:scale-95 text-gray-600 active:scale-95 transition-colors duration-100" title="DUPLICATE">
                               <Copy className="w-3 h-3" />
                             </button>
                             <button 
@@ -716,17 +717,17 @@ export const ScriptEditor: React.FC = () => {
                                   scene.factCheckStatus === 'VERIFIED' 
                                   ? 'text-green-400 bg-green-500/10 border-green-500/30 cursor-default' 
                                   : scene.factCheckStatus === 'DISPUTED'
-                                  ? 'text-accent-danger bg-accent-danger/10 border-accent-danger/30 hover:bg-accent-danger/20'
+                                  ? 'text-accent-danger bg-accent-danger/10 border-accent-danger/30 active:scale-95'
                                   : (scene.text.match(/\d{4}|(نسبة|عام|تاريخ|عدد|دولار|شهادة|رسمي)/) || scene.sensitive_entities?.length)
-                                    ? 'text-blue-600 bg-blue-600/10 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.3)] animate-pulse hover:bg-blue-600/20 hover:scale-105'
-                                    : 'text-blue-600/60 hover:text-blue-600 hover:bg-blue-600/10 hover:border-blue-500/30'
+                                    ? 'text-blue-600 bg-blue-600/10 border-blue-500/50 shadow-[0_0_10px_rgba(59,130,246,0.3)] animate-pulse active:scale-95 active:scale-95'
+                                    : 'text-blue-600/60 active:scale-95 active:scale-95'
                                 }`} 
                                 title={scene.factCheckStatus === 'VERIFIED' ? "VERIFIED" : "VERIFY EVIDENCE"}
                             >
                               {scene.factCheckStatus === 'VERIFIED' ? <CheckCircle className="w-3 h-3" /> : <ShieldCheck className="w-3 h-3" />}
                               {scene.text.match(/\d{4}|(نسبة|عام|تاريخ|عدد|دولار)/) && !scene.factCheckStatus ? 'VERIFY_DATA' : 'FACT_CHECK'}
                             </button>
-                            <button onClick={() => removeScene(scene.id)} className="p-2 hover:bg-[#eb2630]/10 border border-transparent hover:border-[#eb2630]/30 text-gray-600 hover:text-[#eb2630] transition-colors duration-100" title="DELETE">
+                            <button onClick={() => removeScene(scene.id)} className="p-2 active:scale-95#eb2630]/10 border border-transparent active:scale-95#eb2630]/30 text-gray-600 active:scale-95#eb2630] transition-colors duration-100" title="DELETE">
                               <Trash2 className="w-3 h-3" />
                             </button>
                           </div>
@@ -750,12 +751,12 @@ export const ScriptEditor: React.FC = () => {
                           <motion.div 
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
-                            className="mt-2 flex items-center gap-3 bg-cyan-900/20 border border-cyan-500/30 p-2 pl-4 cursor-pointer hover:bg-cyan-900/40 transition-colors"
+                            className="mt-2 flex items-center gap-3 bg-cyan-900/20 border border-cyan-500/30 p-2 pl-4 cursor-pointer active:scale-95 transition-colors"
                           >
                              <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_#22d3ee] animate-pulse" />
                              <span className="text-[11px] text-cyan-200 font-bold">INFO_LINK:</span>
                              <span className="text-[10px] text-gray-600">هذه المعلومة تطابق <span className="text-gray-900">ملف_الاستخبارات_1999.pdf (صفحة 45)</span> المرفوع مؤخراً.</span>
-                             <button className="mr-auto text-[9px] font-mono text-cyan-400 border border-cyan-500/30 px-2 py-1 hover:bg-cyan-500/20">تأكيد الربط</button>
+                             <button className="mr-auto text-[9px] font-mono text-cyan-400 border border-cyan-500/30 px-2 py-1 active:scale-95">تأكيد الربط</button>
                           </motion.div>
                         )}
 
@@ -821,7 +822,7 @@ export const ScriptEditor: React.FC = () => {
                               <span className="text-[10px] text-cyan-400 font-mono tracking-widest uppercase flex items-center gap-2">
                                 <Film className="w-3 h-3" /> DIRECTOR_AGENT
                               </span>
-                              <button className="text-[10px] bg-transparent text-gray-600 border border-gray-200 hover:text-cyan-400 hover:border-cyan-500/50 px-3 py-1.5 transition-colors duration-100 uppercase font-mono tracking-widest">
+                              <button className="text-[10px] bg-transparent text-gray-600 border border-gray-200 active:scale-95 px-3 py-1.5 transition-colors duration-100 uppercase font-mono tracking-widest">
                                 REGENERATE_PROMPT
                               </button>
                            </div>
@@ -846,7 +847,7 @@ export const ScriptEditor: React.FC = () => {
                {/* Add Scene Button */}
                <button 
                  onClick={addScene}
-                 className="w-full flex items-center justify-center gap-2 p-4 bg-white border border-gray-200 hover:bg-white border-gray-100 shadow-sm text-gray-600 hover:text-gray-900 transition-colors duration-100 uppercase font-mono tracking-widest text-[10px]"
+                 className="w-full flex items-center justify-center gap-2 p-4 bg-white border border-gray-200 active:scale-95 border-gray-100 shadow-sm text-gray-600 active:scale-95 transition-colors duration-100 uppercase font-mono tracking-widest text-[10px]"
                >
                  <Plus className="w-4 h-4" />
                  ADD_BLOCK
@@ -860,27 +861,27 @@ export const ScriptEditor: React.FC = () => {
                
                {/* Tab Selector */}
                <div className="flex border-b border-gray-200 shrink-0">
-                 <button onClick={() => setActiveInspectorTab('traceability')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'traceability' ? 'bg-gray-100 text-gray-900 border-b-2 border-blue-500' : 'text-gray-600 hover:text-gray-900 hover:bg-white border-gray-100 shadow-sm'}`}>
+                 <button onClick={() => setActiveInspectorTab('traceability')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'traceability' ? 'bg-gray-100 text-gray-900 border-b-2 border-blue-500' : 'text-gray-600 active:scale-95 border-gray-100 shadow-sm'}`}>
                    <List className="w-3 h-3 mx-auto mb-1" />
                    Trace
                  </button>
-                 <button onClick={() => setActiveInspectorTab('interrogation')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'interrogation' ? 'bg-[#eb2630]/10 text-[#eb2630] border-b-2 border-[#eb2630]' : 'text-gray-600 hover:text-[#eb2630] hover:bg-white border-gray-100 shadow-sm'}`}>
+                 <button onClick={() => setActiveInspectorTab('interrogation')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'interrogation' ? 'bg-[#eb2630]/10 text-[#eb2630] border-b-2 border-[#eb2630]' : 'text-gray-600 active:scale-95#eb2630] active:scale-95 border-gray-100 shadow-sm'}`}>
                    <MessageSquare className="w-3 h-3 mx-auto mb-1" />
                    Interrogate
                  </button>
-                 <button onClick={() => setActiveInspectorTab('redString')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'redString' ? 'bg-[#eb2630]/10 text-[#eb2630] border-b-2 border-[#eb2630]' : 'text-gray-600 hover:text-[#eb2630] hover:bg-white border-gray-100 shadow-sm'}`}>
+                 <button onClick={() => setActiveInspectorTab('redString')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'redString' ? 'bg-[#eb2630]/10 text-[#eb2630] border-b-2 border-[#eb2630]' : 'text-gray-600 active:scale-95#eb2630] active:scale-95 border-gray-100 shadow-sm'}`}>
                    <Link2 className="w-3 h-3 mx-auto mb-1" />
                    Red_String
                  </button>
-                 <button onClick={() => setActiveInspectorTab('radar')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'radar' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-600 hover:text-cyan-400 hover:bg-white border-gray-100 shadow-sm'}`}>
+                 <button onClick={() => setActiveInspectorTab('radar')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'radar' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-600 active:scale-95 border-gray-100 shadow-sm'}`}>
                    <Map className="w-3 h-3 mx-auto mb-1" />
                    Radar
                  </button>
-                 <button onClick={() => setActiveInspectorTab('portal')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'portal' ? 'bg-fuchsia-500/10 text-fuchsia-400 border-b-2 border-fuchsia-400' : 'text-gray-600 hover:text-fuchsia-400 hover:bg-white border-gray-100 shadow-sm'}`}>
+                 <button onClick={() => setActiveInspectorTab('portal')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'portal' ? 'bg-fuchsia-500/10 text-fuchsia-400 border-b-2 border-fuchsia-400' : 'text-gray-600 active:scale-95 border-gray-100 shadow-sm'}`}>
                    <Terminal className="w-3 h-3 mx-auto mb-1" />
                    Portal
                  </button>
-                 <button onClick={() => setActiveInspectorTab('director')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'director' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-600 hover:text-cyan-400 hover:bg-white border-gray-100 shadow-sm'}`}>
+                 <button onClick={() => setActiveInspectorTab('director')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'director' ? 'bg-cyan-500/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-600 active:scale-95 border-gray-100 shadow-sm'}`}>
                    <Film className="w-3 h-3 mx-auto mb-1" />
                    Director
                  </button>
@@ -902,7 +903,7 @@ export const ScriptEditor: React.FC = () => {
                        المقترحات البصرية والهندسة الصوتية لكل كتلة
                      </p>
                      {scenes.map((scene, i) => (
-                       <div key={scene.id} className="border border-gray-200 bg-gray-50 p-3 hover:border-cyan-500/30 transition-colors">
+                       <div key={scene.id} className="border border-gray-200 bg-gray-50 p-3 active:scale-95 transition-colors">
                          <div className="flex justify-between items-center mb-2">
                            <span className="text-[9px] text-cyan-400 font-mono tracking-widest uppercase">BLOCK_0{i + 1}</span>
                          </div>
@@ -959,7 +960,7 @@ export const ScriptEditor: React.FC = () => {
                          if(isTTS) { iconColor = 'text-cyan-400'; borderColor = 'border-cyan-400/40'; }
 
                          return (
-                           <div key={idx} className="border border-gray-200 bg-gray-50 hover:border-gray-300 transition-colors duration-100">
+                           <div key={idx} className="border border-gray-200 bg-gray-50 active:scale-95 transition-colors duration-100">
                               <div className="p-3 border-b border-gray-200 flex items-start gap-3">
                                  <div className={`w-6 h-6 border ${borderColor} flex items-center justify-center shrink-0`}>
                                     <Type className={`w-3 h-3 ${iconColor}`} />

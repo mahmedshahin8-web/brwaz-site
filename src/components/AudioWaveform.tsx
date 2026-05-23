@@ -98,11 +98,11 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
             </div>
             <button 
               onClick={() => wavesurferRef.current?.playPause()}
-              className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 flex items-center justify-center hover:border-cyan-500/50 hover:bg-cyan-500/10 transition-all group/play"
+              className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 flex items-center justify-center active:scale-95 transition-all group/play"
             >
-               {isPlaying ? <Square size={14} className="text-gray-900 fill-current" /> : <Play size={14} className="text-gray-900 fill-current group-hover:neon-cyan transition-colors" />}
+               {isPlaying ? <Square size={14} className="text-gray-900 fill-current" /> : <Play size={14} className="text-gray-900 fill-current group-active:scale-95 transition-colors" />}
             </button>
-            <button className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 flex items-center justify-center hover:border-gray-300 transition-all">
+            <button className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 flex items-center justify-center active:scale-95 transition-all">
                <Scissors size={14} className="text-gray-600" />
             </button>
          </div>
@@ -151,12 +151,12 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
          <div className="flex items-center gap-4">
             <button 
               onClick={onMaster}
-              className="px-6 py-2.5 bg-white border border-gray-200 shadow-md rounded-xl bg-amber-500/5 text-amber-500 data-text text-[10px] hover:bg-amber-500/10 transition-all flex items-center gap-2 group border-glow-amber"
+              className="px-6 py-2.5 bg-white border border-gray-200 shadow-md rounded-xl bg-amber-500/5 text-amber-500 data-text text-[10px] active:scale-95 transition-all flex items-center gap-2 group border-glow-amber"
             >
-               <Wand2 size={12} className="group-hover:scale-110 transition-transform" />
+               <Wand2 size={12} className="group-active:scale-95 transition-transform" />
                STUDIO_POLISH
             </button>
-            <button className="p-2.5 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 text-gray-500 hover:text-gray-900 transition-all">
+            <button className="p-2.5 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 text-gray-500 active:scale-95 transition-all">
                <Headphones size={14} />
             </button>
          </div>

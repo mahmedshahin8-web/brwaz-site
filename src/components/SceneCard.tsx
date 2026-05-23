@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useState } from "react";
 import { EpisodeScene } from "../types";
 import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp, Archive, Mic, Play, Wand2, Zap, ExternalLink, Video, Music, Swords, X, Search } from "lucide-react";
@@ -6,6 +7,7 @@ import { generateNanoBananaImage, editNanoBananaImageText } from "../services/im
 import { AudioWaveform } from "./AudioWaveform";
 import { motion, AnimatePresence } from "motion/react";
 import { BRollModal } from "./BRollModal";
+import { ImageWithFallback } from "./ImageWithFallback";
 
 interface SceneCardProps {
   key?: React.Key;
@@ -99,7 +101,7 @@ export const SceneCard = React.memo(function SceneCard({
     if (elKey) {
       setIsPlayingTTS(true);
       try {
-        const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}?output_format=mp3_44100_128`, {
+        const res = await apiFetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}?output_format=mp3_44100_128`, {
           method: "POST",
           headers: {
              "Content-Type": "application/json",
@@ -165,7 +167,7 @@ export const SceneCard = React.memo(function SceneCard({
       let cleanText = editedVoiceOver.replace(/\[صمت درامي\]/g, "... ");
       cleanText = cleanText.replace(/🔊/g, "");
 
-      const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}?output_format=mp3_44100_128`, {
+      const res = await apiFetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}?output_format=mp3_44100_128`, {
           method: "POST",
           headers: {
              "Content-Type": "application/json",
@@ -274,7 +276,7 @@ export const SceneCard = React.memo(function SceneCard({
         <span
           key={idx}
           onDoubleClick={() => timestamp && onSeek && onSeek(timestamp.start)}
-          className={`cursor-pointer transition-all border-b border-transparent hover:bg-blue-100 ${timestamp ? 'border-amber-500/20 text-amber-900' : ''}`}
+          className={`cursor-pointer transition-all border-b border-transparent active:scale-95 ${timestamp ? 'border-amber-500/20 text-amber-900' : ''}`}
           dangerouslySetInnerHTML={formattedWord}
         />
       );
@@ -291,7 +293,7 @@ export const SceneCard = React.memo(function SceneCard({
       transition={{ duration: 0.8, repeat: isHighlighted ? Infinity : 0, repeatType: "reverse" }}
       className={`bg-white rounded-xl shadow-sm p-8 flex flex-col space-y-6 transition-all duration-300 relative overflow-hidden border ${
         status === "approved" ? "border-green-200" : "border-gray-200"
-      } ${isHighlighted ? "z-30 scale-[1.01]" : "hover:shadow-md"}`}
+      } ${isHighlighted ? "z-30 scale-[1.01]" : "active:scale-95"}`}
     >
       {scene.comparison_version && (
         <div className="absolute inset-0 z-[100] bg-white/95 backdrop-blur-xl flex flex-col p-6 animate-in fade-in zoom-in duration-300">
@@ -301,7 +303,7 @@ export const SceneCard = React.memo(function SceneCard({
               </h3>
               <button 
                 onClick={() => onAcceptVersion?.("original")}
-                className="text-gray-400 hover:text-gray-700 transition-all"
+                className="text-gray-400 active:scale-95 transition-all"
               >
                 <X size={24} />
               </button>
@@ -326,7 +328,7 @@ export const SceneCard = React.memo(function SceneCard({
                     </div>
                     <button 
                       onClick={() => onAcceptVersion?.("original")}
-                      className="w-full py-3 bg-white border-gray-100 shadow-sm border border-gray-200 text-gray-900 font-arabic font-bold hover:bg-white hover:text-black transition-all"
+                      className="w-full py-3 bg-white border-gray-100 shadow-sm border border-gray-200 text-gray-900 font-arabic font-bold active:scale-95 transition-all"
                     >
                       اعتماد النسخة A
                     </button>
@@ -351,7 +353,7 @@ export const SceneCard = React.memo(function SceneCard({
                     </div>
                     <button 
                       onClick={() => onAcceptVersion?.("comparison")}
-                      className="w-full py-3 bg-blue-600 text-black font-arabic font-bold hover:shadow-md shadow-blue-500/20 transition-all"
+                      className="w-full py-3 bg-blue-600 text-black font-arabic font-bold active:scale-95 shadow-blue-500/20 transition-all"
                     >
                       اعتماد النسخة B
                     </button>
@@ -377,7 +379,7 @@ export const SceneCard = React.memo(function SceneCard({
                 scene.loop_type === 'O' 
                   ? 'border border-orange-200 text-orange-600 bg-orange-50' 
                   : 'border border-blue-200 text-blue-600 bg-blue-50'
-              } hover:scale-105 active:scale-95`}
+              } active:scale-95 active:scale-95`}
             >
               {scene.loop_type}
             </button>
@@ -399,7 +401,7 @@ export const SceneCard = React.memo(function SceneCard({
              <button
               onClick={onVSMode}
               disabled={isABTesting}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border border-gray-200 text-gray-500 hover:text-blue-600 hover:border-blue-200 hover:bg-blue-50 ${isABTesting ? 'opacity-50 cursor-wait' : ''}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border border-gray-200 text-gray-500 active:scale-95 ${isABTesting ? 'opacity-50 cursor-wait' : ''}`}
              >
                {isABTesting ? <RefreshCw size={12} className="animate-spin" /> : <Swords size={12} />} 
                VS Mode
@@ -411,7 +413,7 @@ export const SceneCard = React.memo(function SceneCard({
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border ${
                 isRecording 
                   ? 'border-red-200 bg-red-50 text-red-600 animate-pulse' 
-                  : 'border-gray-200 text-gray-500 hover:text-red-500 hover:border-red-200 hover:bg-red-50'
+                  : 'border-gray-200 text-gray-500 active:scale-95 active:scale-95'
               }`}
             >
               {isRecording ? <><Square size={12} className="fill-current" /> Stop</> : <><Mic size={12} /> Rec</>}
@@ -419,14 +421,14 @@ export const SceneCard = React.memo(function SceneCard({
           )}
           <button
             onClick={handleDownloadMp3}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 font-sans font-medium uppercase tracking-wider text-[10px] text-gray-500 hover:text-gray-900 hover:bg-gray-50 transition-all"
+            className="px-3 py-1.5 rounded-lg border border-gray-200 font-sans font-medium uppercase tracking-wider text-[10px] text-gray-500 active:scale-95 transition-all"
             title="تحميل MP3 (يتطلب مفتاح ElevenLabs)"
           >
             MP3
           </button>
           <button
             onClick={handlePlayTTS}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border ${isPlayingTTS ? 'border-red-200 bg-red-50 text-red-600' : 'border-gray-200 text-gray-500 hover:bg-gray-50 hover:text-gray-900'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border ${isPlayingTTS ? 'border-red-200 bg-red-50 text-red-600' : 'border-gray-200 text-gray-500 active:scale-95 active:scale-95'}`}
           >
             {isPlayingTTS ? <><Square size={12} className="fill-current" /> Stop</> : <><Volume2 size={12} /> Play</>}
           </button>
@@ -445,11 +447,11 @@ export const SceneCard = React.memo(function SceneCard({
              />
           </div>
         ) : (
-          <div className="bg-white p-8 border border-gray-100 rounded-xl shadow-sm transition-all group/script hover:shadow-md relative">
+          <div className="bg-white p-8 border border-gray-100 rounded-xl shadow-sm transition-all group/script active:scale-95 relative">
             <div className="absolute top-4 left-6 text-gray-300 uppercase tracking-widest text-xs font-mono">SCENE TEXT</div>
             <div className="absolute top-4 right-6 opacity-0 group-hover/script:opacity-100 transition-opacity flex gap-2">
-               <button onClick={handleEditToggle} className="text-gray-400 hover:text-blue-500 bg-gray-50 p-2 rounded-lg"><Edit2 size={16} /></button>
-               <button onClick={() => copyToClipboard(scene.voice_over)} className="text-gray-400 hover:text-blue-500 bg-gray-50 p-2 rounded-lg"><Copy size={16} /></button>
+               <button onClick={handleEditToggle} className="text-gray-400 active:scale-95 bg-gray-50 p-2 rounded-lg"><Edit2 size={16} /></button>
+               <button onClick={() => copyToClipboard(scene.voice_over)} className="text-gray-400 active:scale-95 bg-gray-50 p-2 rounded-lg"><Copy size={16} /></button>
             </div>
             
             <div className="font-arabic text-2xl font-medium leading-[2.2] text-gray-800 text-right mt-4 rounded-lg">
@@ -483,7 +485,7 @@ export const SceneCard = React.memo(function SceneCard({
 
         <button 
           onClick={() => setIsExpanded(!isExpanded)}
-          className="w-full flex items-center justify-center gap-2 py-3 bg-gray-50 border border-gray-200 text-gray-500 font-sans font-medium text-sm rounded-xl mt-4 hover:bg-gray-100 transition-colors"
+          className="w-full flex items-center justify-center gap-2 py-3 bg-gray-50 border border-gray-200 text-gray-500 font-sans font-medium text-sm rounded-xl mt-4 active:scale-95 transition-colors"
         >
           {isExpanded ? (
             <><ChevronUp className="w-4 h-4" /> إخفاء تفاصيل المشهد الفنية</>
@@ -511,7 +513,7 @@ export const SceneCard = React.memo(function SceneCard({
                         {audioUrl && !scene.is_mastered && onMasterAudio && (
                           <button 
                             onClick={onMasterAudio}
-                            className="text-xs font-mono text-blue-500 hover:text-blue-700 transition-colors"
+                            className="text-xs font-mono text-blue-500 active:scale-95 transition-colors"
                           >
                               Run Studio Polish
                           </button>
@@ -550,17 +552,17 @@ export const SceneCard = React.memo(function SceneCard({
                         <strong className="text-xs uppercase tracking-wider text-blue-500">Pexels Stock Suggestion</strong>
                         <button 
                           onClick={() => setShowBrollModal(true)}
-                          className="flex items-center gap-1.5 bg-blue-100 hover:bg-blue-200 text-blue-700 px-3 py-1 text-[10px] uppercase font-mono tracking-wider transition-colors rounded-full"
+                          className="flex items-center gap-1.5 bg-blue-100 active:scale-95 text-blue-700 px-3 py-1 text-[10px] uppercase font-mono tracking-wider transition-colors rounded-full"
                         >
                           <Search size={12} /> Search
                         </button>
                       </div>
                       <div className="text-blue-900 font-medium mb-3">Query: {scene.b_roll_search_query}</div>
                       {scene.pexelsAsset && (
-                        <div className="relative rounded-lg overflow-hidden border border-blue-200 shadow-sm mt-3">
-                           <img src={scene.pexelsAsset.image} alt={scene.b_roll_search_query} className="w-full aspect-video object-cover" />
+                        <div className="relative rounded-lg overflow-hidden border border-blue-200 shadow-sm mt-3 h-48">
+                           <ImageWithFallback src={scene.pexelsAsset.image} alt={scene.b_roll_search_query || "B-Roll"} className="w-full h-full" />
                            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
-                              <a href={scene.pexelsAsset.url} target="_blank" rel="noreferrer" className="text-white text-xs block hover:underline hover:text-blue-300 transition-colors cursor-pointer">
+                              <a href={scene.pexelsAsset.url} target="_blank" rel="noreferrer" className="text-white text-xs block active:scale-95 transition-colors cursor-pointer">
                                  View on Pexels <ExternalLink size={12} className="inline ml-1" />
                               </a>
                            </div>
@@ -583,8 +585,8 @@ export const SceneCard = React.memo(function SceneCard({
                         <p className="text-gray-500 text-sm mb-4">{scene.image_prompt_nano_banana}</p>
                         
                         {scene.generated_image_url && (
-                          <div className="relative rounded-lg overflow-hidden border border-gray-200 shadow-sm">
-                            <img src={scene.generated_image_url} alt="Scene Preview" className="w-full aspect-video object-cover" />
+                          <div className="relative rounded-lg overflow-hidden border border-gray-200 shadow-sm h-48">
+                            <ImageWithFallback src={scene.generated_image_url} alt="Scene Preview" className="w-full h-full" />
                           </div>
                         )}
                       </div>
@@ -601,7 +603,7 @@ export const SceneCard = React.memo(function SceneCard({
             onClick={handleApprove}
             disabled={status === "approved" || isEditing}
             className={`flex-1 min-w-[120px] py-3 rounded-xl font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${
-              status === "approved" ? "bg-green-100 text-green-700 cursor-not-allowed border border-green-200" : "bg-green-500 hover:bg-green-600 text-gray-900 border-none"
+              status === "approved" ? "bg-green-100 text-green-700 cursor-not-allowed border border-green-200" : "bg-green-500 active:scale-95 text-gray-900 border-none"
             }`}
           >
             <CheckCircle className="w-4 h-4" />
@@ -611,7 +613,7 @@ export const SceneCard = React.memo(function SceneCard({
           <button 
             onClick={handleEditToggle}
             className={`flex-1 min-w-[120px] py-3 rounded-xl font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${
-              isEditing ? "bg-blue-500 hover:bg-blue-600 text-gray-900" : "bg-amber-400 hover:bg-amber-500 text-amber-950"
+              isEditing ? "bg-blue-500 active:scale-95 text-gray-900" : "bg-amber-400 active:scale-95 text-amber-950"
             }`}
           >
             <Edit2 className="w-4 h-4" />
@@ -622,7 +624,7 @@ export const SceneCard = React.memo(function SceneCard({
             onClick={handleRegenerate}
             disabled={status === "regenerating" || isEditing}
             className={`flex-1 min-w-[120px] py-3 rounded-xl font-sans font-semibold text-sm flex items-center justify-center gap-2 transition-colors shadow-sm ${
-              status === "regenerating" ? "bg-red-100 text-red-500 cursor-wait" : "bg-red-500 hover:bg-red-600 text-gray-900"
+              status === "regenerating" ? "bg-red-100 text-red-500 cursor-wait" : "bg-red-500 active:scale-95 text-gray-900"
             }`}
           >
             <RefreshCw className={`w-4 h-4 ${status === "regenerating" ? "animate-spin" : ""}`} />

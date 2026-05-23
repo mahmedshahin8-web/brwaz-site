@@ -4,7 +4,7 @@ self.onmessage = async (e: MessageEvent) => {
   const { video_title, mood, finalVoiceScript, scenes } = e.data;
 
   try {
-    const docChildren = [
+    const docChildren: any[] = [
       new Paragraph({
         children: [
           new TextRun({ text: "CONFIDENTIAL // BARWAZ INTELLIGENCE DOCUMENT", bold: true, size: 28 }),
@@ -28,11 +28,11 @@ self.onmessage = async (e: MessageEvent) => {
         new TableRow({
           children: [
             new TableCell({ 
-              children: [new Paragraph({ text: "Visual Cues (B-Roll / Camera)", bold: true })],
+              children: [new Paragraph({ children: [new TextRun({ text: "Visual Cues (B-Roll / Camera)", bold: true })]})],
               width: { size: 40, type: WidthType.PERCENTAGE }
             }),
             new TableCell({ 
-              children: [new Paragraph({ text: "Voiceover (Script)", bold: true })],
+              children: [new Paragraph({ children: [new TextRun({ text: "Voiceover (Script)", bold: true })]})],
               width: { size: 60, type: WidthType.PERCENTAGE }
             }),
           ]
@@ -48,10 +48,10 @@ self.onmessage = async (e: MessageEvent) => {
                    children: [
                      new Paragraph({ text: `[OPENING HOOK]` }),
                      new Paragraph({ text: e.data.opening_sketch.visual_cue || "" }),
-                     new Paragraph({ text: `Keywords: ${e.data.opening_sketch.b_roll_keywords || e.data.opening_sketch.b_roll_search_query || ""}`, italics: true })
+                     new Paragraph({ children: [new TextRun({ text: `Keywords: ${e.data.opening_sketch.b_roll_keywords || e.data.opening_sketch.b_roll_search_query || ""}`, italics: true })] })
                    ] 
                 }),
-                new TableCell({ children: [new Paragraph({ text: e.data.opening_sketch.voice_over || "", rightTabStop: true })] }),
+                new TableCell({ children: [new Paragraph({ text: e.data.opening_sketch.voice_over || "", alignment: "right" })] }),
               ]
             })
           );
@@ -65,10 +65,10 @@ self.onmessage = async (e: MessageEvent) => {
                  children: [
                    new Paragraph({ text: `[${scene.asset_id}]` }),
                    new Paragraph({ text: scene.visual_cue || "" }),
-                   new Paragraph({ text: `Keywords: ${scene.b_roll_keywords || scene.b_roll_search_query || ""}`, italics: true })
+                   new Paragraph({ children: [new TextRun({ text: `Keywords: ${scene.b_roll_keywords || scene.b_roll_search_query || ""}`, italics: true })] })
                  ] 
               }),
-              new TableCell({ children: [new Paragraph({ text: scene.voice_over || "", rightTabStop: true })] }),
+              new TableCell({ children: [new Paragraph({ text: scene.voice_over || "", alignment: "right" })] }),
             ]
           })
         );

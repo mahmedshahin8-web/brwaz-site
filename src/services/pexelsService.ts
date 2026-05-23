@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 export interface PexelsVideo {
   id: number;
   width: number;
@@ -21,7 +22,7 @@ export async function searchPexelsVideos(query: string): Promise<PexelsVideo[]> 
     throw new Error("Pexels API key not found. Please add VITE_PEXELS_API_KEY to your .env file.");
   }
 
-  const response = await fetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=6`, {
+  const response = await apiFetch(`https://api.pexels.com/videos/search?query=${encodeURIComponent(query)}&per_page=6`, {
     headers: {
       Authorization: apiKey
     }

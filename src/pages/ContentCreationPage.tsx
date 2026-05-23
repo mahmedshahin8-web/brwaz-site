@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useState, useEffect, useRef } from "react";
 import DocxWorker from "../workers/docxWorker?worker";
 import ZipWorker from "../workers/zipWorker?worker";
@@ -628,8 +629,9 @@ export default function ContentCreationPage() {
   const [tensionPoints, setTensionPoints] = useState<number[]>([]);
   const [showTeleprompter, setShowTeleprompter] = useState(false);
 
-  // Let's debounce the editor's update to avoid rebuilding the entire 3700-line DOM on every keystroke
+  // Focus and infinite loop prevention
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const lastForcedContent = useRef('');
 
   const editor = useEditor({
     extensions: [StarterKit, Highlight],
@@ -637,17 +639,17 @@ export default function ContentCreationPage() {
     onUpdate: ({ editor }) => {
       if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
       updateTimeoutRef.current = setTimeout(() => {
-        setFinalVoiceScript(editor.getHTML().replace(/<br>/g, '\n').replace(/<[^>]+>/g, ''));
-      }, 500); // Debounce typing updates by 500ms
+        const text = editor.getHTML().replace(/<p>/g, '').replace(/<\/p>/g, '\n').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '').trim();
+        lastForcedContent.current = text;
+        setFinalVoiceScript(text);
+      }, 500);
     },
   });
 
   useEffect(() => {
-    if (editor && finalVoiceScript) {
-      const currentText = editor.getHTML().replace(/<br>/g, '\n').replace(/<p><\/p>/g, '\n').replace(/<[^>]+>/g, '');
-      if (finalVoiceScript !== currentText) {
-        editor.commands.setContent(finalVoiceScript.split('\n').join('<br>'));
-      }
+    if (editor && finalVoiceScript && finalVoiceScript !== lastForcedContent.current && !editor.isFocused) {
+      lastForcedContent.current = finalVoiceScript;
+      editor.commands.setContent(finalVoiceScript.split('\n').join('<br>'));
     }
   }, [finalVoiceScript, editor]);
 
@@ -887,7 +889,7 @@ export default function ContentCreationPage() {
          </div>
          <button 
           onClick={handleRunAudit}
-          className="px-8 py-3 bg-blue-600/10 border border-blue-500/40 text-blue-600 font-mono text-[10px] uppercase tracking-widest hover:bg-blue-600 hover:text-black transition-all"
+          className="px-8 py-3 bg-blue-600/10 border border-blue-500/40 text-blue-600 font-mono text-[10px] uppercase tracking-widest active:scale-95 transition-all"
          >
            Start_Audit_Scan
          </button>
@@ -942,12 +944,12 @@ export default function ContentCreationPage() {
            </h4>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {auditResult.archives.map((arc, i) => (
-                 <a key={i} href={arc.url} target="_blank" rel="noopener noreferrer" className="p-4 bg-white border-gray-100 shadow-sm border border-gray-200 hover:border-blue-500/50 transition-all group block">
+                 <a key={i} href={arc.url} target="_blank" rel="noopener noreferrer" className="p-4 bg-white border-gray-100 shadow-sm border border-gray-200 active:scale-95 transition-all group block">
                     <div className="flex justify-between items-start mb-3">
                        <div className="p-2 bg-blue-600/10 text-blue-600">
                           <Database size={14} />
                        </div>
-                       <ArrowRight size={14} className="text-gray-500 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                       <ArrowRight size={14} className="text-gray-500 group-active:scale-95 group-active:scale-95 transition-all" />
                     </div>
                     <h5 className="text-[11px] font-mono text-gray-900 mb-2 line-clamp-1">{arc.title}</h5>
                     <p className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed">{arc.description}</p>
@@ -976,7 +978,7 @@ export default function ContentCreationPage() {
          </div>
          <button 
           onClick={handleRunAudit}
-          className="px-8 py-3 bg-purple-500/10 border border-purple-500/40 text-purple-500 font-mono text-[10px] uppercase tracking-widest hover:bg-purple-500 hover:text-gray-900 transition-all"
+          className="px-8 py-3 bg-purple-500/10 border border-purple-500/40 text-purple-500 font-mono text-[10px] uppercase tracking-widest active:scale-95 transition-all"
          >
            Enter_The_Chamber
          </button>
@@ -1051,8 +1053,8 @@ export default function ContentCreationPage() {
            </h4>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {echoResult.suggested_links.map((link, i) => (
-                 <div key={i} className="p-5 bg-white border-gray-100 shadow-sm border border-gray-200 space-y-4 group hover:border-blue-500/40 transition-all">
-                    <h5 className="text-sm font-arabic font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{link.title}</h5>
+                 <div key={i} className="p-5 bg-white border-gray-100 shadow-sm border border-gray-200 space-y-4 group active:scale-95 transition-all">
+                    <h5 className="text-sm font-arabic font-bold text-gray-900 group-active:scale-95 transition-colors">{link.title}</h5>
                     <p className="text-[11px] text-gray-600 leading-relaxed">{link.connection_logic}</p>
                     <div className="bg-gray-50 p-3 border-l-2 border-blue-500">
                        <span className="text-[8px] font-mono text-blue-600 uppercase block mb-2">LOOP_EXECUTION</span>
@@ -1091,7 +1093,7 @@ export default function ContentCreationPage() {
               </div>
               <h3 className="text-xl font-arabic font-black text-gray-900">إعدادات المحرك (Engine Settings)</h3>
             </div>
-            <button onClick={() => setShowSettings(false)} className="text-gray-500 hover:text-gray-900 transition-colors">
+            <button onClick={() => setShowSettings(false)} className="text-gray-500 active:scale-95 transition-colors">
               <X size={24} />
             </button>
           </div>
@@ -1132,7 +1134,7 @@ export default function ContentCreationPage() {
                       <button 
                          key={m} 
                          onClick={() => setOllamaModel(m)}
-                         className={`px-2 py-1 text-[9px] font-mono border transition-all ${ollamaModel === m ? 'bg-blue-600 border-blue-500 text-black' : 'bg-white border-gray-100 shadow-sm border-gray-200 text-gray-600 hover:border-gray-300'}`}
+                         className={`px-2 py-1 text-[9px] font-mono border transition-all ${ollamaModel === m ? 'bg-blue-600 border-blue-500 text-black' : 'bg-white border-gray-100 shadow-sm border-gray-200 text-gray-600 active:scale-95'}`}
                       >
                          {m.split(':')[0]}
                       </button>
@@ -1209,7 +1211,7 @@ export default function ContentCreationPage() {
 
           <button 
             onClick={() => setShowSettings(false)}
-            className="w-full py-4 bg-blue-600 text-black font-arabic font-bold text-lg hover:bg-white transition-all shadow-lg shadow-blue-500/10"
+            className="w-full py-4 bg-blue-600 text-black font-arabic font-bold text-lg active:scale-95 transition-all shadow-lg shadow-blue-500/10"
           >
             حفظ التغييرات (Save_Configuration)
           </button>
@@ -1258,7 +1260,7 @@ export default function ContentCreationPage() {
         );
         if (!scene) return;
 
-        const response = await fetch("/api/audio/align", {
+        const response = await apiFetch("/api/audio/align", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1683,7 +1685,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                   cx={x}
                   cy={y}
                   r="30"
-                  className="fill-white/5 stroke-white/20 stroke-1 hover:stroke-blue-500 transition-colors"
+                  className="fill-white/5 stroke-white/20 stroke-1 active:scale-95 transition-colors"
                 />
                 <text
                   x={x}
@@ -2051,13 +2053,18 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
         const progressInterval = setInterval(() => {
           setProgress((prev) => {
             if (prev >= 95) return prev;
-            if (abortControllerRef.current?.signal.aborted)
-              throw new Error("AbortError");
+            if (abortControllerRef.current?.signal.aborted) {
+               clearInterval(progressInterval);
+               return prev;
+            }
             return prev + Math.floor(Math.random() * 5) + 1;
           });
 
           setStatus((prevStatus) => {
-            if (abortControllerRef.current?.signal.aborted) return prevStatus;
+            if (abortControllerRef.current?.signal.aborted) {
+               clearInterval(progressInterval);
+               return prevStatus;
+            }
             const statuses = [
               "[!] يتم الآن التنقيب في سجلات التحقيق...",
               "يتم الآن استخلاص المعلومات التاريخية الدقيقة...",
@@ -2113,6 +2120,10 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
         const smoothProgressInterval = setInterval(() => {
           setProgress((prev) => {
             if (prev >= targetProgress) return prev;
+            if (abortControllerRef.current?.signal.aborted) {
+               clearInterval(smoothProgressInterval);
+               return prev;
+            }
             return prev + Math.floor(Math.random() * 2) + 1;
           });
         }, 1000);
@@ -2565,7 +2576,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
         if (!cleanText.trim()) continue;
 
         try {
-          const res = await fetch(
+          const res = await apiFetch(
             `https://api.elevenlabs.io/v1/text-to-speech/${elevenLabsVoiceId}?output_format=mp3_44100_128`,
             {
               method: "POST",
@@ -2654,10 +2665,10 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
           <div className="flex items-center gap-4 border-r border-gray-200 pr-4 mr-2">
              <button 
                onClick={() => setShowSettings(true)}
-               className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors relative group"
+               className="p-2 text-gray-400 active:scale-95 rounded-lg transition-colors relative group"
              >
                 <Settings size={18} />
-                <div className="absolute top-full right-0 mt-2 p-2 bg-gray-800 rounded-md text-[10px] font-mono text-gray-100 whitespace-nowrap opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity shadow-lg">
+                <div className="absolute top-full right-0 mt-2 p-2 bg-gray-800 rounded-md text-[10px] font-mono text-gray-100 whitespace-nowrap opacity-0 group-active:scale-95 pointer-events-none transition-opacity shadow-lg">
                    إعدادات المحرك
                 </div>
              </button>
@@ -2702,7 +2713,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                            <button 
                             onClick={handleSweepNow}
                             disabled={isSweeping}
-                            className="p-2 hover:bg-gray-50 border border-gray-100 rounded-lg transition-colors group/sweep"
+                            className="p-2 active:scale-95 border border-gray-100 rounded-lg transition-colors group/sweep"
                             title="Sweep Live Trends"
                           >
                             <TrendingUp className={`w-4 h-4 transition-colors ${isSweeping ? "animate-pulse text-blue-500" : "text-gray-400 group-hover/sweep:text-blue-600"}`} />
@@ -2718,8 +2729,8 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           onChange={(e) => setTopic(e.target.value)}
                         />
                         <Search className="absolute bottom-6 left-6 w-5 h-5 text-gray-400" />
-                        <label className="absolute bottom-6 right-6 p-2 bg-white rounded-lg border border-gray-200 cursor-pointer shadow-sm hover:bg-gray-50 transition-colors" title="رفع ملف وورد (.docx)">
-                          <FileText className="w-5 h-5 text-gray-400 hover:text-blue-600" />
+                        <label className="absolute bottom-6 right-6 p-2 bg-white rounded-lg border border-gray-200 cursor-pointer shadow-sm active:scale-95 transition-colors" title="رفع ملف وورد (.docx)">
+                          <FileText className="w-5 h-5 text-gray-400 active:scale-95" />
                           <input 
                               type="file"
                               accept=".docx"
@@ -2777,7 +2788,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                       <button
                         onClick={handleSpinRadar}
                         disabled={isGeneratingTitle}
-                        className="w-full h-16 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-gray-900 font-arabic font-bold text-xl rounded-2xl flex items-center justify-center gap-3 transition-all relative overflow-hidden group/radar shadow-md shadow-blue-500/20"
+                        className="w-full h-16 bg-blue-600 active:scale-95 disabled:opacity-50 text-gray-900 font-arabic font-bold text-xl rounded-2xl flex items-center justify-center gap-3 transition-all relative overflow-hidden group/radar shadow-md shadow-blue-500/20"
                       >
                          {isGeneratingTitle ? (
                            <>
@@ -2808,10 +2819,10 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           className={`p-6 text-right transition-all group relative overflow-hidden rounded-2xl border ${
                             selectedSector === sec.id 
                               ? "bg-white border-blue-500 shadow-sm" 
-                              : "bg-gray-50 border-gray-100 hover:border-gray-200 hover:bg-white"
+                              : "bg-gray-50 border-gray-100 active:scale-95 active:scale-95"
                           }`}
                         >
-                          <div className={`p-2 rounded-xl inline-flex mb-4 transition-colors ${selectedSector === sec.id ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400 group-hover:text-gray-600"}`}>
+                          <div className={`p-2 rounded-xl inline-flex mb-4 transition-colors ${selectedSector === sec.id ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400 group-active:scale-95"}`}>
                             <sec.icon className="w-6 h-6" />
                           </div>
                           <h3 className={`text-lg font-arabic font-bold block ${selectedSector === sec.id ? "text-gray-900" : "text-gray-500"}`}>{sec.name}</h3>
@@ -2842,17 +2853,17 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           className={`p-6 border text-right transition-all group relative rounded-2xl ${
                             mood === m.type 
                               ? "bg-white border-blue-500 shadow-sm ring-1 ring-blue-500" 
-                              : "bg-gray-50 border-gray-100 hover:bg-white hover:border-gray-200"
+                              : "bg-gray-50 border-gray-100 active:scale-95 active:scale-95"
                           }`}
                         >
                            <div className="flex flex-row-reverse items-center justify-between mb-4">
-                             <div className={`p-2 rounded-xl border transition-colors ${mood === m.type ? "text-blue-600 border-blue-200 bg-blue-50" : "text-gray-400 bg-white border-gray-100 group-hover:text-gray-600"}`}>
+                             <div className={`p-2 rounded-xl border transition-colors ${mood === m.type ? "text-blue-600 border-blue-200 bg-blue-50" : "text-gray-400 bg-white border-gray-100 group-active:scale-95"}`}>
                                <m.icon className="w-5 h-5" />
                              </div>
                              {mood === m.type && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />}
                            </div>
                            <h4 className={`text-base font-arabic font-bold transition-colors ${mood === m.type ? "text-gray-900" : "text-gray-500 group-hover/mood:text-gray-700"}`}>{m.type}</h4>
-                           <p className="text-[11px] font-arabic text-gray-500 mt-2 leading-relaxed opacity-0 group-hover:opacity-100 transition-opacity h-0 group-hover:h-auto overflow-hidden">{m.description}</p>
+                           <p className="text-[11px] font-arabic text-gray-500 mt-2 leading-relaxed opacity-0 group-active:scale-95 transition-opacity h-0 group-active:scale-95 overflow-hidden">{m.description}</p>
                         </button>
                       ))}
                     </div>
@@ -2905,7 +2916,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                         {suggestedTitles.length > 1 && (
                           <button 
                             onClick={handleMergeTitles}
-                            className="text-[9px] font-mono text-gray-400 hover:text-blue-600 uppercase flex items-center gap-2 transition-colors font-bold bg-white px-3 py-1 rounded-full border border-gray-100 hover:border-blue-200"
+                            className="text-[9px] font-mono text-gray-400 active:scale-95 uppercase flex items-center gap-2 transition-colors font-bold bg-white px-3 py-1 rounded-full border border-gray-100 active:scale-95"
                           >
                             <Swords className="w-3 h-3" /> Merge Logic
                           </button>
@@ -2929,15 +2940,15 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                 handleGenerateEpisode(st.title, hookVal, st.title);
                               }, 2000);
                             }}
-                            className="w-full text-right p-6 bg-white border border-gray-100 rounded-2xl hover:border-blue-300 hover:shadow-md transition-all group relative overflow-hidden"
+                            className="w-full text-right p-6 bg-white border border-gray-100 rounded-2xl active:scale-95 transition-all group relative overflow-hidden"
                           >
                             <div className="flex gap-4 items-center flex-row-reverse">
-                              <span className="text-xl font-mono text-gray-200 group-hover:text-blue-200 transition-colors font-bold">0{i+1}</span>
+                              <span className="text-xl font-mono text-gray-200 group-active:scale-95 transition-colors font-bold">0{i+1}</span>
                               <div className="flex-1 space-y-1">
-                                <h5 className="text-lg font-arabic font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{st.title}</h5>
+                                <h5 className="text-lg font-arabic font-bold text-gray-900 group-active:scale-95 transition-colors">{st.title}</h5>
                                 <p className="text-xs font-arabic text-gray-500 leading-relaxed max-w-xl">"{st.hook || st.hook_instruction}"</p>
                               </div>
-                              <ArrowRight className="w-5 h-5 text-gray-300 group-hover:text-blue-500 transition-colors -rotate-180" />
+                              <ArrowRight className="w-5 h-5 text-gray-300 group-active:scale-95 transition-colors -rotate-180" />
                             </div>
                           </button>
                         ))}
@@ -3013,9 +3024,9 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                             handleGenerateEpisode(selectedAngle.title, selectedAngle.hook, selectedAngle.title);
                           }
                         }}
-                        className="px-12 py-5 bg-red-600/10 border border-red-500/50 text-gray-900 hover:bg-red-500 hover:text-black font-arabic font-bold text-xl uppercase tracking-widest group transition-all duration-300 shadow-[0_0_20px_rgba(239,68,68,0.2)] hover:shadow-[0_0_40px_rgba(239,68,68,0.6)]"
+                        className="px-12 py-5 bg-red-600/10 border border-red-500/50 text-gray-900 active:scale-95 font-arabic font-bold text-xl uppercase tracking-widest group transition-all duration-300 shadow-[0_0_20px_rgba(239,68,68,0.2)] active:scale-95_0_40px_rgba(239,68,68,0.6)]"
                       >
-                        <RefreshCcw className="w-6 h-6 inline ml-3 transition-transform group-hover:rotate-180" />
+                        <RefreshCcw className="w-6 h-6 inline ml-3 transition-transform group-active:scale-95" />
                         إعادة المحاولة
                       </button>
                     </div>
@@ -3059,9 +3070,9 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
 
                        <button 
                         onClick={handleStopGeneration}
-                        className="px-10 py-5 border border-red-500/10 text-red-500/40 hover:text-red-500 hover:bg-red-500/5 transition-all font-mono text-[10px] uppercase tracking-[0.5em] group"
+                        className="px-10 py-5 border border-red-500/10 text-red-500/40 active:scale-95 transition-all font-mono text-[10px] uppercase tracking-[0.5em] group"
                        >
-                         <Skull className="w-4 h-4 inline mr-2 transition-transform group-hover:rotate-12" />
+                         <Skull className="w-4 h-4 inline mr-2 transition-transform group-active:scale-95" />
                          Abort_Operation
                         </button>
                      </div>
@@ -3074,10 +3085,10 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                       
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {researchMap.chapters?.map((chapter, idx) => (
-                          <div key={idx} className="bg-white border border-gray-100 p-6 space-y-4 hover:border-blue-300 transition-colors group rounded-2xl shadow-sm">
+                          <div key={idx} className="bg-white border border-gray-100 p-6 space-y-4 active:scale-95 transition-colors group rounded-2xl shadow-sm">
                             <div className="flex items-center gap-4 border-b border-gray-100 pb-4">
                               <span className="text-blue-500 font-mono font-bold text-2xl">0{idx + 1}</span>
-                              <h3 className="text-xl font-arabic font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{chapter.chapter_title}</h3>
+                              <h3 className="text-xl font-arabic font-bold text-gray-900 group-active:scale-95 transition-colors">{chapter.chapter_title}</h3>
                             </div>
                             <p className="text-gray-600 font-arabic text-sm leading-relaxed font-semibold">{chapter.core_premise}</p>
                             <div className="mt-4 flex flex-col gap-2">
@@ -3095,14 +3106,14 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                       <div className="flex flex-col lg:flex-row gap-6 justify-center items-center pt-8 border-t border-gray-100">
                         <button
                           onClick={handleApproveResearchMap}
-                          className="w-full lg:w-auto px-16 py-6 bg-blue-600 hover:bg-blue-700 text-gray-900 font-arabic font-bold text-2xl uppercase tracking-widest transition-all duration-300 rounded-2xl shadow-md hover:-translate-y-1"
+                          className="w-full lg:w-auto px-16 py-6 bg-blue-600 active:scale-95 text-gray-900 font-arabic font-bold text-2xl uppercase tracking-widest transition-all duration-300 rounded-2xl shadow-md active:scale-95"
                         >
                           اعتماد وبدء المعالجة
                         </button>
                         
                         <button
                           onClick={() => setPipelineStep(1)}
-                          className="w-full lg:w-auto px-10 py-6 bg-white border border-gray-200 text-gray-700 hover:bg-gray-50 hover:text-gray-900 font-arabic font-bold items-center justify-center transition-all duration-300 flex rounded-2xl shadow-sm"
+                          className="w-full lg:w-auto px-10 py-6 bg-white border border-gray-200 text-gray-700 active:scale-95 font-arabic font-bold items-center justify-center transition-all duration-300 flex rounded-2xl shadow-sm"
                         >
                           تعديل يدوي للمسار
                         </button>
@@ -3127,7 +3138,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           <button
                             onClick={handleExportDocx}
                             disabled={isExportingDocx}
-                            className={`flex-1 lg:flex-none px-6 py-4 border border-gray-200 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm ${isExportingDocx ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 hover:bg-gray-50 hover:shadow-md'}`}
+                            className={`flex-1 lg:flex-none px-6 py-4 border border-gray-200 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm ${isExportingDocx ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 active:scale-95 active:scale-95'}`}
                             title="تصدير النص النهائي للتدوين"
                           >
                             {isExportingDocx ? <Loader2 size={16} className="animate-spin text-gray-400" /> : <FileText size={16} className="text-gray-700" />}
@@ -3135,7 +3146,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           </button>
                           <button
                             onClick={handleExportXML}
-                            className="flex-1 lg:flex-none px-6 py-4 bg-white border border-gray-200 text-gray-700 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm hover:bg-gray-50 hover:shadow-md"
+                            className="flex-1 lg:flex-none px-6 py-4 bg-white border border-gray-200 text-gray-700 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm active:scale-95 active:scale-95"
                             title="تصدير تايم لاين أدوبي بريمير"
                           >
                             <Scissors size={16} className="text-gray-700" />
@@ -3145,7 +3156,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           <button
                             onClick={handleExportZip}
                             disabled={isExportingZip}
-                            className={`col-span-full lg:col-auto px-6 py-4 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm ${isExportingZip ? 'bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-gray-900 to-black text-[#f4eee0] hover:shadow-lg hover:brightness-110 active:scale-95'}`}
+                            className={`col-span-full lg:col-auto px-6 py-4 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm ${isExportingZip ? 'bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-gray-900 to-black text-[#f4eee0] active:scale-95 active:scale-95'}`}
                             title="تحميل جميع المواد الشاملة (سكريبت، يوتيوب، شورتس، إكس، סشوشيال ميديا)"
                           >
                             {isExportingZip ? <Loader2 size={16} className="animate-spin text-gray-400" /> : <Archive size={16} className="text-[#f4eee0]" />}
@@ -3153,7 +3164,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           </button>
                           <button
                             onClick={handleExportIntelligenceDocument}
-                            className="flex-1 lg:flex-none px-6 py-4 bg-white border border-gray-200 text-gray-700 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 hover:bg-gray-50 transition-all rounded-xl shadow-sm"
+                            className="flex-1 lg:flex-none px-6 py-4 bg-white border border-gray-200 text-gray-700 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 active:scale-95 transition-all rounded-xl shadow-sm"
                           >
                             <Download size={16} className="text-gray-500" />
                             TXT Intel
@@ -3167,7 +3178,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                               notify.classified("تم أرشفة التقرير في السجلات");
                             }}
                             disabled={isحفظd}
-                            className={`flex-1 lg:flex-none px-8 py-4 ${isحفظd ? "bg-green-50 text-green-600 border-green-200" : "bg-blue-600 text-gray-900 border-blue-600 hover:bg-blue-700 active:scale-95"} border text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm`}
+                            className={`flex-1 lg:flex-none px-8 py-4 ${isحفظd ? "bg-green-50 text-green-600 border-green-200" : "bg-blue-600 text-gray-900 border-blue-600 active:scale-95 active:scale-95"} border text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm`}
                           >
                             <Save size={16} />
                             {isحفظd ? "Archived" : "Archive Result"}
@@ -3181,7 +3192,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
-                            className={`pb-4 px-6 text-[10px] font-mono uppercase tracking-widest font-bold transition-all relative shrink-0 ${activeTab === tab ? "text-blue-600" : "text-gray-400 hover:text-gray-600"}`}
+                            className={`pb-4 px-6 text-[10px] font-mono uppercase tracking-widest font-bold transition-all relative shrink-0 ${activeTab === tab ? "text-blue-600" : "text-gray-400 active:scale-95"}`}
                           >
                             {activeTab === tab && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[3px] bg-blue-600 rounded-t-full shadow-[0_-5px_15px_rgba(37,99,235,0.2)]" />}
                             {tab === "script" ? "01 Script Core" : tab === "kit" ? "02 Visual Identity" : tab === "shorts" ? "03 Social Fragments" : tab === "audit" ? "04 Audit Radar" : "05 Echo Chamber"}
@@ -3205,13 +3216,13 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                     <div className="flex justify-between items-center bg-gray-50 p-4 -mt-10 -mx-10 border-b border-gray-100 mb-8 rounded-t-3xl">
                                        <span className="text-[10px] font-mono text-blue-600 uppercase tracking-widest font-black">Master Vocal Profile</span>
                                        <div className="flex gap-4">
-                                          <button onClick={() => setShowTeleprompter(true)} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center hover:bg-blue-600 hover:text-gray-900 transition-colors text-gray-400 bg-white shadow-sm" title="Teleprompter Mode">
+                                          <button onClick={() => setShowTeleprompter(true)} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center active:scale-95 transition-colors text-gray-400 bg-white shadow-sm" title="Teleprompter Mode">
                                             <Eye size={16} />
                                           </button>
-                                          <button onClick={handlePlayVoice} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-400 bg-white shadow-sm">
+                                          <button onClick={handlePlayVoice} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center active:scale-95 transition-colors text-gray-400 bg-white shadow-sm">
                                             {isPlayingVoice ? <Square size={14} className="fill-current" /> : <Volume2 size={16} />}
                                           </button>
-                                          <button onClick={() => copyToClipboard(finalVoiceScript)} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center hover:bg-gray-100 transition-colors text-gray-400 bg-white shadow-sm">
+                                          <button onClick={() => copyToClipboard(finalVoiceScript)} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center active:scale-95 transition-colors text-gray-400 bg-white shadow-sm">
                                             <Copy size={16} />
                                           </button>
                                        </div>
@@ -3238,7 +3249,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                                            href={s.url} 
                                                            target="_blank" 
                                                            rel="noopener noreferrer" 
-                                                           className="text-[10px] font-arabic text-gray-600 group-hover:text-blue-600 transition-colors leading-relaxed block font-semibold"
+                                                           className="text-[10px] font-arabic text-gray-600 group-active:scale-95 transition-colors leading-relaxed block font-semibold"
                                                          >
                                                            {s.title}
                                                          </a>
@@ -3303,7 +3314,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                   <div className="space-y-10">
                                      <div className="flex justify-between items-center">
                                         <h3 className="text-[10px] font-mono text-blue-600 uppercase tracking-[0.5em] font-black">Unified_Feed_Array</h3>
-                                        <button onClick={() => setFragmenterData(null)} className="text-[9px] font-mono text-gray-500 hover:text-red-500 uppercase">Regenerate</button>
+                                        <button onClick={() => setFragmenterData(null)} className="text-[9px] font-mono text-gray-500 active:scale-95 uppercase">Regenerate</button>
                                      </div>
                                      {renderFragmenterUI()}
                                   </div>
@@ -3328,7 +3339,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                         }
                                       }}
                                       disabled={isGeneratingFragments}
-                                      className="px-10 py-4 bg-white text-black font-mono text-[10px] uppercase font-black hover:bg-blue-600 transition-colors"
+                                      className="px-10 py-4 bg-white text-black font-mono text-[10px] uppercase font-black active:scale-95 transition-colors"
                                      >
                                        {isGeneratingFragments ? "Transmitting..." : "Execute_Fragmentation"}
                                      </button>
@@ -3347,7 +3358,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                    <button 
                                     key={tab} 
                                     onClick={() => setIntelTab(tab as any)}
-                                    className={`flex-1 py-3 text-[9px] font-mono uppercase tracking-[0.2em] font-black transition-all ${intelTab === tab ? "bg-blue-600 text-white" : "text-gray-500 hover:text-gray-600"}`}
+                                    className={`flex-1 py-3 text-[9px] font-mono uppercase tracking-[0.2em] font-black transition-all ${intelTab === tab ? "bg-blue-600 text-white" : "text-gray-500 active:scale-95"}`}
                                    >
                                      {tab === "audit" ? "Fact_Audit" : tab === "map" ? "Network" : "Vault"}
                                    </button>
@@ -3384,9 +3395,9 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                         <span className="text-[8px] font-mono text-gray-500 uppercase block mb-3">Origin_Sources</span>
                                         {data.sources.slice(0, 5).map((s, i) => (
                                           typeof s !== "string" && s.url ? (
-                                            <a key={i} href={s.url} target="_blank" className="flex flex-row-reverse justify-between items-center p-3 bg-white border-gray-100 shadow-sm hover:bg-blue-600/5 transition-colors group">
-                                              <span className="text-[10px] font-arabic text-gray-600 group-hover:text-gray-900 truncate max-w-[150px]">{s.title}</span>
-                                              <ExternalLink size={10} className="text-gray-500 group-hover:text-blue-600" />
+                                            <a key={i} href={s.url} target="_blank" className="flex flex-row-reverse justify-between items-center p-3 bg-white border-gray-100 shadow-sm active:scale-95 transition-colors group">
+                                              <span className="text-[10px] font-arabic text-gray-600 group-active:scale-95 truncate max-w-[150px]">{s.title}</span>
+                                              <ExternalLink size={10} className="text-gray-500 group-active:scale-95" />
                                             </a>
                                           ) : (
                                             <div key={i} className="flex flex-row-reverse items-center p-3 bg-white border-gray-100 shadow-sm">
@@ -3413,9 +3424,9 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                      <button 
                                       onClick={handleExportZip}
                                       disabled={isExportingZip}
-                                      className={`w-full py-6 font-mono text-[11px] font-black uppercase flex items-center justify-center gap-3 transition-all group ${isExportingZip ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white text-black hover:bg-gray-50'}`}
+                                      className={`w-full py-6 font-mono text-[11px] font-black uppercase flex items-center justify-center gap-3 transition-all group ${isExportingZip ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white text-black active:scale-95'}`}
                                      >
-                                       {isExportingZip ? <Loader2 size={16} className="animate-spin text-gray-400" /> : <Download size={16} className="text-gray-900 group-hover:-translate-y-0.5 transition-transform" />}
+                                       {isExportingZip ? <Loader2 size={16} className="animate-spin text-gray-400" /> : <Download size={16} className="text-gray-900 group-active:scale-95.5 transition-transform" />}
                                        {isExportingZip ? "ARCHIVING..." : "Deploy_Asset_Package (OMNI.ZIP)"}
                                      </button>
                                   </motion.div>
@@ -3512,14 +3523,14 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                  <div className="grid grid-cols-2 gap-3">
                                     <button 
                                      onClick={() => setNarrativeStrategy("HCS")}
-                                     className={`p-4 text-center border transition-all relative overflow-hidden group rounded-xl ${narrativeStrategy === "HCS" ? "bg-white border-blue-500 shadow-sm" : "bg-gray-50 border-gray-100 hover:border-gray-200"}`}
+                                     className={`p-4 text-center border transition-all relative overflow-hidden group rounded-xl ${narrativeStrategy === "HCS" ? "bg-white border-blue-500 shadow-sm" : "bg-gray-50 border-gray-100 active:scale-95"}`}
                                     >
                                        <span className={`text-[9px] font-mono uppercase block mb-1 font-bold ${narrativeStrategy === "HCS" ? "text-blue-600" : "text-gray-400"}`}>Phase 01</span>
                                        <h4 className={`text-sm font-arabic font-bold ${narrativeStrategy === "HCS" ? "text-gray-900" : "text-gray-500"}`}>تحليل الوثائق</h4>
                                     </button>
                                     <button 
                                      onClick={() => setNarrativeStrategy("HAP")}
-                                     className={`p-4 text-center border transition-all relative overflow-hidden group rounded-xl ${narrativeStrategy === "HAP" ? "bg-white border-blue-500 shadow-sm" : "bg-gray-50 border-gray-100 hover:border-gray-200"}`}
+                                     className={`p-4 text-center border transition-all relative overflow-hidden group rounded-xl ${narrativeStrategy === "HAP" ? "bg-white border-blue-500 shadow-sm" : "bg-gray-50 border-gray-100 active:scale-95"}`}
                                     >
                                        <span className={`text-[9px] font-mono uppercase block mb-1 font-bold ${narrativeStrategy === "HAP" ? "text-blue-600" : "text-gray-400"}`}>Phase 02</span>
                                        <h4 className={`text-sm font-arabic font-bold ${narrativeStrategy === "HAP" ? "text-gray-900" : "text-gray-500"}`}>تشويق درامي</h4>
@@ -3534,9 +3545,9 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                       window.scrollTo({ top: 0, behavior: "smooth" });
                                    }
                                  }}
-                                 className="w-full h-16 bg-blue-600 hover:bg-blue-700 text-white font-arabic font-bold text-xl flex items-center justify-center gap-3 flex-row-reverse transition-all shadow-md shadow-blue-500/20 group mt-6 active:scale-95 rounded-xl uppercase tracking-wider"
+                                 className="w-full h-16 bg-blue-600 active:scale-95 text-white font-arabic font-bold text-xl flex items-center justify-center gap-3 flex-row-reverse transition-all shadow-md shadow-blue-500/20 group mt-6 active:scale-95 rounded-xl uppercase tracking-wider"
                                >
-                                 <RefreshCcw className="w-5 h-5 group-hover:-rotate-180 transition-transform duration-500" />
+                                 <RefreshCcw className="w-5 h-5 group-active:scale-95 transition-transform duration-500" />
                                  Re-roll (إعادة التوليد)
                                </button>
 
@@ -3584,9 +3595,9 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
            {pipelineStep > 1 && !isLoading && (
               <button 
                 onClick={() => setPipelineStep(prev => (prev - 1) as any)}
-                className="group px-8 py-4 border border-gray-200 hover:border-gray-300 text-gray-600 hover:text-gray-800 font-mono text-[10px] uppercase transition-all flex items-center gap-3 active:scale-95"
+                className="group px-8 py-4 border border-gray-200 active:scale-95 text-gray-600 active:scale-95 font-mono text-[10px] uppercase transition-all flex items-center gap-3 active:scale-95"
               >
-                <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-1" />
+                <ChevronLeft size={14} className="transition-transform group-active:scale-95" />
                 Previous_Phase
               </button>
            )}
@@ -3595,14 +3606,14 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
               <div className="flex items-center gap-2">
                  <button 
                   onClick={() => setGlobalEngine("gemini")}
-                  className={`p-1.5 border transition-all ${globalEngine === "gemini" ? 'border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]' : 'border-gray-200 text-gray-500 hover:text-gray-600'}`}
+                  className={`p-1.5 border transition-all ${globalEngine === "gemini" ? 'border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]' : 'border-gray-200 text-gray-500 active:scale-95'}`}
                   title="Cloud Engine (Gemini)"
                  >
                    <Zap size={14} />
                  </button>
                  <button 
                   onClick={() => setGlobalEngine("ollama")}
-                  className={`p-1.5 border transition-all ${globalEngine === "ollama" ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]' : 'border-gray-200 text-gray-500 hover:text-gray-600'}`}
+                  className={`p-1.5 border transition-all ${globalEngine === "ollama" ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]' : 'border-gray-200 text-gray-500 active:scale-95'}`}
                   title="Local Engine (Ollama)"
                  >
                    <Database size={14} />
@@ -3613,7 +3624,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
 
               <button 
                 onClick={() => setShowSettings(true)}
-                className="flex items-center gap-2 text-gray-600 hover:text-blue-600 transition-colors"
+                className="flex items-center gap-2 text-gray-600 active:scale-95 transition-colors"
                 title="إعدادات المحرك"
               >
                 <Settings size={14} />
@@ -3693,9 +3704,9 @@ const PersonaSelectionModal: React.FC<PersonaSelectionModalProps> = ({
         <div className="absolute top-0 left-0 w-full h-1 bg-blue-600/20" />
         <button
           onClick={onClose}
-          className="absolute top-10 right-10 text-gray-500 transition-all duration-300 group hover:text-blue-600"
+          className="absolute top-10 right-10 text-gray-500 transition-all duration-300 group active:scale-95"
         >
-          <X className="w-10 h-10 transition-transform group-hover:rotate-90" />
+          <X className="w-10 h-10 transition-transform group-active:scale-95" />
         </button>
         <header className="mb-10 text-center border-b border-gray-200 pb-8">
           <h2 className="text-2xl font-arabic font-black text-gray-900 tracking-tighter mb-2">
@@ -3764,9 +3775,9 @@ const MoodSelectionModal: React.FC<MoodSelectionModalProps> = ({
 
         <button
           onClick={onClose}
-          className="absolute top-10 right-10 text-gray-500 transition-all duration-300 group hover:text-blue-600"
+          className="absolute top-10 right-10 text-gray-500 transition-all duration-300 group active:scale-95"
         >
-          <X className="w-10 h-10 transition-transform group-hover:rotate-90" />
+          <X className="w-10 h-10 transition-transform group-active:scale-95" />
         </button>
 
         <header className="mb-10 text-center border-b border-gray-200 pb-8">

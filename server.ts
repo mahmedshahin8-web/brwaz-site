@@ -135,74 +135,66 @@ interface KeyStatus {
 const keyStatuses = new Map<string, KeyStatus>();
 
 const runWithRotation = async (prompt: string, instr: string, temp: number, schema?: any) => {
-    // Replace this string with your actual ngrok URL when deploying
-    const ollamaUrl = process.env.OLLAMA_PROXY_URL || "https://improvise-attire-giblet.ngrok-free.dev/api/chat";
-    const modelName = "gemma4:31b-cloud";
-    
-    const messages = [];
-    if (instr) {
-        messages.push({ role: "system", content: instr });
-    }
-    messages.push({ role: "user", content: prompt });
-    
-    const body: any = {
-        model: modelName,
-        messages: messages,
-        stream: false,
-        options: {
-            temperature: temp
+    await acquireGeminiLock();
+    try {
+        const OLLAMA_URL = "https://improvise-attire-giblet.ngrok-free.dev/api/generate";
+        
+        const payload: any = {
+            model: "gemma4:31b-cloud",
+            prompt: prompt,
+            system: instr,
+            stream: false,
+            options: {
+                temperature: temp
+            }
+        };
+        
+        if (schema || instr.toLowerCase().includes("json")) {
+            payload.format = "json";
         }
-    };
-    
-    if (schema || instr.toLowerCase().includes("json")) {
-        body.format = "json";
+        
+        console.log(`[MAESTRO] Forwarding request to Ollama (via ngrok): ${OLLAMA_URL}`);
+        
+        const response = await fetch(OLLAMA_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'ngrok-skip-browser-warning': 'true',
+                'User-Agent': 'aistudio-build'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+            const errText = await response.text();
+            throw new Error(`Ollama API Error ${response.status}: ${errText}`);
+        }
+
+        const data = await response.json();
+        return data.response;
+        
+    } finally {
+        releaseGeminiLock();
     }
-
-    console.log(`[OLLAMA] Routing request to: ${ollamaUrl}`);
-    
-    const response = await fetch(ollamaUrl, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            "ngrok-skip-browser-warning": "true"
-        },
-        body: JSON.stringify(body)
-    });
-
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Ollama Proxy Error: ${response.status} - ${text}`);
-    }
-
-    const data = await response.json();
-    return data.message?.content || "";
 };
 
 const diagnosticListModels = async () => {
-    const keys = getGeminiKeys();
-    if (keys.length === 0) {
-        console.warn("[DIAGNOSTIC] No Gemini keys found in environment.");
-        return;
-    }
-    
-    console.log("[DIAGNOSTIC] Fetching available models for Key #1...");
+    console.log("[DIAGNOSTIC] Checking Ollama via ngrok...");
     try {
-        const ai = new GoogleGenAI({ apiKey: keys[0] });
-        const pager = await ai.models.list() as any;
-        console.log("[DIAGNOSTIC] Models fetch successful.");
-        // Try multiple common properties for list response
-        const models = pager.models || pager.data || (Array.isArray(pager) ? pager : []);
-        if (Array.isArray(models)) {
-            models.forEach((m: any) => {
-                if (m.supportedGenerationMethods?.includes("generateContent")) {
-                    console.log(` - ${m.name}`);
-                }
-            });
-        } else {
-            console.log("[DIAGNOSTIC] Could not iterate models, pager structure:", Object.keys(pager));
+        const response = await fetch("https://improvise-attire-giblet.ngrok-free.dev/api/tags", {
+            headers: {
+                'ngrok-skip-browser-warning': 'true',
+                'User-Agent': 'aistudio-build'
+            }
+        });
+        if (!response.ok) throw new Error("Status " + response.status);
+        const data = await response.json();
+        console.log("[DIAGNOSTIC] Ollama connected successfully. Available models:");
+        if (data.models) {
+            data.models.forEach((m: any) => console.log(` - ${m.name}`));
         }
     } catch (e: any) {
-        console.error("[DIAGNOSTIC] Failed to list models:", e.message);
+        console.error("[DIAGNOSTIC] Failed to reach Ollama:", e.message);
     }
 };
 
@@ -222,29 +214,22 @@ const startServer = async () => {
   const app = express();
   const PORT = 3000;
 
-  app.use(cors());
-  app.use(express.json({ limit: '50mb' }));
+  app.use(cors({
+    origin: process.env.NODE_ENV === 'production' ? false : '*'
+  }));
+  app.use(express.json({ limit: '10mb' }));
 
   // --- API ROUTES ---
 
   app.get("/api/ollama/status", async (req, res) => {
     try {
-      // Typically /api/tags or the base URL is used to check ollama health
-      let baseUrl = process.env.OLLAMA_PROXY_URL || "https://improvise-attire-giblet.ngrok-free.dev";
-      // Ensure we don't end with /api/chat if it's there
-      baseUrl = baseUrl.replace(/\/api\/chat$/, "");
-      
-      const response = await fetch(`${baseUrl}/api/tags`, {
-          method: "GET",
-          headers: {
-              "ngrok-skip-browser-warning": "true"
-          }
+      const response = await fetch("https://improvise-attire-giblet.ngrok-free.dev/api/version", {
+          headers: { 'ngrok-skip-browser-warning': 'true', 'User-Agent': 'aistudio-build' }
       });
-      
       if (response.ok) {
-        res.json({ status: "online", time: Date.now() });
+        res.json({ status: "online", time: Date.now(), models: ["gemma4:31b-cloud"] });
       } else {
-        res.status(response.status).json({ status: "offline", error: "Proxy returned error" });
+        res.status(500).json({ status: "offline", error: "Ollama Ngrok error" });
       }
     } catch (e: any) {
       res.status(500).json({ status: "offline", error: e.message });
@@ -346,6 +331,18 @@ const startServer = async () => {
     }
   });
 
+  // Helper to parse ugly JSON Gemini errors natively:
+  const parseApiError = (err: any): string => {
+    const errorString = err?.message || "Unknown error occurred";
+    try {
+      if (errorString.startsWith('{')) {
+        const parsed = JSON.parse(errorString);
+        return parsed.error?.message || errorString;
+      }
+    } catch(e) {}
+    return errorString;
+  };
+
   // --- AI MAESTRO: Unified Multi-Engine Gateway ---
   app.post("/api/ai/generate", async (req, res) => {
     try {
@@ -353,9 +350,10 @@ const startServer = async () => {
       const result = await runWithRotation(prompt, systemInstruction, temperature, schema);
       res.json({ success: true, content: result, engine: "gemini" });
     } catch (err: any) {
-      console.error("[CRITICAL_API_FAILURE]", err.message);
-      const status = (err.message || "").toLowerCase().includes("all_keys_suspended") ? 429 : 500;
-      res.status(status).json({ error: err.message || "Unknown error occurred" });
+      const clientMessage = parseApiError(err);
+      console.error("[CRITICAL_API_FAILURE]", clientMessage);
+      const status = clientMessage.toLowerCase().includes("all_keys_suspended") ? 429 : 500;
+      res.status(status).json({ error: clientMessage });
     }
   });
 
@@ -368,8 +366,9 @@ const startServer = async () => {
       db.prepare("UPDATE system_metrics SET tokensProcessed = tokensProcessed + 1200 WHERE id = 1").run();
       res.json({ success: true, scenes });
     } catch (err: any) {
-      const status = (err.message || "").toLowerCase().includes("all_keys_suspended") ? 429 : 500;
-      res.status(status).json({ error: "Failed to generate draft", details: err.message });
+      const clientMessage = parseApiError(err);
+      const status = clientMessage.toLowerCase().includes("all_keys_suspended") ? 429 : 500;
+      res.status(status).json({ error: "Failed to generate draft", details: clientMessage });
     }
   });
 
@@ -380,8 +379,9 @@ const startServer = async () => {
       const responseText = await runWithRotation(`النص: "${text}"\n\nالسياق: ${context}`, systemInstruction, 0.7);
       res.json({ success: true, result: JSON.parse(responseText || "{}") });
     } catch (err: any) {
-      const status = (err.message || "").toLowerCase().includes("all_keys_suspended") ? 429 : 500;
-      res.status(status).json({ error: "Failed to fact-check", details: err.message });
+      const clientMessage = parseApiError(err);
+      const status = clientMessage.toLowerCase().includes("all_keys_suspended") ? 429 : 500;
+      res.status(status).json({ error: "Failed to fact-check", details: clientMessage });
     }
   });
 
@@ -392,8 +392,9 @@ const startServer = async () => {
       const responseText = await runWithRotation(`السكريبت: "${scriptContent}"`, systemInstruction, 0.9);
       res.json({ success: true, result: JSON.parse(responseText || "{}") });
     } catch (err: any) {
-      const status = (err.message || "").toLowerCase().includes("all_keys_suspended") ? 429 : 500;
-      res.status(status).json({ error: "Failed to critique script", details: err.message });
+      const clientMessage = parseApiError(err);
+      const status = clientMessage.toLowerCase().includes("all_keys_suspended") ? 429 : 500;
+      res.status(status).json({ error: "Failed to critique script", details: clientMessage });
     }
   });
 
@@ -477,6 +478,11 @@ const startServer = async () => {
     db.prepare("DELETE FROM dossiers WHERE id = ?").run(req.params.id);
     res.json({ success: true });
   });
+
+  // Serve static uploads
+  const uploadPath = path.join(process.cwd(), 'upload');
+  app.use('/_/upload', express.static(uploadPath));
+  app.use('/upload', express.static(uploadPath));
 
   if (process.env.NODE_ENV !== "production") {
     const { createServer: createViteServer } = await import("vite");

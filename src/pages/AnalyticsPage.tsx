@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useEffect, useState, useRef } from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
 import { BarChart2, Eye, ThumbsUp, MessageCircle, Share2, TrendingUp, Network } from "lucide-react";
@@ -12,7 +13,7 @@ export default function AnalyticsPage() {
   useEffect(() => {
      const fetchMetrics = async () => {
          try {
-             const res = await fetch("/api/dossiers");
+             const res = await apiFetch("/api/dossiers");
              if (res.ok) {
                  const docs = await res.json();
                  let scenesCount = 0;
@@ -95,9 +96,9 @@ export default function AnalyticsPage() {
           const Icon = stat.icon;
           const isPositive = stat.trend.startsWith("+");
           return (
-            <div key={i} className={`bg-white border border-gray-200 p-6 hover:border-${stat.color.split('-')[1]}-500/50 transition-colors duration-100 group`}>
+            <div key={i} className={`bg-white border border-gray-200 p-6 active:scale-95${stat.color.split('-')[1]}-500/50 transition-colors duration-100 group`}>
               <div className="flex justify-between items-start mb-4">
-                <div className={`p-2 border border-gray-200 bg-white border-gray-100 shadow-sm ${stat.color} group-hover:scale-110 transition-transform`}>
+                <div className={`p-2 border border-gray-200 bg-white border-gray-100 shadow-sm ${stat.color} group-active:scale-95 transition-transform`}>
                   <Icon size={18} />
                 </div>
                 <div className={`flex items-center gap-1 font-mono text-[10px] tracking-widest ${isPositive ? "text-cyan-400" : "text-[#eb2630]"}`}>

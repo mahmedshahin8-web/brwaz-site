@@ -35,7 +35,7 @@ export const BlackPortal: React.FC = () => {
             <button 
                 onClick={generateEggs}
                 disabled={isGenerating}
-                className="flex items-center justify-center gap-2 w-full py-4 bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-500 hover:bg-fuchsia-500/20 transition-colors tracking-widest font-bold"
+                className="flex items-center justify-center gap-2 w-full py-4 bg-fuchsia-500/10 border border-fuchsia-500/30 text-fuchsia-500 active:scale-95 transition-colors tracking-widest font-bold"
             >
                 {isGenerating ? <Zap className="w-4 h-4 animate-pulse" /> : <Sparkles className="w-4 h-4" />}
                 {isGenerating ? "GENERATING_CYPHERS..." : "GENERATE_EASTER_EGGS"}
@@ -47,7 +47,7 @@ export const BlackPortal: React.FC = () => {
                     
                     {easterEggs.map((egg, idx) => (
                         <div key={idx} className="bg-white border-gray-100 shadow-sm border border-gray-200 p-4 relative group">
-                            <div className="absolute top-0 right-0 w-1 h-full bg-fuchsia-500/50 group-hover:bg-fuchsia-500 transition-colors"></div>
+                            <div className="absolute top-0 right-0 w-1 h-full bg-fuchsia-500/50 group-active:scale-95 transition-colors"></div>
                             
                             <div className="flex justify-between items-start mb-3">
                                 <span className="text-xs font-bold text-fuchsia-400 font-mono" dir="ltr">{egg.code}</span>
@@ -66,10 +66,10 @@ export const BlackPortal: React.FC = () => {
                             </div>
                             
                             <div className="mt-4 pt-3 border-t border-gray-200 flex gap-2">
-                                <button className="flex-1 py-1 bg-white border-gray-100 shadow-sm hover:bg-gray-100 text-xs text-gray-600 transition-colors border border-gray-200">
+                                <button className="flex-1 py-1 bg-white border-gray-100 shadow-sm active:scale-95 text-xs text-gray-600 transition-colors border border-gray-200">
                                     نسخ الشفرة
                                 </button>
-                                <button className="flex-1 py-1 bg-fuchsia-500/10 hover:bg-fuchsia-500/20 border border-fuchsia-500/20 text-xs text-fuchsia-400 transition-colors cursor-not-allowed">
+                                <button className="flex-1 py-1 bg-fuchsia-500/10 active:scale-95 border border-fuchsia-500/20 text-xs text-fuchsia-400 transition-colors cursor-not-allowed">
                                     توليد QR Code
                                 </button>
                             </div>

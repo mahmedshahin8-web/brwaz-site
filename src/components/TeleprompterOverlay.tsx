@@ -119,7 +119,7 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
            ) : (
              <button
                onClick={handleStart}
-               className="bg-gray-100 hover:bg-red-500 hover:text-gray-900 text-gray-900/80 px-6 py-3 rounded-full font-mono text-sm tracking-widest uppercase flex items-center gap-2 transition-all"
+               className="bg-gray-100 active:scale-95 text-gray-900/80 px-6 py-3 rounded-full font-mono text-sm tracking-widest uppercase flex items-center gap-2 transition-all"
              >
                <Mic size={18} /> Start_Voice_Sync
              </button>
@@ -132,7 +132,7 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
                  key={s.id}
                  onClick={() => toggleSound(s)}
                  className={`px-3 py-1 text-[10px] uppercase font-mono tracking-wider border rounded-full transition-colors ${
-                   activeSound === s.id ? 'bg-blue-600 text-black border-blue-500' : 'border-gray-300 text-gray-600 hover:text-gray-900'
+                   activeSound === s.id ? 'bg-blue-600 text-black border-blue-500' : 'border-gray-300 text-gray-600 active:scale-95'
                  }`}
                >
                  {s.label}
@@ -145,14 +145,14 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
            <button
              onClick={() => setIsMirrored(p => !p)}
              className={`flex items-center gap-2 px-4 py-2 border rounded-full transition-colors ${
-               isMirrored ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-gray-300 text-gray-600 hover:text-gray-900'
+               isMirrored ? 'bg-cyan-500/20 border-cyan-500 text-cyan-400' : 'border-gray-300 text-gray-600 active:scale-95'
              }`}
            >
              <FlipHorizontal size={16} /> Mirror_Mode
            </button>
            <button
              onClick={onClose}
-             className="w-10 h-10 bg-gray-100 hover:bg-gray-100 rounded-full flex items-center justify-center transition-colors"
+             className="w-10 h-10 bg-gray-100 active:scale-95 rounded-full flex items-center justify-center transition-colors"
            >
              <X size={20} />
            </button>

@@ -46,7 +46,7 @@ export function BRollModal({ keyword, onClose }: Props) {
            <h3 className="text-blue-600 font-mono uppercase tracking-widest text-sm flex items-center gap-2">
              <Search size={16} /> B-Roll Radar: <span className="text-gray-600">"{keyword}"</span>
            </h3>
-           <button onClick={onClose} className="text-gray-600 hover:text-gray-900 transition-colors">
+           <button onClick={onClose} className="text-gray-600 active:scale-95 transition-colors">
              <X size={20} />
            </button>
         </div>
@@ -70,7 +70,7 @@ export function BRollModal({ keyword, onClose }: Props) {
               {results.map((video) => {
                 const bestFile = video.video_files.find(f => f.quality === 'hd') || video.video_files[0];
                 return (
-                  <div key={video.id} className="bg-white/50 border border-gray-200 group hover:border-blue-500/50 transition-colors">
+                  <div key={video.id} className="bg-white/50 border border-gray-200 group active:scale-95 transition-colors">
                      <div className="relative aspect-video overflow-hidden">
                        <video 
                          src={bestFile?.link} 
@@ -89,7 +89,7 @@ export function BRollModal({ keyword, onClose }: Props) {
                          target="_blank"
                          rel="noopener noreferrer"
                          title="Download"
-                         className="p-2 bg-white border-gray-100 shadow-sm hover:bg-blue-600 hover:text-black transition-colors rounded text-gray-900"
+                         className="p-2 bg-white border-gray-100 shadow-sm active:scale-95 transition-colors rounded text-gray-900"
                          download
                        >
                          <Download size={14} />

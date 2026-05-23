@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { Zap, Maximize, Target, Activity } from 'lucide-react';
@@ -10,7 +11,7 @@ export const KnowledgeGraphPage: React.FC = () => {
   const [rawDocs, setRawDocs] = useState<any[]>([]);
 
   useEffect(() => {
-    fetch('/api/dossiers')
+    apiFetch('/api/dossiers')
       .then(res => res.json())
       .then(docs => setRawDocs(docs))
       .catch(console.error);

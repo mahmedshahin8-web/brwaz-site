@@ -22,7 +22,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({ isOpen, onClose, childre
         </h2>
         <button 
           onClick={onClose}
-          className="text-zinc-500 hover:text-zinc-300"
+          className="text-zinc-500 active:scale-95"
         >
           <X size={16} />
         </button>

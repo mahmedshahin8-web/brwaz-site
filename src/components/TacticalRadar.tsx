@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useEffect, useState } from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -24,7 +25,7 @@ export const TacticalRadar: React.FC = () => {
 
     useEffect(() => {
         const fetchRadar = async () => {
-            const req = await fetch('/api/rag/radar_nodes');
+            const req = await apiFetch('/api/rag/radar_nodes');
             const res = await req.json();
             if (res.success) {
                 setNodes(res.nodes);

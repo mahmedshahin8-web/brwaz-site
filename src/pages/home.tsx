@@ -1,25 +1,20 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
-  Radar,
   Archive,
   Eye,
   FileText,
   Zap,
-  Calendar,
   Activity,
-  Terminal,
-  Clock,
-  ArrowUpRight,
-  Plus,
-  Server,
-  Cpu,
-  Database
+  ArrowLeft,
+  Database,
+  BarChart,
+  Users
 } from 'lucide-react';
-import { motion } from 'framer-motion';
-import { useTacticalSound } from '../hooks/useTacticalSound';
 
 export const Home: React.FC = () => {
-  const { playClick, playHover } = useTacticalSound();
+  const navigate = useNavigate();
   const [stats, setStats] = useState({
     activeScripts: 0,
     totalScenes: 0,
@@ -31,10 +26,11 @@ export const Home: React.FC = () => {
     vramLoad: "5.82/6.0 GB",
     tokenRate: "85 t/s"
   });
+
   useEffect(() => {
     const fetchSystemInfo = async () => {
       try {
-        const res = await fetch("/api/system/status");
+        const res = await apiFetch("/api/system/status");
         if (res.ok) {
           const data = await res.json();
           setSystemInfo({
@@ -46,14 +42,13 @@ export const Home: React.FC = () => {
         // silently handled
       }
     };
-
     fetchSystemInfo();
   }, []);
 
   useEffect(() => {
     const fetchDossiers = async () => {
       try {
-        const res = await fetch("/api/dossiers");
+        const res = await apiFetch("/api/dossiers");
         if (res.ok) {
           const docs = await res.json();
           setRecentScripts(docs.slice(0, 3));
@@ -75,7 +70,7 @@ export const Home: React.FC = () => {
     
     const fetchTrends = async () => {
        try {
-           const res = await fetch("/api/trends/public");
+           const res = await apiFetch("/api/trends/public");
            if (res.ok) {
                const data = await res.json();
                if(data.items) {
@@ -91,192 +86,102 @@ export const Home: React.FC = () => {
     fetchTrends();
   }, []);
 
-  const navigateTo = (page: string) => {
-    window.dispatchEvent(new CustomEvent("navigate", { detail: { page } }));
-  };
-
   return (
-    <div className="space-y-8 animate-in fade-in duration-500" dir="rtl" onClick={playClick}>
+    <div className="space-y-8 animate-in fade-in duration-500" dir="rtl">
       
       {/* Header Section */}
-      <header className="relative bg-gray-50 border border-gray-200 p-10 flex flex-col lg:flex-row justify-between items-end gap-10 z-10 bracket-container overflow-hidden group">
-        <div className="absolute inset-0  opacity-[0.03]" />
-        
-        <div className="space-y-4 relative z-10 w-full lg:w-1/2">
-          <div className="flex gap-4 items-center">
-            <div className="w-1 h-10 bg-red-600 shadow-[0_0_15px_#dc2626]" />
-            <div className="flex flex-col gap-1">
-              <h2 className="text-5xl font-black text-gray-900 tracking-widest font-arabic drop-shadow-[0_0_20px_rgba(255,255,255,0.1)] uppercase">
-                غرفة العمليات 
-                <span className="font-mono text-cyan-400 ml-4">[WAR_ROOM_v1.0]</span>
-              </h2>
-              <span className="data-text text-gray-500 text-[10px] tracking-[0.4em] font-bold">
-                OPS_COMMAND // KERNEL: SECURE // SIG: ENCRYPTED
-              </span>
-            </div>
-          </div>
-          <p className="text-gray-600 font-mono text-[11px] max-w-2xl leading-relaxed uppercase tracking-wider">
-            Neural monitoring session A1 established. Targeting ingress signals across public domains. Deploying spectral surveillance protocols. Accessing restricted dossier vault.
+      <header className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div>
+          <h2 className="text-3xl font-black text-gray-900 font-arabic mb-2">
+            مرحباً بك في برواز ستوديو
+          </h2>
+          <p className="text-gray-500 font-arabic">
+            إدارة المحتوى، متابعة الأحداث الجارية، وبناء السكريبتات الذكية من مكان واحد.
           </p>
         </div>
-        
-        {/* Live Telemetry Panel */}
-        <div className="w-full lg:w-1/2 flex flex-col items-end gap-5 text-right relative z-10 mt-6 lg:mt-0 font-mono">
-            <div className="flex w-full sm:w-auto items-center gap-6 px-6 py-4 bg-white shadow-sm bracket-container text-[10px] uppercase tracking-widest border-gray-200 neon-glow-cyan">
-                <div className="flex items-center gap-3">
-                    <Server size={14} className="neon-cyan animate-pulse" />
-                    <span className="text-gray-500">VRAM_LOAD:</span>
-                    <span className="font-black text-gray-900 tracking-widest">{systemInfo.vramLoad}</span>
-                </div>
-                <div className="w-px h-5 bg-gray-100"></div>
-                <div className="flex items-center gap-3">
-                    <Cpu size={14} className="neon-amber" />
-                    <span className="text-gray-500">STREAM_RATE:</span>
-                    <span className="font-black text-gray-900 tracking-widest">{systemInfo.tokenRate}</span>
-                </div>
-            </div>
-            
-            <div className="flex w-full sm:w-auto justify-end gap-10 data-text text-gray-500 text-[9px]">
-                <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rotate-45 bg-cyan-400 shadow-[0_0_10px_#22d3ee]"></div>
-                    AGENTS_LINKED: [03]_STABLE
-                </div>
-                <div className="flex items-center gap-3">
-                    <div className="w-2 h-2 rotate-45 bg-red-600 shadow-[0_0_10px_#dc2626]"></div>
-                    SIG_STRENGTH: 98%
-                </div>
-            </div>
+        <div className="flex gap-4">
+           <div className="flex flex-col items-end px-5 py-3 bg-gray-50 rounded-xl border border-gray-100">
+              <span className="text-xs text-gray-400 font-medium font-sans uppercase">VRAM Load</span>
+              <span className="text-gray-900 font-bold font-sans">{systemInfo.vramLoad}</span>
+           </div>
+           <div className="flex flex-col items-end px-5 py-3 bg-gray-50 rounded-xl border border-gray-100">
+              <span className="text-xs text-gray-400 font-medium font-sans uppercase">Token Rate</span>
+              <span className="text-gray-900 font-bold font-sans">{systemInfo.tokenRate}</span>
+           </div>
         </div>
       </header>
 
-      {/* Trend Ticker */}
-      <div className="w-full bg-white shadow-sm border-y border-gray-200 overflow-hidden py-3 relative z-10">
-        <div className="absolute inset-y-0 right-0 w-40 bg-gradient-to-l from-black to-transparent z-10 flex items-center pr-10 border-r border-gray-200">
-            <span className="data-text font-black text-red-600 flex items-center gap-3 tracking-[0.2em]">
-                <Activity size={14} className="animate-pulse" /> LIVE_PULSE
-            </span>
-        </div>
-        <div className="animate-marquee-infinite whitespace-nowrap inline-flex gap-16 items-center data-text text-gray-500 pr-40 font-mono font-bold uppercase transition-all">
-            {[...Array(2)].map((_, i) => (
-                <React.Fragment key={`marquee-group-${i}`}>
-                    {tickerItems.length > 0 ? tickerItems.map((item, idx) => (
-                        <React.Fragment key={`item-${idx}`}>
-                            <div className="flex items-center gap-3">
-                                <span className={idx % 2 === 0 ? "neon-amber" : "text-gray-600"}>
-                                    [{idx % 2 === 0 ? "SPIKE" : "UNIT"}] {item.title}
-                                </span>
-                                <span className="w-1 h-1 bg-gray-100 rounded-full"></span>
-                            </div>
-                        </React.Fragment>
-                    )) : (
-                        <span className="text-gray-500 tracking-[0.4em]">[ SCANNING_PUBLIC_NODES // AWAITING_INGRESS ]</span>
-                    )}
-                </React.Fragment>
-            ))}
-        </div>
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+         <StatCard icon={FileText} label="إجمالي السكريبتات" value={stats.activeScripts} />
+         <StatCard icon={Database} label="المشاهد المُعالجة" value={stats.totalScenes} />
+         <StatCard icon={Activity} label="الأحداث المرصودة" value={tickerItems.length * 12} />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 z-10 relative">
-        <div className="lg:col-span-2 space-y-8">
-           <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-              <h3 className="data-text text-gray-900 flex items-center gap-3">
-                 <Database size={16} className="neon-cyan" />
-                 [DOSSIER_VAULT] // آخر التقارير الموثقة
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-6">
+           <div className="flex items-center justify-between">
+              <h3 className="text-xl font-bold text-gray-900 font-arabic">
+                 أحدث المشاريع
               </h3>
-              <button onClick={() => navigateTo('archive')} className="data-text text-gray-600 hover:text-gray-900 transition-all cursor-pointer flex items-center gap-2 group">
-                 ACCESS_ALL <ArrowUpRight size={10} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
+              <button onClick={() => navigate('/archive')} className="text-sm text-blue-600 active:scale-95 font-medium flex items-center gap-1 transition-colors">
+                 عرض الكل <ArrowLeft size={14} />
               </button>
            </div>
            
-           <div className="grid gap-6">
-              {recentScripts.length > 0 ? recentScripts.map((script, idx) => {
-                 const isTopSecret = idx % 2 === 0;
-                 return (
-                 <div key={idx} onClick={() => navigateTo('archive')} className="p-6  relative overflow-hidden group cursor-pointer transition-all hover:border-gray-300 hover:bg-white/[0.04]">
-                    <div className="absolute inset-0  opacity-[0.02]" />
-                    <div className={`absolute top-0 right-0 w-32 h-32 border-b border-l border-gray-200 bg-gradient-to-bl ${isTopSecret ? 'from-[#eb2630]/5' : 'from-cyan-500/5'} to-transparent transition-all group-hover:scale-110`}></div>
-                    
-                    <div className="flex items-center gap-4 mb-4 relative z-10">
-                        <span className={`data-text px-2.5 py-1 border ${isTopSecret ? 'border-[#eb2630]/30 text-[#eb2630] bg-[#eb2630]/5 shadow-[0_0_15px_rgba(235,38,48,0.1)]' : 'border-cyan-500/30 text-cyan-400 bg-cyan-500/5 shadow-[0_0_15px_rgba(34,211,238,0.1)]'}`}>
-                           {isTopSecret ? '[TOP SECRET]' : '[CLASSIFIED]'}
+           <div className="grid gap-4">
+              {recentScripts.length > 0 ? recentScripts.map((script, idx) => (
+                 <div key={idx} onClick={() => navigate('/archive')} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm active:scale-95 transition-all cursor-pointer flex justify-between items-center group">
+                    <div className="flex flex-col">
+                        <span className="text-xs text-blue-500 font-medium mb-1">
+                           تاريخ: {new Date(script.createdAt).toLocaleDateString('ar-EG')}
                         </span>
-                        <span className="data-text text-gray-500">FILE_REF: 0x{script.id?.slice(-4) || 'NULL'} // T: {new Date(script.createdAt).toLocaleDateString('en-GB')}</span>
+                        <h4 className="text-lg font-bold text-gray-900 font-arabic group-active:scale-95 transition-colors">
+                           {script.video_title || "مشروع غير مسمى"}
+                        </h4>
+                        <p className="text-sm text-gray-500 mt-1 line-clamp-1">
+                            {script.scenes && script.scenes.length > 0 ? script.scenes[0].text : 'جاري معالجة البيانات...'}
+                        </p>
                     </div>
-                    
-                    <h4 className="text-xl font-arabic font-black text-gray-900 mb-3 group-hover:neon-cyan transition-all relative z-10">{script.video_title || "UNRESOLVED_ASSET"}</h4>
-                    <p className="text-sm font-arabic text-gray-600 leading-relaxed font-medium line-clamp-2 relative z-10">
-                        {script.scenes && script.scenes.length > 0 ? script.scenes[0].text : 'جاري انتظار بيانات سحب العينات من المحرك المركزي...'}
-                    </p>
-                    
-                    <div className="mt-4 flex justify-between items-center relative z-10">
-                      <div className="flex gap-4">
-                        <div className="flex items-center gap-1 data-text text-gray-500">
-                          <Clock size={10} /> {Math.floor(Math.random() * 10)}M_AGO
-                        </div>
-                      </div>
-                      <span className="data-text text-gray-900/0 group-hover:text-gray-500 transition-all">VIEW_FILE // PULL</span>
+                    <div className="w-10 h-10 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center opacity-0 group-active:scale-95 transition-opacity">
+                       <ArrowLeft size={16} />
                     </div>
-                </div>
-                 );
-              }) : (
-                <div className="p-12 bg-white border border-gray-200 shadow-md rounded-xl border-dashed border-gray-200 text-center flex flex-col items-center gap-4 relative overflow-hidden group cursor-pointer" onClick={() => navigateTo('scriptEditor')}>
-                   <div className="absolute inset-0  opacity-[0.03]" />
-                   <Database size={32} className="text-gray-400 group-hover:neon-red group-hover:scale-110 transition-all" />
-                   <p className="data-text text-gray-500 group-hover:text-gray-600 transition-colors">ERR: DB_0_INTEL // جاري انتظار أول مدخلات استخباراتية</p>
+                 </div>
+              )) : (
+                <div className="bg-white p-10 rounded-xl border border-dashed border-gray-200 text-center flex flex-col items-center gap-3 cursor-pointer" onClick={() => navigate('/script-editor')}>
+                   <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center text-gray-400">
+                      <Archive size={24} />
+                   </div>
+                   <p className="text-gray-500 font-arabic">لا توجد مشاريع حالياً. انقر للبدء بإنشاء سكريبت جديد.</p>
                 </div>
               )}
            </div>
         </div>
 
-        <div className="space-y-8">
-           <div className="flex items-center justify-between border-b border-gray-200 pb-4">
-              <h3 className="data-text text-gray-900 flex items-center gap-3">
-                 <Terminal size={16} className="text-gray-600" />
-                 [CORE_OPS] // الأوامر الأساسية
-              </h3>
-           </div>
+        <div className="space-y-6">
+           <h3 className="text-xl font-bold text-gray-900 font-arabic">
+              إجراءات سريعة
+           </h3>
            
-           <div className="grid grid-cols-1 gap-4 relative z-10">
+           <div className="grid grid-cols-1 gap-4">
                <ActionCard 
-                 title="توليد المحتوى البصري" 
-                 desc="EXTRACT_INTEL_ASSETS" 
+                 title="توليد الوسائط" 
+                 desc="صناعة وتعديل المواد البصرية" 
                  icon={Zap} 
-                 color="neon-cyan"
-                 bg="bg-white shadow-sm hover:bg-cyan-500/[0.03] hover:border-cyan-500/40 neon-glow-cyan"
-                 onClick={() => navigateTo('content')}
+                 onClick={() => navigate('/content')}
                />
                <ActionCard 
-                 title="تحرير السكريبتات" 
-                 desc="LOG_PROTOCOL_UPDATE" 
+                 title="محرر السكريبت" 
+                 desc="إنشاء وتعديل النصوص" 
                  icon={FileText} 
-                 color="neon-amber"
-                 bg="bg-white shadow-sm hover:bg-amber-500/[0.03] hover:border-amber-500/40"
-                 onClick={() => navigateTo('scriptEditor')}
+                 onClick={() => navigate('/script-editor')}
                />
                <ActionCard 
-                 title="المرصد الاستراتيجي" 
-                 desc="TARGET_RELATIONSHIP_MAP" 
+                 title="المرصد" 
+                 desc="مراقبة وتحليل التوجهات" 
                  icon={Eye} 
-                 color="neon-red"
-                 bg="bg-white shadow-sm hover:bg-red-500/[0.03] hover:border-red-500/40"
-                 onClick={() => navigateTo('graph')}
+                 onClick={() => navigate('/graph')}
                />
-            </div>
-
-            <div className="p-6 bg-white border border-gray-200 shadow-md rounded-xl">
-              <h4 className="data-text mb-4 text-gray-600">INTERNAL_TELEMETRY</h4>
-              <div className="space-y-3">
-                {[
-                  { label: "NEURAL_UPTIME", val: "99.98%" },
-                  { label: "SYNC_STATUS", val: "LOCKED" },
-                  { label: "U_UID", val: "BWRZ-01" },
-                ].map((stat, i) => (
-                  <div key={i} className="flex justify-between items-center text-[10px] font-mono">
-                    <span className="text-gray-500 uppercase tracking-widest">{stat.label}</span>
-                    <span className="text-gray-600">{stat.val}</span>
-                  </div>
-                ))}
-              </div>
             </div>
         </div>
       </div>
@@ -284,26 +189,33 @@ export const Home: React.FC = () => {
   );
 }
 
-function ActionCard({ title, desc, icon: Icon, color, bg, onClick }: any) {
-   const { playClick, playHover } = useTacticalSound();
+function StatCard({ icon: Icon, label, value }: { icon: any, label: string, value: number }) {
+  return (
+    <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+       <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <Icon size={24} />
+       </div>
+       <div className="flex flex-col">
+          <span className="text-gray-500 text-sm">{label}</span>
+          <span className="text-2xl font-bold text-gray-900">{value}</span>
+       </div>
+    </div>
+  )
+}
+
+function ActionCard({ title, desc, icon: Icon, onClick }: any) {
    return (
       <div 
-         onClick={() => {
-           onClick();
-           playClick();
-         }}
-         onMouseEnter={playHover}
-         className={`p-6 bracket-container transition-all duration-200 cursor-pointer flex items-center gap-6 group border-gray-200 relative overflow-hidden ${bg}`}
+         onClick={onClick}
+         className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm active:scale-95 transition-all cursor-pointer flex flex-col gap-3 group"
       >
-         <div className="absolute inset-0  opacity-[0.02]" />
-         <div className="p-4 bg-gray-50 border border-gray-200 bracket-corners relative z-10">
-             <Icon size={20} className={`${color} opacity-80 group-hover:opacity-100 transition-all group-hover:scale-110`} />
+         <div className="w-10 h-10 rounded-lg bg-gray-50 text-gray-600 group-active:scale-95 group-active:scale-95 flex items-center justify-center transition-colors">
+            <Icon size={20} />
          </div>
-         <div className="flex-1 relative z-10">
-            <h3 className="text-base font-black font-arabic text-gray-900 mb-1 group-hover:text-cyan-400 transition-all">{title}</h3>
-            <p className="data-text text-gray-500 group-hover:text-gray-600 transition-colors uppercase text-[9px] tracking-widest">{desc}</p>
+         <div>
+            <h4 className="font-bold text-gray-900 font-arabic">{title}</h4>
+            <p className="text-sm text-gray-500 font-arabic mt-1">{desc}</p>
          </div>
-         <ArrowUpRight size={14} className="opacity-0 -translate-x-3 group-hover:opacity-100 group-hover:translate-x-0 text-cyan-400 transition-all" />
       </div>
    )
 }

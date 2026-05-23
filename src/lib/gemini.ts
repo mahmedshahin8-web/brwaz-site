@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import { ollamaQueue } from "./queue";
 import { cleanToEgyptianArabic } from '../core/identity/identityGuard';
 export enum Type {
@@ -577,7 +578,7 @@ export async function generateAIContentRaw(
     const targetEngine = engine || globalEngine;
 
     const performFetch = async () => {
-      const response = await fetch("/api/ai/generate", {
+      const response = await apiFetch("/api/ai/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -651,7 +652,7 @@ export async function callWithRetry(
       const isMissingApiKeys = errorMessage.includes("فشل كلا المزودين") || errorMessage.includes("المفتاح غير صالح");
       const isOllamaConnectivityError = errorMessage.includes("ollama") || errorMessage.includes("failed to fetch");
       const isSyntaxErrorProxyHtml = errorMessage.includes("unexpected token < in json");
-      const isAllKeysSuspended = errorMessage.includes("429_all_keys_suspended");
+      const isAllKeysSuspended = errorMessage.includes("all_keys_suspended");
       
       const isUnrecoverable = isAllKeysSuspended || isOllamaConnectivityError || isMissingApiKeys || errorMessage.includes("403") || errorMessage.includes("400") || errorMessage.includes("invalid url") || errorMessage.includes("html") || isSyntaxErrorProxyHtml;
 

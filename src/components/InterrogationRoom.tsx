@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useState, useEffect } from 'react';
 import { Send, UserX, User, Activity, Zap, Gavel } from 'lucide-react';
 import { motion } from 'framer-motion';
@@ -13,7 +14,7 @@ export const InterrogationRoom: React.FC<{ scriptContent?: string }> = ({ script
     // Cyber-Thriller UX: Redaction Reveal Component
     const RedactedText = ({ text }: { text: string }) => {
         return (
-            <span className="bg-white text-black hover:text-gray-900/80 transition-all duration-[400ms] cursor-crosshair selection:bg-transparent">
+            <span className="bg-white text-black active:scale-95 transition-all duration-[400ms] cursor-crosshair selection:bg-transparent">
                 {text}
             </span>
         );
@@ -38,7 +39,7 @@ export const InterrogationRoom: React.FC<{ scriptContent?: string }> = ({ script
         setIsInterrogating(true);
         
         try {
-            const req = await fetch('/api/rag/interrogate', {
+            const req = await apiFetch('/api/rag/interrogate', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ query, persona: 'الجبرتي' })
@@ -84,7 +85,7 @@ export const InterrogationRoom: React.FC<{ scriptContent?: string }> = ({ script
         setMessages(prev => [...prev, { role: 'user', text: "استدعي المحرر السادي (Devil's Advocate) لتقطيع هذا السكريبت إرباً." }]);
 
         try {
-            const req = await fetch('/api/drafts/critique', {
+            const req = await apiFetch('/api/drafts/critique', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ scriptContent })
@@ -131,14 +132,14 @@ export const InterrogationRoom: React.FC<{ scriptContent?: string }> = ({ script
                 <div className="flex items-center gap-2">
                     <button 
                       onClick={() => handleSadistCritique()}
-                      className={`flex items-center gap-1 text-[9px] px-2 py-1 border transition-colors ${isSadistMode ? 'text-gray-900 bg-[#eb2630]/20 border-[#eb2630]/50' : 'text-[#eb2630]/60 hover:text-[#eb2630] border-[#eb2630]/30 hover:bg-[#eb2630]/10'}`}
+                      className={`flex items-center gap-1 text-[9px] px-2 py-1 border transition-colors ${isSadistMode ? 'text-gray-900 bg-[#eb2630]/20 border-[#eb2630]/50' : 'text-[#eb2630]/60 active:scale-95#eb2630] border-[#eb2630]/30 active:scale-95#eb2630]/10'}`}
                       title="Invoke Devil's Advocate to critique the script"
                     >
                         <Gavel className="w-3 h-3" /> THE_CRITIC
                     </button>
                     <button 
                       onClick={() => { setMessages([]); setIsSadistMode(false); }}
-                      className="flex items-center gap-1 text-[9px] text-gray-600 hover:text-gray-900 px-2 py-1 border border-gray-200"
+                      className="flex items-center gap-1 text-[9px] text-gray-600 active:scale-95 px-2 py-1 border border-gray-200"
                     >
                         <UserX className="w-3 h-3" /> BREAK
                     </button>
@@ -195,7 +196,7 @@ export const InterrogationRoom: React.FC<{ scriptContent?: string }> = ({ script
                     onKeyDown={e => e.key === 'Enter' && handleSend()}
                     dir="rtl"
                 />
-                <button onClick={handleSend} className="p-2 bg-[#eb2630]/20 hover:bg-[#eb2630]/40 text-[#eb2630] border border-[#eb2630]/30 transition-colors">
+                <button onClick={handleSend} className="p-2 bg-[#eb2630]/20 active:scale-95#eb2630]/40 text-[#eb2630] border border-[#eb2630]/30 transition-colors">
                     <Send className="w-4 h-4" />
                 </button>
             </div>

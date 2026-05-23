@@ -25,7 +25,7 @@ export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorPro
           className={`px-4 py-4 rounded-md text-[11px] font-mono font-bold transition-all flex flex-col items-center gap-1 ${
             strategy === "HCS" 
               ? 'bg-muted-amber/20 text-muted-amber border border-muted-amber shadow-[0_0_15px_rgba(212,175,55,0.2)]' 
-              : 'bg-white border-gray-100 shadow-sm text-gray-600 border border-gray-200 hover:bg-gray-100'
+              : 'bg-white border-gray-100 shadow-sm text-gray-600 border border-gray-200 active:scale-95'
           }`}
         >
           <Target className="w-4 h-4" />
@@ -36,7 +36,7 @@ export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorPro
           className={`px-4 py-4 rounded-md text-[11px] font-mono font-bold transition-all flex flex-col items-center gap-1 ${
             strategy === "HAP" 
               ? 'bg-muted-amber/20 text-muted-amber border border-muted-amber shadow-[0_0_15px_rgba(212,175,55,0.2)]' 
-              : 'bg-white border-gray-100 shadow-sm text-gray-600 border border-gray-200 hover:bg-gray-100'
+              : 'bg-white border-gray-100 shadow-sm text-gray-600 border border-gray-200 active:scale-95'
           }`}
         >
           <ShieldAlert className="w-4 h-4" />

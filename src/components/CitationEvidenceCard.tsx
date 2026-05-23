@@ -23,7 +23,7 @@ export const CitationEvidenceCard: React.FC<CitationCardProps> = ({
       className={cn(
         "relative p-4 border border-amber-900/40 bg-zinc-950 cursor-pointer transition-none",
         "bg-[url('/grid.png')] bg-repeat",
-        !revealed && "hover:border-amber-900/60"
+        !revealed && "active:scale-95"
       )}
       onClick={() => setRevealed(!revealed)}
     >
@@ -49,7 +49,7 @@ export const CitationEvidenceCard: React.FC<CitationCardProps> = ({
             href={sourceUrl} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-[9px] text-amber-600 underline font-mono hover:text-amber-500"
+            className="text-[9px] text-amber-600 underline font-mono active:scale-95"
           >
             [Access_Original_Document]
           </a>

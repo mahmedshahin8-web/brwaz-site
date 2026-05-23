@@ -24,7 +24,7 @@ export default function SchedulerPage() {
           <h1 className="text-4xl font-arabic font-black tracking-tighter uppercase leading-none">جدولة النشر</h1>
         </div>
         
-        <button className="bg-white text-black px-6 py-3 rounded-sm font-arabic font-bold flex items-center gap-2 hover:bg-white/90 transition-colors">
+        <button className="bg-white text-black px-6 py-3 rounded-sm font-arabic font-bold flex items-center gap-2 active:scale-95 transition-colors">
           <Plus size={18} />
           جدولة محتوى جديد
         </button>
@@ -48,9 +48,9 @@ export default function SchedulerPage() {
             return (
               <div 
                 key={i} 
-                className="relative bg-gray-50 border border-gray-200 rounded-sm p-2 hover:bg-white border-gray-100 shadow-sm hover:border-gray-300 transition-colors duration-300 group"
+                className="relative bg-gray-50 border border-gray-200 rounded-sm p-2 active:scale-95 border-gray-100 shadow-sm active:scale-95 transition-colors duration-300 group"
               >
-                <span className="absolute top-2 left-2 font-mono text-xs text-gray-500 group-hover:text-gray-600 transition-colors">
+                <span className="absolute top-2 left-2 font-mono text-xs text-gray-500 group-active:scale-95 transition-colors">
                   {i + 1}
                 </span>
 
@@ -58,7 +58,7 @@ export default function SchedulerPage() {
                   {items.map((item, idx) => (
                     <div 
                       key={idx} 
-                      className="bg-white border border-gray-200 rounded-sm p-2 flex flex-col gap-1 cursor-pointer hover:border-gray-300 transition-colors"
+                      className="bg-white border border-gray-200 rounded-sm p-2 flex flex-col gap-1 cursor-pointer active:scale-95 transition-colors"
                     >
                       <div className="flex items-center gap-2">
                         {renderIcon(item.type)}

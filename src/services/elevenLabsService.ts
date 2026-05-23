@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 export async function generateElevenLabsAudio(
   text: string, 
   apiKey: string, 
@@ -5,7 +6,7 @@ export async function generateElevenLabsAudio(
 ): Promise<Blob> {
   const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId || 'JBFqnCBsd6RMkjVDRZzb'}`;
 
-  const response = await fetch(url, {
+  const response = await apiFetch(url, {
     method: 'POST',
     headers: {
       'Accept': 'audio/mpeg',

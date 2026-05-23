@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useEffect, useState, useRef } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import { Activity } from 'lucide-react';
@@ -21,7 +22,7 @@ export const RedStringBoard: React.FC = () => {
         const fetchGraph = async () => {
             setIsExtracting(true);
             try {
-                const req = await fetch('/api/rag/red_string_extract', { method: 'POST' });
+                const req = await apiFetch('/api/rag/red_string_extract', { method: 'POST' });
                 const res = await req.json();
                 if (res.success) {
                     setGraphData({ nodes: res.nodes, links: res.links });

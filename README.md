@@ -1,20 +1,48 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Barwaz Studio
 
-# Run and deploy your AI Studio app
+Barwaz Studio is a complete front-end and back-end application built with React, Vite, TailwindCSS, and an Express based server.
 
-This contains everything you need to run your app locally.
+## Features
+- Fully integrated Command Center Dashboard (`src/pages/home.tsx`).
+- React Router DOM based navigation.
+- Node.js backend using Express and Better-SQLite3.
+- Advanced Cyber-Studio aesthetics with Arabic RTL support.
+- API Proxies & Tools for content generation and AI integrations.
 
-View your app in AI Studio: https://ai.studio/apps/1861ee6c-a7e7-41d6-b218-019c797373b0
+## Environment Variables
+Create a `.env` file in the root based on `.env.example`:
 
-## Run Locally
+```env
+APP_URL="http://localhost:3000"
+GEMINI_API_KEY="your-gemini-key"
+YOUTUBE_API_KEY="your-youtube-key"
+ELEVENLABS_API_KEY="your-elevenlabs-key"
+# Add other keys...
+```
 
-**Prerequisites:**  Node.js
+## Running Locally
 
+To run this project locally without sandbox constraints (like memory issues when zipping files with Web Workers):
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+1. **Install dependencies**:
+   ```bash
+   npm install
+   ```
+2. **Start Development Server**:
+   ```bash
+   npm run dev
+   ```
+3. **Build for Production**:
+   ```bash
+   npm run build
+   ```
+4. **Start Production Server**:
+   ```bash
+   npm start
+   ```
+
+*The server runs on port 3000.*
+
+## Security & Usage
+- Do not store secret keys like `elevenLabsKey` in localStorage in a real production environment. The application proxy should handle secure logic via `/api/*`.
+- Be mindful of rate-limits if using `ngrok` or external unauthenticated proxy services for data processing.

@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { AnimatePresence } from 'framer-motion';
+import React from "react";
 import { Toaster } from 'react-hot-toast';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import DashboardLayout from "./layouts/DashboardLayout";
 import ContentCreationPage from "./pages/ContentCreationPage";
 import ArchivePage from "./pages/ArchivePage";
@@ -13,74 +13,43 @@ import AnalyticsPage from "./pages/AnalyticsPage";
 import { KnowledgeGraphPage } from "./pages/KnowledgeGraphPage";
 import { ErrorBoundary } from "./components/ErrorBoundary";
 import { CommandPalette } from "./components/CommandPalette";
-import { BootSequence } from "./components/BootSequence";
-
-type PageType = "content" | "archive" | "settings" | "warRoom" | "scriptEditor" | "scheduler" | "trends" | "analytics" | "graph";
 
 export default function App() {
-  const [currentPage, setCurrentPage] = useState<PageType>("warRoom");
-  const [isBooting, setIsBooting] = useState(true);
-
-  useEffect(() => {
-    const handleNavigate = (event: Event) => {
-      const customEvent = event as CustomEvent<{ page: PageType }>;
-      setCurrentPage(customEvent.detail.page);
-    };
-
-    window.addEventListener("navigate", handleNavigate);
-    return () => window.removeEventListener("navigate", handleNavigate);
-  }, []);
-
-  const renderPage = () => {
-    switch (currentPage) {
-      case "warRoom":
-        return <WarRoomDashboard />;
-      case "trends":
-        return <TrendsPage />;
-      case "scriptEditor":
-        return <ScriptEditor />;
-      case "content":
-        return <ContentCreationPage />;
-      case "scheduler":
-        return <SchedulerPage />;
-      case "archive":
-        return <ArchivePage />;
-      case "analytics":
-        return <AnalyticsPage />;
-      case "settings":
-        return <SettingsPage />;
-      case "graph":
-        return <KnowledgeGraphPage />;
-      default:
-        return <WarRoomDashboard />;
-    }
-  };
-
   return (
     <ErrorBoundary>
       <Toaster 
         position="bottom-left" 
-        gutter={8}
         toastOptions={{
           className: '',
           style: {
-            background: 'transparent',
-            boxShadow: 'none',
-            border: 'none',
-            padding: 0,
-            margin: 0
+            background: 'white',
+            color: 'black',
+            boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
+            border: '1px solid #e5e7eb',
+            borderRadius: '0.5rem',
+            padding: '16px'
           }
         }} 
       />
-      <CommandPalette />
-      <AnimatePresence>
-        {isBooting ? (
-          <BootSequence key="boot" onComplete={() => setIsBooting(false)} />
-        ) : null}
-      </AnimatePresence>
-      <DashboardLayout currentPage={currentPage}>
-        {renderPage()}
-      </DashboardLayout>
+      
+      <BrowserRouter>
+        <CommandPalette />
+        <Routes>
+          <Route path="/" element={<DashboardLayout />}>
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<WarRoomDashboard />} />
+            <Route path="trends" element={<TrendsPage />} />
+            <Route path="script-editor" element={<ScriptEditor />} />
+            <Route path="content" element={<ContentCreationPage />} />
+            <Route path="graph" element={<KnowledgeGraphPage />} />
+            <Route path="scheduler" element={<SchedulerPage />} />
+            <Route path="archive" element={<ArchivePage />} />
+            <Route path="analytics" element={<AnalyticsPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="*" element={<Navigate to="/dashboard" replace />} />
+          </Route>
+        </Routes>
+      </BrowserRouter>
     </ErrorBoundary>
   );
 }

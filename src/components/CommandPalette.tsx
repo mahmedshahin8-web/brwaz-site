@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Command } from 'cmdk';
 import { FileText, Archive, Radar, Activity, Zap, BarChart2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export function CommandPalette() {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -24,7 +26,7 @@ export function CommandPalette() {
   }, []);
 
   const navigateTo = (page: string) => {
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { page } }));
+    navigate(`/${page}`);
     setOpen(false);
   };
 
@@ -60,7 +62,7 @@ export function CommandPalette() {
                 <Command.Item
                   onSelect={() => { /* Mock search action */ setOpen(false); }}
                   value={`بحث عن ${searchQuery}`}
-                  className="flex flex-col gap-1 px-3 py-3 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                  className="flex flex-col gap-1 px-3 py-3 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
                 >
                   <div className="flex items-center gap-3">
                     <Zap className="w-4 h-4 text-cyan-400" />
@@ -73,17 +75,17 @@ export function CommandPalette() {
 
             <Command.Group heading="[NAVIGATION] // التنقل السريع" className="px-2 py-2 text-gray-500 text-[10px] uppercase tracking-widest [&_[cmdk-group-heading]]:mb-2 text-right">
               <Command.Item
-                onSelect={() => navigateTo('warRoom')}
+                onSelect={() => navigateTo('dashboard')}
                 value="warRoom dashboard الرئيسية"
-                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <Radar className="w-4 h-4 text-cyan-400" />
                 DASHBOARD // لوحة القيادة
               </Command.Item>
               <Command.Item
-                onSelect={() => navigateTo('scriptEditor')}
+                onSelect={() => navigateTo('script-editor')}
                 value="scriptEditor create مسودة نبش جديد سكريبت"
-                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <FileText className="w-4 h-4 text-[#eb2630]" />
                 NEW_DIG // بدء نبش جديد (محرر)
@@ -91,7 +93,7 @@ export function CommandPalette() {
               <Command.Item
                 onSelect={() => navigateTo('archive')}
                 value="archive خزائن ارشيف مستندات"
-                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <Archive className="w-4 h-4 text-blue-600" />
                 VAULTS // بنوك الأرشيف
@@ -99,7 +101,7 @@ export function CommandPalette() {
                <Command.Item
                 onSelect={() => navigateTo('trends')}
                 value="trends تريند رادار"
-                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <Activity className="w-4 h-4 text-cyan-400" />
                 RADAR_TRENDS // التريندات
@@ -107,7 +109,7 @@ export function CommandPalette() {
                <Command.Item
                 onSelect={() => navigateTo('analytics')}
                 value="analytics احصائيات مراقبة النظام"
-                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <BarChart2 className="w-4 h-4 text-cyan-400" />
                 SYSTEM_ANALYTICS // مراقبة النظام
@@ -115,7 +117,7 @@ export function CommandPalette() {
                <Command.Item
                 onSelect={() => navigateTo('graph')}
                 value="graph knowledge network خريطة العلاقات عمليات"
-                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <Zap className="w-4 h-4 text-blue-600" />
                 KNOWLEDGE_GRAPH // الخريطة المعرفية
@@ -126,7 +128,7 @@ export function CommandPalette() {
                <Command.Item
                 onSelect={() => { document.documentElement.classList.toggle('zen-mode'); setOpen(false); }}
                 value="zen mode تركيز"
-                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <div className="w-4 h-4 border border-gray-300"></div>
                 TOGGLE_ZEN_MODE // وضع التركيز
@@ -134,7 +136,7 @@ export function CommandPalette() {
               <Command.Item
                 onSelect={() => { navigateTo('settings') }}
                 value="settings اعدادات"
-                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 hover:bg-white border-gray-100 shadow-sm hover:text-gray-900 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
+                className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <div className="w-4 h-4 border border-gray-300 flex items-center justify-center"><div className="w-1 h-1 bg-white"></div></div>
                 SYSTEM_CONFIG // تكوين النظام

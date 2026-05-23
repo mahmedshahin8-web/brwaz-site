@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 export async function generateLeonardoImage(prompt: string, apiKey: string, refImageUrl: string) {
   if (!apiKey) throw new Error('يرجى إدخال Leonardo API Key في الإعدادات.');
 
@@ -6,7 +7,7 @@ export async function generateLeonardoImage(prompt: string, apiKey: string, refI
     const negativePrompt = "--no text, typography, letters, words, speech bubbles, 3D rendering, photorealistic, photography, CGI, modern digital art";
 
     // 1. Create Generation
-    const response = await fetch('https://cloud.leonardo.ai/api/rest/v1/generations', {
+    const response = await apiFetch('https://cloud.leonardo.ai/api/rest/v1/generations', {
       method: 'POST',
       headers: {
         'accept': 'application/json',
@@ -44,7 +45,7 @@ export async function generateLeonardoImage(prompt: string, apiKey: string, refI
     for (let i = 0; i < maxRetries; i++) {
       await new Promise(resolve => setTimeout(resolve, pollInterval));
       
-      const statusResponse = await fetch(`https://cloud.leonardo.ai/api/rest/v1/generations/${generationId}`, {
+      const statusResponse = await apiFetch(`https://cloud.leonardo.ai/api/rest/v1/generations/${generationId}`, {
         method: 'GET',
         headers: {
           'accept': 'application/json',

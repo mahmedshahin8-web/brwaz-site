@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useEffect, useState } from "react";
 import { Archive as ArchiveIcon, FileText, Trash2, ShieldAlert } from "lucide-react";
 import { motion } from "framer-motion";
@@ -5,7 +6,7 @@ import { useTacticalSound } from "../hooks/useTacticalSound";
 
 const RedactedText = ({ text }: { text: string }) => {
     return (
-        <span className="bg-white/80 text-transparent hover:text-black hover:bg-transparent transition-all duration-[400ms] cursor-crosshair selection:bg-transparent inline-block">
+        <span className="bg-white/80 text-transparent active:scale-95 transition-all duration-[400ms] cursor-crosshair selection:bg-transparent inline-block">
             {text}
         </span>
     );
@@ -18,7 +19,7 @@ export default function ArchivePage() {
   useEffect(() => {
     const fetchDossiers = async () => {
       try {
-        const res = await fetch("/api/dossiers");
+        const res = await apiFetch("/api/dossiers");
         if (res.ok) {
           const docs = await res.json();
           setArchive(docs);
@@ -32,7 +33,7 @@ export default function ArchivePage() {
 
   const handleDelete = async (id: string) => {
     try {
-      await fetch(`/api/dossiers/${id}`, { method: 'DELETE' });
+      await apiFetch(`/api/dossiers/${id}`, { method: 'DELETE' });
       setArchive(prev => prev.filter((item: any) => item.id !== id));
     } catch (err) {
       console.error("Failed to delete", err);
@@ -87,10 +88,10 @@ export default function ArchivePage() {
                   whileHover={{ scale: 1.02 }}
                   onMouseEnter={playHover}
                   transition={{ delay: i * 0.05, duration: 0.2 }}
-                  className="group p-10 bg-gray-50 bracket-corners border-gray-200 hover:border-red-500/40 hover:bg-red-500/[0.02] transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[350px] neon-glow-red"
+                  className="group p-10 bg-gray-50 bracket-corners border-gray-200 active:scale-95 active:scale-95.02] transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[350px] neon-glow-red"
                 >
                   <div className="absolute inset-0  opacity-[0.02] pointer-events-none" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 opacity-[0.01] group-hover:opacity-[0.04] pointer-events-none transition-opacity">
+                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 opacity-[0.01] group-active:scale-95.04] pointer-events-none transition-opacity">
                       <span className="text-8xl font-black font-mono tracking-tighter text-red-600">CONFIDENTIAL</span>
                   </div>
 
@@ -105,14 +106,14 @@ export default function ArchivePage() {
                           playClick();
                           doc.id && handleDelete(doc.id);
                         }}
-                        className="p-3 bg-white shadow-sm border border-gray-200 text-gray-500 hover:text-red-600 hover:border-red-600 transition-all bracket-corners group/del"
+                        className="p-3 bg-white shadow-sm border border-gray-200 text-gray-500 active:scale-95 transition-all bracket-corners group/del"
                       >
                         <Trash2 size={14} className="group-hover/del:scale-110" />
                       </button>
                   </div>
                   
                   <div className="flex-1 relative z-10 space-y-8">
-                      <h3 className="text-2xl font-black font-arabic text-gray-900 mb-4 leading-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] group-hover:text-red-400 transition-colors">
+                      <h3 className="text-2xl font-black font-arabic text-gray-900 mb-4 leading-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] group-active:scale-95 transition-colors">
                           {words.map((w: string, idx: number) => {
                               if(isRedacted && w.length > 2 && idx % 2 !== 0) {
                                   return <span key={idx} className="mr-1"><RedactedText text={w} /></span>;
@@ -137,8 +138,8 @@ export default function ArchivePage() {
                             <span className="data-text text-red-500/50 font-mono text-[10px]">{new Date(doc.createdAt).toLocaleDateString('en-GB')}</span>
                           </div>
                       </div>
-                      <div className="p-3 bg-gray-50 border border-gray-200 bracket-corners group-hover:border-red-500/50 transition-all group-hover:rotate-12">
-                        <FileText size={16} className="text-gray-500 group-hover:neon-red transition-colors" />
+                      <div className="p-3 bg-gray-50 border border-gray-200 bracket-corners group-active:scale-95 transition-all group-active:scale-95">
+                        <FileText size={16} className="text-gray-500 group-active:scale-95 transition-colors" />
                       </div>
                   </div>
                 </motion.div>

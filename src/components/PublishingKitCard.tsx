@@ -37,10 +37,10 @@ export function PublishingKitCard({ data }: PublishingKitCardProps) {
             <button 
               key={i}
               onClick={() => copyToClipboard(title, "العنوان")}
-              className="group flex items-center justify-between p-4 bg-white border-gray-100 shadow-sm border border-gray-200 hover:border-gray-300 transition-all text-right"
+              className="group flex items-center justify-between p-4 bg-white border-gray-100 shadow-sm border border-gray-200 active:scale-95 transition-all text-right"
             >
-              <Copy className="w-4 h-4 text-gray-400 group-hover:text-gray-900 transition-colors" />
-              <span className="font-arabic text-lg text-gray-900/80 group-hover:text-gray-900">{title}</span>
+              <Copy className="w-4 h-4 text-gray-400 group-active:scale-95 transition-colors" />
+              <span className="font-arabic text-lg text-gray-900/80 group-active:scale-95">{title}</span>
             </button>
           ))}
         </div>
@@ -52,7 +52,7 @@ export function PublishingKitCard({ data }: PublishingKitCardProps) {
             <h4 className="text-xs font-mono text-blue-600 uppercase tracking-widest flex items-center gap-2">
                 <BookOpen className="w-3 h-3" /> High_Retention_Description
             </h4>
-            <button onClick={() => copyToClipboard(data.description, "الوصف")} className="text-[10px] font-mono text-gray-500 hover:text-gray-900 uppercase flex items-center gap-2">
+            <button onClick={() => copyToClipboard(data.description, "الوصف")} className="text-[10px] font-mono text-gray-500 active:scale-95 uppercase flex items-center gap-2">
                 <Copy size={12} /> Copy_Full_TEXT
             </button>
         </div>

@@ -1,3 +1,4 @@
+import { apiFetch } from "../lib/apiFetch";
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Flame, TrendingUp, Search, Activity, GitCommit, Database, Radio } from "lucide-react";
@@ -13,7 +14,7 @@ export default function TrendsPage() {
     
     const fetchRealTrends = async () => {
       try {
-        const res = await fetch('/api/trends/public');
+        const res = await apiFetch('/api/trends/public');
         if(res.ok) {
           const data = await res.json();
           if(data.success && data.items) {

@@ -16,7 +16,7 @@ export const AnimatedCard: React.FC<{ children: React.ReactNode; className?: str
     <motion.div
       whileTap={{ scale: 0.98, transition: { duration: 0.05 } }}
       onClick={handleClick}
-      className={`p-4 bg-white border backdrop-blur-md transition-all duration-500 rounded-none ${isClicked ? 'border-amber-500' : 'border-gray-200'} hover:border-gray-300 ${className}`}
+      className={`p-4 bg-white border backdrop-blur-md transition-all duration-500 rounded-none ${isClicked ? 'border-amber-500' : 'border-gray-200'} active:scale-95 ${className}`}
     >
       {children}
     </motion.div>
