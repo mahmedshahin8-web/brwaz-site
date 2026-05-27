@@ -21,7 +21,7 @@ export default function SchedulerPage() {
       <header className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center border-b border-gray-200 pb-6">
         <div className="flex items-center gap-3 text-blue-600">
           <CalendarIcon size={28} />
-          <h1 className="text-4xl font-arabic font-black tracking-tighter uppercase leading-none">جدولة النشر</h1>
+          <h1 className="text-4xl font-arabic font-black tracking-tighter uppercase leading-none">خطة النشر</h1>
         </div>
         
         <button className="bg-white text-black px-6 py-3 rounded-sm font-arabic font-bold flex items-center gap-2 active:scale-95 transition-colors">

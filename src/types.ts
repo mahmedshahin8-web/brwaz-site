@@ -81,9 +81,20 @@ export interface MasterOutline {
   sources: (string | SourceDef)[];
   research_data?: string;
   central_hypothesis?: string;
+  core_conflict_or_mystery?: string;
+  hidden_patterns_or_contradictions?: string[];
+  editorial_angle?: string;
+  timeline?: any[];
 }
 
-export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو" | "برواز الحكاوي";
+export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو" | "برواز الحكاوي" | "شاهد على العصر" | "الشاهد الصامت";
+
+export interface ArchivalQuote {
+  speaker: string;
+  quote_text: string;
+  source_context?: string;
+  is_audio_available?: boolean;
+}
 
 export interface EpisodeScene {
   asset_id: string;
@@ -91,6 +102,9 @@ export interface EpisodeScene {
   visual_cue: string;
   b_roll_search_query?: string;
   sfx?: string;
+  image_prompt_nano_banana?: string;
+  ai_video_prompt?: string;
+  multi_camera_angles?: any[];
   pexelsAsset?: {
     id: number;
     url: string;
@@ -101,8 +115,11 @@ export interface EpisodeScene {
   sound_design: string;
   music_prompt?: string;
   sfx_prompt?: string;
-  image_prompt_nano_banana: string;
-  ai_video_prompt: string;
+  first_frame_image_prompt?: string;
+  first_frame_motion_prompt?: string;
+  second_frame_image_prompt?: string;
+  second_frame_motion_prompt?: string;
+  archival_quotes?: ArchivalQuote[];
   generated_image_url?: string;
   b_roll_keywords?: string; // Plan 1: Keywords for searching stock footage
   cinematic_movement?: string; // Veo 2 / Runway slow motion guidelines
@@ -143,6 +160,11 @@ export interface PublishingKit {
   thumbnail_midjourney_prompt?: string;
   chapters?: { title: string; timestamp: string; }[];
   tags: string[];
+  omnichannel?: {
+    twitter_thread?: string[];
+    social_posts?: { platform: string; content: string }[];
+  };
+  shorts?: any[];
 }
 
 export interface ShortsData {
@@ -171,6 +193,7 @@ export interface SecurityAudit {
   status: "verified" | "warning" | "failed";
   executive_summary: string;
   issues: AuditIssue[];
+  red_team_score?: number;
 }
 
 export interface EchoChamberData {

@@ -8,51 +8,74 @@ export default function TrendsPage() {
   const [pulses, setPulses] = useState<any[]>([]);
   const [matrixText, setMatrixText] = useState<string[]>([]);
 
-  // Simulation of pulses on map and Data Fetching
+  // Integration with AI for real coordinates & sentiment
   useEffect(() => {
-    let rssItems: any[] = [];
-    
+    let active = true;
     const fetchRealTrends = async () => {
       try {
+        setMatrixText(["[SCANNING] Awaiting signal lock from public APIs..."]);
         const res = await apiFetch('/api/trends/public');
-        if(res.ok) {
+        if(res.ok && active) {
           const data = await res.json();
-          if(data.success && data.items) {
-             rssItems = data.items;
+          if(data.success && data.items && data.items.length > 0) {
+              setMatrixText(prev => ["[AI_PROCESSING] Analyzing geopolitical impact...", ...prev].slice(0, 15));
+              
+              // Use the configured AI to analyze the RSS headlines
+              const { generateAIContentRaw, Type } = await import("../lib/gemini");
+              
+              const prompt = `Analyze these global news headlines and assign an approximate map coordinate (x: 10-90, y: 10-90, where 50,50 is the center of the world map).
+Also assign a sentiment: [SENTIMENT: CRITICAL], [SENTIMENT: ALERT], or [SENTIMENT: WATCHING].
+Headlines:
+${data.items.map((i: any) => "- " + i.title).join('\n')}
+
+Output JSON array of objects.`;
+
+              const aiResult = await generateAIContentRaw(prompt, {
+                 type: Type.ARRAY,
+                 items: {
+                   type: Type.OBJECT,
+                   properties: {
+                      x: { type: Type.NUMBER },
+                      y: { type: Type.NUMBER },
+                      isHighPriority: { type: Type.BOOLEAN },
+                      sentiment: { type: Type.STRING },
+                      headline: { type: Type.STRING }
+                   },
+                   required: ["x", "y", "isHighPriority", "sentiment", "headline"]
+                 }
+              });
+
+              if (!active) return;
+
+              let parsed = [];
+              try { parsed = JSON.parse(aiResult); } catch(e) {}
+              
+              if (Array.isArray(parsed) && parsed.length > 0) {
+                 // Sequentially trigger pulses and feed text
+                 parsed.forEach((item: any, i: number) => {
+                    setTimeout(() => {
+                        if (!active) return;
+                        setPulses(prev => [...prev.slice(-4), { id: Date.now(), x: item.x || Math.random()*80+10, y: item.y || Math.random()*80+10, isHighPriority: !!item.isHighPriority }]);
+                        setMatrixText(prev => [`${item.sentiment} ${item.headline}`, ...prev].slice(0, 15));
+                    }, i * 3000); // 3 seconds between each pulse display
+                 });
+                 return;
+              }
           }
         }
       } catch(e) {
-        // silently ignore
+        console.error("Trends analysis failed", e);
+      }
+      
+      // Fallback
+      if (active) {
+         setMatrixText(prev => ["[LISTENING] External feed parsing in progress...", ...prev].slice(0, 15));
       }
     };
 
     fetchRealTrends();
 
-    const pulseInterval = setInterval(() => {
-      const x = Math.random() * 80 + 10;
-      const y = Math.random() * 80 + 10;
-      const id = Date.now();
-      const isHighPriority = Math.random() > 0.8;
-      
-      setPulses(prev => [...prev.slice(-4), { id, x, y, isHighPriority }]);
-      
-      // Update Matrix Text with Real Data from RSS
-      if (rssItems.length > 0) {
-         const randomItem = rssItems[Math.floor(Math.random() * rssItems.length)];
-         const sentimentOptions = ["[SENTIMENT: MIXED]", "[SENTIMENT: ALERT]", "[SENTIMENT: WATCHING]", "[GLOBAL_PULSE]"];
-         const randomSentiment = sentimentOptions[Math.floor(Math.random() * sentimentOptions.length)];
-         setMatrixText(prev => [`${randomSentiment} ${randomItem.title}`, ...prev].slice(0, 15));
-      } else {
-         const fallback = [
-           "[SCANNING] Awaiting signal lock from public APIs...",
-           "[RECALIBRATING] Modulating frequencies...",
-           "[LISTENING] External feed parsing in progress..."
-         ];
-         setMatrixText(prev => [fallback[Math.floor(Math.random() * fallback.length)], ...prev].slice(0, 15));
-      }
-
-    }, 2500);
-    return () => clearInterval(pulseInterval);
+    return () => { active = false; };
   }, []);
 
   const tabs = [
@@ -66,7 +89,7 @@ export default function TrendsPage() {
       <header className="flex flex-col gap-2 border-b border-gray-200 pb-6 relative z-10">
         <div className="flex items-center gap-3 text-cyan-400">
           <Radio className="w-5 h-5 animate-pulse" />
-          <h1 className="text-3xl font-arabic font-black tracking-tighter uppercase leading-none">[GLOBAL_RADAR] // المرصد التكتيكي</h1>
+          <h1 className="text-3xl font-arabic font-black tracking-tighter uppercase leading-none">[GLOBAL_RADAR] // الأحداث الساخنة</h1>
         </div>
         <p className="text-gray-600 font-mono text-xs leading-relaxed max-w-2xl mt-2 uppercase tracking-widest">
           مسح الترددات النشطة في الشبكة العالمية. التقاط النبضات وإشارات الاستخبارات.

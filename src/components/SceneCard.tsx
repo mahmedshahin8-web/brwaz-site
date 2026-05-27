@@ -1,7 +1,7 @@
 import { apiFetch } from "../lib/apiFetch";
 import React, { useState } from "react";
 import { EpisodeScene } from "../types";
-import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp, Archive, Mic, Play, Wand2, Zap, ExternalLink, Video, Music, Swords, X, Search } from "lucide-react";
+import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp, Archive, Mic, Play, Wand2, Zap, ExternalLink, Video, Music, Swords, X, Search, Camera } from "lucide-react";
 import { surgicalEdit } from "../lib/gemini";
 import { generateNanoBananaImage, editNanoBananaImageText } from "../services/imageService";
 import { AudioWaveform } from "./AudioWaveform";
@@ -185,8 +185,13 @@ export const SceneCard = React.memo(function SceneCard({
       const a = document.createElement("a");
       a.href = url;
       a.download = `Scene_${scene.asset_id.replace(/\W+/g, "_")}.mp3`;
+      a.style.display = "none";
+      document.body.appendChild(a);
       a.click();
-      URL.revokeObjectURL(url);
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      }, 200);
     } catch(err) {
       alert("فشل تحميل الملف الصوتي، تأكد من مفتاح الـ API");
     }
@@ -447,15 +452,46 @@ export const SceneCard = React.memo(function SceneCard({
              />
           </div>
         ) : (
-          <div className="bg-white p-8 border border-gray-100 rounded-xl shadow-sm transition-all group/script active:scale-95 relative">
+          <div className="bg-white p-8 border border-gray-100 rounded-xl shadow-sm transition-all group/script relative">
             <div className="absolute top-4 left-6 text-gray-300 uppercase tracking-widest text-xs font-mono">SCENE TEXT</div>
             <div className="absolute top-4 right-6 opacity-0 group-hover/script:opacity-100 transition-opacity flex gap-2">
-               <button onClick={handleEditToggle} className="text-gray-400 active:scale-95 bg-gray-50 p-2 rounded-lg"><Edit2 size={16} /></button>
-               <button onClick={() => copyToClipboard(scene.voice_over)} className="text-gray-400 active:scale-95 bg-gray-50 p-2 rounded-lg"><Copy size={16} /></button>
+               <button onClick={handleEditToggle} className="text-gray-400 hover:text-blue-500 active:scale-95 bg-gray-50 p-2 rounded-lg transition-colors"><Edit2 size={16} /></button>
+               <button onClick={() => copyToClipboard(scene.voice_over)} className="text-gray-400 hover:text-green-500 active:scale-95 bg-gray-50 p-2 rounded-lg transition-colors"><Copy size={16} /></button>
             </div>
             
-            <div className="font-arabic text-2xl font-medium leading-[2.2] text-gray-800 text-right mt-4 rounded-lg">
-              {renderWords}
+            <div className={`mt-4 rounded-lg md:grid ${scene.archival_quotes && scene.archival_quotes.length > 0 ? "md:grid-cols-3 md:gap-8" : "md:grid-cols-1"}`}>
+              {/* SCRIPT COLUMN (2/3 width on Desktop if quotes exist) */}
+              <div className={`font-arabic text-2xl font-medium leading-[2.2] text-gray-800 text-right ${scene.archival_quotes && scene.archival_quotes.length > 0 ? "md:col-span-2" : ""}`}>
+                {renderWords}
+              </div>
+
+              {/* ARCHIVE COLUMN (1/3 width on Desktop if quotes exist) */}
+              {scene.archival_quotes && scene.archival_quotes.length > 0 && (
+                 <div className="mt-8 md:mt-0 border-t md:border-t-0 md:border-r border-gray-100 pt-6 md:pt-0 md:pr-6">
+                   <h4 className="text-xs font-mono text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                     <Archive className="w-4 h-4 text-amber-600" />
+                     Archival Testimony
+                   </h4>
+                   <div className="flex flex-col gap-4">
+                     {scene.archival_quotes.map((quote, idx) => (
+                       <div key={idx} className="bg-amber-50/50 border border-amber-100 rounded-xl p-4 relative group/quote hover:shadow-md transition-shadow">
+                         <div className="text-amber-900 font-bold mb-2 flex items-center justify-between">
+                           <span className="text-xs font-sans uppercase tracking-wider font-bold">{quote.speaker}</span>
+                           {quote.is_audio_available && <span title="Audio/Video likely in Archives"><Mic className="w-4 h-4 text-green-600 hover:text-green-500 transition-colors cursor-help" /></span>}
+                         </div>
+                         <blockquote className="text-base font-arabic text-amber-800 italic pr-3 border-r-2 border-amber-300 pointer-events-none">
+                           "{quote.quote_text}"
+                         </blockquote>
+                         {quote.source_context && (
+                           <div className="mt-4 pt-2 border-t border-amber-100 text-[10px] text-amber-600/80 font-mono italic opacity-0 group-hover/quote:opacity-100 transition-opacity duration-300">
+                             [SOURCE]: {quote.source_context}
+                           </div>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                 </div>
+              )}
             </div>
           </div>
         )}
@@ -539,6 +575,25 @@ export const SceneCard = React.memo(function SceneCard({
                      </div>
                    )}
                    
+                   {scene.multi_camera_angles && scene.multi_camera_angles.length > 0 && (
+                     <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 shadow-inner">
+                       <strong className="block text-xs uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2">
+                         <Camera size={14} className="text-slate-400" /> Multi-Cam Director's Cuts
+                       </strong>
+                       <div className="space-y-3">
+                         {scene.multi_camera_angles.map((cam, camIdx) => (
+                           <div key={camIdx} className="bg-slate-900 border border-slate-700 p-3 rounded-md flex flex-col gap-1">
+                             <div className="flex justify-between items-center">
+                               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider bg-slate-800 px-2 py-0.5 rounded-full">{cam.type}</span>
+                               <span className="text-[10px] font-mono text-cyan-400 border border-cyan-900 bg-cyan-950/30 px-2 py-0.5 rounded-full">{cam.lens}</span>
+                             </div>
+                             <p className="text-slate-300 text-sm mt-1">{cam.description}</p>
+                           </div>
+                         ))}
+                       </div>
+                     </div>
+                   )}
+
                    {scene.visual_cue && (
                      <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                        <strong className="block text-xs uppercase tracking-wider text-gray-400 mb-1">Visual Cue</strong>

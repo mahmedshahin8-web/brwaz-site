@@ -2,18 +2,26 @@ import { apiFetch } from "../lib/apiFetch";
 import React, { useState, useEffect, useRef } from 'react';
 import { toast } from 'react-hot-toast';
 import { notify } from '../lib/notify';
-import { Film, Bold, Italic, List, Type, Save, Play, Plus, Trash2, Copy, MonitorPlay, Clock, Maximize, Columns, Mic, Download, MessageSquare, Link2, Map, ShieldCheck, ShieldAlert, Sparkles, Youtube, CheckCircle, Activity, HeartCrack, QrCode, Terminal } from 'lucide-react';
+import { Film, Bold, Italic, List, Type, Save, Play, Plus, Trash2, Copy, MonitorPlay, Clock, Maximize, Columns, Mic, Download, MessageSquare, Link2, Map, ShieldCheck, ShieldAlert, Sparkles, Youtube, CheckCircle, Activity, HeartCrack, QrCode, Terminal, Database, LayoutTemplate, Users } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Editor, { useMonaco } from '@monaco-editor/react';
 import { InterrogationRoom } from '../components/InterrogationRoom';
 import { RedStringBoard } from '../components/RedStringBoard';
 import { TacticalRadar } from '../components/TacticalRadar';
 import { BlackPortal } from '../components/BlackPortal';
+import { OllamaCreativeLab } from '../components/OllamaCreativeLab';
+import { PropRoomPanel } from '../components/PropRoomPanel';
+import { CognitiveFatigueTracker } from '../components/CognitiveFatigueTracker';
+import { CreativeCouncilLab } from '../components/CreativeCouncilLab';
 
+import { VoxCPMStudio } from '../components/VoxCPMStudio';
 interface Scene {
   id: string;
   text: string;
   duration: number;
+  durationSeconds?: number;
+  sfx?: string;
   audioBlob?: Blob;
   visualPrompt?: string;
   sources?: string[];
@@ -22,6 +30,27 @@ interface Scene {
   factCheckIssues?: string[];
 }
 
+
+const DebouncedEditor = React.memo(({ value, onChange, ...props }: any) => {
+  const [internalValue, setInternalValue] = useState(value);
+  const timerRef = useRef<any>(null);
+
+  useEffect(() => {
+    setInternalValue(value);
+  }, [value]);
+
+  const handleChange = (val: string | undefined) => {
+    setInternalValue(val || "");
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      onChange(val || "");
+    }, 500);
+  };
+
+  return <Editor value={internalValue} onChange={handleChange} {...props} />;
+}, (prevProps, nextProps) => {
+  return prevProps.value === nextProps.value;
+});
 
 export const ScriptEditor: React.FC = () => {
   const [scenes, setScenes] = useState<Scene[]>(() => {
@@ -43,7 +72,7 @@ export const ScriptEditor: React.FC = () => {
   // Teleprompter and other states...
   const [isSplitScreen, setIsSplitScreen] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
-  const [activeInspectorTab, setActiveInspectorTab] = useState<'traceability' | 'interrogation' | 'redString' | 'radar' | 'portal' | 'director'>('traceability');
+  const [activeInspectorTab, setActiveInspectorTab] = useState<'traceability' | 'interrogation' | 'redString' | 'radar' | 'portal' | 'director' | 'propRoom' | 'fatigue'>('traceability');
 
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('toggle-zen-mode', { detail: { zenMode: isFocusMode } }));
@@ -75,12 +104,69 @@ export const ScriptEditor: React.FC = () => {
   }, []);
 
   const [isHeatmapEnabled, setIsHeatmapEnabled] = useState(false);
+  const [isOllamaLabOpen, setIsOllamaLabOpen] = useState(false);
+  const [isVoxCPMOpen, setIsVoxCPMOpen] = useState(false);
+  const [isCouncilOpen, setIsCouncilOpen] = useState(false);
   const [teleprompterSpeed, setTeleprompterSpeed] = useState(2);
   const [evidenceBlocks, setEvidenceBlocks] = useState<any[]>([]);
   const [isRetrieving, setIsRetrieving] = useState(false);
   const [cognitiveLoadColor, setCognitiveLoadColor] = useState('text-gray-900');
   const teleprompterRef = useRef<HTMLDivElement>(null);
   const monaco = useMonaco();
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleMagicDraft = async (overrideTopic?: string) => {
+    let topic = overrideTopic;
+    if (!topic) {
+        topic = prompt("أدخل موضوع التحقيق (Topic):", "لغز اختفاء وثيقة مايو 1999") || "";
+    }
+    if (!topic) return;
+    setIsRetrieving(true);
+    notify.topSecret("SCRIPT_GENERATING");
+    try {
+        const res = await apiFetch("/api/drafts/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topic, context: scenes.map(s => s.text).join(" ") })
+        });
+        const data = await res.json();
+        if (data.success && data.scenes) {
+          if (data.agentLogs) {
+              setEvidenceBlocks(prev => [
+                  ...data.agentLogs.map((log: string) => ({ sourceAgent: 'WRITERS_ROOM', content: log })),
+                  ...prev
+              ]);
+          }
+          const newScenes = data.scenes.map((s: any, i: number) => ({
+              id: `draft_${Date.now()}_${i}`,
+              text: s.text,
+              duration: Math.ceil(s.text.split(' ').length / 130 * 60) * 1000,
+              visualPrompt: s.bRoll + (s.sources?.length ? ` | المصادر: ${s.sources.join(" - ")}` : ''),
+              sources: s.sources || [],
+              sensitive_entities: s.sensitive_entities || [],
+              factCheckStatus: 'PENDING'
+          }));
+          setScenes(newScenes);
+          notify.classified("SCRIPT_SUCCESS");
+        } else {
+          throw new Error(data.error || "Unknown error");
+        }
+    } catch(e) {
+        console.error(e);
+        notify.breach("فشل في توليد السيناريو. تأكد من إعدادات API.");
+    } finally {
+        setIsRetrieving(false);
+    }
+  };
+
+  useEffect(() => {
+      if (location.state?.magicDraftTopic) {
+        handleMagicDraft(location.state.magicDraftTopic);
+        // Clear state so it doesn't re-trigger on refresh
+        navigate(location.pathname, { replace: true, state: {} });
+     }
+  }, [location]);
 
   useEffect(() => {
     if (isSplitScreen && scenes.length > 0) {
@@ -291,23 +377,55 @@ export const ScriptEditor: React.FC = () => {
   };
 
   const updateSceneText = (id: string, text: string) => {
-    setScenes(scenes.map(s => s.id === id ? { ...s, text } : s));
+    setScenes(prev => prev.map(s => s.id === id ? { ...s, text } : s));
   };
 
-  const getWordCount = () => {
+  const wordCount = React.useMemo(() => {
     const fullText = scenes.map(s => s.text).join(' ');
-    // Basic word count (split by spaces)
-    const words = fullText.trim().split(/\s+/).filter(w => w.length > 0);
-    return words.length;
+    return fullText.trim().split(/\s+/).filter(w => w.length > 0).length;
+  }, [scenes]);
+
+  const estimatedTime = React.useMemo(() => {
+    return Math.ceil(wordCount / 130);
+  }, [wordCount]);
+
+  const analyzePulse = (text: string) => {
+    const isHeavy = text.match(/\d{4}|(نسبة|عام|تاريخ|عدد|دولار|شهادة|رسمي)/) || text.trim().split(/\s+/).length > 30;
+    const isFast = text.trim().split(/\s+/).length < 15;
+    const hasPauses = text.match(/(تخيل|لحظة|صمت|تراجع|شوف|استنى)/);
+
+    if (hasPauses) return { color: 'bg-yellow-400', label: 'DRAMATIC_PAUSE', textHint: '' };
+    if (isHeavy) return { color: 'bg-red-500', label: 'HEAVY_FACTS', textHint: 'اقتراح: أضف "استعارة مادية" أو إيفيه مصري بليغ لكسر الملل.' };
+    if (isFast) return { color: 'bg-blue-500', label: 'FAST_NARRATIVE', textHint: '' };
+    return { color: 'bg-gray-400', label: 'STANDARD', textHint: '' };
+  };
+
+  const applyVisualShield = (originalPrompt: string) => {
+     let filtered = originalPrompt;
+     let flags = [];
+     if (filtered.match(/modern camera|film strip|fake text|text|letters|words|typography/i)) {
+         flags.push("TEXT/UI_ARTIFACTS");
+         filtered = filtered.replace(/modern camera|film strip|fake text|text|letters|words|typography/gi, "[REDACTED_BY_SHIELD]");
+     }
+     if (filtered.match(/face|person|human|man|woman/i)) {
+         flags.push("FACES_DETECTED");
+         filtered = filtered.replace(/face|person|human|man|woman/ig, "silhouette, obscured figure, architectural shadows");
+     }
+     
+     if (flags.length > 0) {
+         notify.breach(`تم تفعيل Visual Shield Filter: [${flags.join(", ")}]`);
+     } else {
+         notify.classified("Visual Shield: تمرير آمِن.");
+     }
+     return filtered;
   };
 
   useEffect(() => {
     // Cognitive Load Color Logic
-    const words = getWordCount();
-    if (words > 1000) setCognitiveLoadColor('text-[#eb2630]');
-    else if (words > 500) setCognitiveLoadColor('text-blue-600');
+    if (wordCount > 1000) setCognitiveLoadColor('text-[#eb2630]');
+    else if (wordCount > 500) setCognitiveLoadColor('text-blue-600');
     else setCognitiveLoadColor('text-gray-900');
-  }, [scenes]);
+  }, [wordCount]);
 
   const renderHighlightedText = (text: string) => {
     if (!text) return null;
@@ -337,9 +455,7 @@ export const ScriptEditor: React.FC = () => {
   };
 
   const getEstimatedTime = () => {
-    const words = getWordCount();
-    const minutes = Math.ceil(words / 130);
-    return minutes;
+    return estimatedTime;
   };
 
   const handleExportTTS = () => {
@@ -359,7 +475,13 @@ export const ScriptEditor: React.FC = () => {
     const link = document.createElement('a');
     link.href = url;
     link.download = 'Barwaz_TTS_Prep.txt';
+    link.style.display = "none";
+    document.body.appendChild(link);
     link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 200);
   };
 
   const handleExportSources = () => {
@@ -372,6 +494,39 @@ export const ScriptEditor: React.FC = () => {
     const textToCopy = "المصادر والمراجع:\n" + uniqueSources.map(s => `- ${s}`).join('\n');
     navigator.clipboard.writeText(textToCopy);
     notify.classified("COPY_SOURCES");
+  };
+
+  const handleExportDirectorsCut = () => {
+    let content = `=========================================================\n`;
+    content += `        مُسودة الإخراج الفني - The Director's Cut\n`;
+    content += `=========================================================\n\n`;
+    
+    scenes.forEach((scene, i) => {
+       content += `[المشهد ${i + 1}] ------------------------------------------\n`;
+       content += `النص الصوتي (VO):\n${scene.text}\n\n`;
+       content += `المدة التقريبية: ${scene.durationSeconds || ((scene.text.split(' ').length / 130) * 60).toFixed(0)} ثانية\n\n`;
+       if (scene.visualPrompt) {
+         content += `🎥 الإخراج المرئي (AI Video/Image Prompt):\n${scene.visualPrompt}\n\n`;
+       }
+       if (scene.sfx) {
+         content += `🔊 المؤثرات الصوتية (SFX):\n${scene.sfx}\n\n`;
+       }
+       content += `\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `directors_cut_script_${new Date().getTime()}.txt`;
+    link.style.display = "none";
+    document.body.appendChild(link);
+    link.click();
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 200);
+    notify.classified('تم تصدير ملف إخراج مونتاج (Director cut)!');
   };
 
   const handleFactCheck = async (sceneId: string) => {
@@ -514,7 +669,7 @@ export const ScriptEditor: React.FC = () => {
            <div>
              <h1 className="text-xl font-bold flex items-center gap-2 font-mono uppercase tracking-widest">
                <span className="text-cyan-400"><MonitorPlay className="w-5 h-5" /></span>
-               [SCRIPT_EDITOR] // محرر السكريبتات
+               [SCRIPT_EDITOR] // كتابة السيناريو
              </h1>
              <p className="text-gray-600 text-[10px] mt-1 tracking-widest font-mono uppercase">
                RESTRICTED // LEVEL 4 CLEARANCE
@@ -566,7 +721,7 @@ export const ScriptEditor: React.FC = () => {
                   <div className="w-px h-6 bg-gray-100"></div>
                   <div className="flex flex-col">
                      <span className="text-[10px] text-gray-600 uppercase font-mono tracking-widest">TOKENS // COGN_LOAD</span>
-                     <span className={`font-mono font-bold text-sm ${cognitiveLoadColor}`}>{getWordCount() * 1.5} (EST)</span>
+                     <span className={`font-mono font-bold text-sm ${cognitiveLoadColor}`}>{wordCount * 1.5} (EST)</span>
                   </div>
                </div>
                
@@ -581,48 +736,40 @@ export const ScriptEditor: React.FC = () => {
                      {isHeatmapEnabled ? 'HIDE_EVIDENCE' : 'SHOW_EVIDENCE'}
                   </button>
                   <button 
-                     onClick={async () => {
-                        const topic = prompt("أدخل موضوع التحقيق (Topic):", "لغز اختفاء وثيقة مايو 1999");
-                        if (!topic) return;
-                        setIsRetrieving(true);
-                        notify.topSecret("SCRIPT_GENERATING");
-                        try {
-                           const res = await apiFetch("/api/drafts/generate", {
-                              method: "POST",
-                              headers: { "Content-Type": "application/json" },
-                              body: JSON.stringify({ topic, context: scenes.map(s => s.text).join(" ") })
-                           });
-                           const data = await res.json();
-                           if (data.success && data.scenes) {
-                              const newScenes = data.scenes.map((s: any, i: number) => ({
-                                 id: `draft_${Date.now()}_${i}`,
-                                 text: s.text,
-                                 duration: Math.ceil(s.text.split(' ').length / 130 * 60) * 1000,
-                                 visualPrompt: s.bRoll + (s.sources?.length ? ` | المصادر: ${s.sources.join(" - ")}` : ''),
-                                 sources: s.sources || [],
-                                 sensitive_entities: s.sensitive_entities || [],
-                                 factCheckStatus: 'PENDING'
-                              }));
-                              setScenes(newScenes);
-                              notify.classified("SCRIPT_SUCCESS");
-                           } else {
-                              throw new Error(data.error || "Unknown error");
-                           }
-                        } catch(e) {
-                           console.error(e);
-                           notify.breach("فشل في توليد السيناريو. تأكد من إعدادات API.");
-                        } finally {
-                           setIsRetrieving(false);
-                        }
-                     }} 
+                     onClick={() => handleMagicDraft()} 
                      className="flex items-center gap-2 px-6 py-2 bg-white border border-[#eb2630]/50 active:scale-95#eb2630]/10 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4"
                   >
                      <Plus className="w-3 h-3 text-[#eb2630]" />
                      MAGIC_DRAFT
                   </button>
+                  <button 
+                     onClick={() => setIsCouncilOpen(true)} 
+                     className="flex items-center gap-2 px-6 py-2 bg-white border border-red-500/50 active:scale-95 active:bg-red-50 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4"
+                  >
+                     <Users className="w-3 h-3 text-red-500" />
+                     COUNCIL_REVIEW
+                  </button>
+                  <button 
+                     onClick={() => setIsOllamaLabOpen(true)} 
+                     className="flex items-center gap-2 px-6 py-2 bg-white border border-emerald-500/50 active:scale-95 active:bg-emerald-50 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4"
+                  >
+                     <Sparkles className="w-3 h-3 text-emerald-500" />
+                     OLLAMA_LAB
+                  </button>
+                  <button 
+                     onClick={() => setIsVoxCPMOpen(true)} 
+                     className="flex items-center gap-2 px-6 py-2 bg-white border border-blue-500/50 active:scale-95 active:bg-blue-50 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4"
+                  >
+                     <Mic className="w-3 h-3 text-blue-500" />
+                     VOXCPM STUDIO
+                  </button>
                   <button onClick={handleCommit} className="flex items-center gap-2 px-6 py-2 bg-white border border-gray-200 active:scale-95 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4">
                      <Save className="w-3 h-3 text-cyan-400" />
                      COMMIT
+                  </button>
+                  <button onClick={handleExportDirectorsCut} className="flex items-center gap-2 px-6 py-2 bg-white border border-gray-200 active:scale-95 text-gray-900 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase mr-4">
+                     <Download className="w-3 h-3 text-emerald-600" />
+                     EXPORT_DIRECTOR
                   </button>
                   <button onClick={handleExportSources} className="flex items-center gap-2 px-6 py-2 bg-white border border-blue-500/50 active:scale-95 text-blue-600 transition-colors duration-100 text-[10px] font-mono tracking-widest uppercase">
                      <Link2 className="w-3 h-3 text-[3B82F6]" />
@@ -770,17 +917,30 @@ export const ScriptEditor: React.FC = () => {
                            </div>
                         )}
 
-                        {/* Retention Radar (رادار الملل) */}
-                        {(scene.text.trim().split(/\s+/).length > 40 && !scene.text.includes('<break')) && (
-                          <div className="mt-2 flex items-center gap-2 bg-orange-500/10 border border-orange-500/30 p-2 animate-pulse">
-                             <Activity className="w-4 h-4 text-orange-400" />
-                             <span className="text-[10px] text-orange-400 font-mono tracking-widest font-bold">RETENTION WARNING: HIGH DROP-OFF RISK (TOO MUCH TEXT, NEED A HOOK OR BREAK)</span>
-                          </div>
-                        )}
+                        {/* Retention Radar (رادار الملل) & Pulse Mapper */}
+                        {(() => {
+                           const pulse = analyzePulse(scene.text);
+                           return (
+                             <div className="mt-2 flex flex-col gap-1">
+                               {pulse.textHint && (
+                                 <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/30 p-2 text-red-500 text-[10px] font-mono tracking-widest transition-all">
+                                   <Activity className="w-4 h-4 animate-pulse" />
+                                   PULSE WARNING: {pulse.textHint}
+                                 </div>
+                               )}
+                               <div className="flex items-center gap-2 h-1.5 w-full bg-gray-100 rounded-full overflow-hidden mt-1 opacity-70">
+                                   <div className={`h-full ${pulse.color} transition-all duration-500`} style={{ width: '100%' }}></div>
+                               </div>
+                               <span className={`text-[8px] font-mono ${pulse.color.replace('bg-', 'text-')} opacity-60 uppercase text-right tracking-widest block`}>
+                                   PULSE: {pulse.label}
+                               </span>
+                             </div>
+                           );
+                        })()}
 
                         {/* Text Area */}
                         <div className="relative mt-2 min-h-[150px] w-full border border-gray-200" dir="ltr">
-                          <Editor
+                          <DebouncedEditor
                             height="150px"
                             language="barwaz-script"
                             theme="barwaz-theme"
@@ -820,11 +980,20 @@ export const ScriptEditor: React.FC = () => {
                         <div className="mt-6 border-t border-gray-200 pt-4 flex flex-col space-y-3">
                            <div className="flex items-center justify-between">
                               <span className="text-[10px] text-cyan-400 font-mono tracking-widest uppercase flex items-center gap-2">
-                                <Film className="w-3 h-3" /> DIRECTOR_AGENT
+                                <Film className="w-3 h-3" /> FOX_AGENT (DIRECTOR)
                               </span>
-                              <button className="text-[10px] bg-transparent text-gray-600 border border-gray-200 active:scale-95 px-3 py-1.5 transition-colors duration-100 uppercase font-mono tracking-widest">
-                                REGENERATE_PROMPT
-                              </button>
+                              <div className="flex gap-2">
+                                <button className="flex items-center gap-1 text-[9px] bg-green-500/10 text-green-600 border border-green-500/30 active:scale-95 px-2 py-1 transition-colors duration-100 uppercase font-mono tracking-widest cursor-default">
+                                  <ShieldCheck className="w-3 h-3" /> VISUAL_SHIELD_ACTIVE
+                                </button>
+                                <button onClick={() => {
+                                  const basePrompt = scene.visualPrompt || "Cinematic Wide Shot, 1999 archival footage, face of the agent, modern cameras in background.";
+                                  const safePrompt = applyVisualShield(basePrompt);
+                                  setScenes(prev => prev.map(s => s.id === scene.id ? { ...s, visualPrompt: safePrompt } : s));
+                                }} className="text-[10px] bg-transparent text-gray-600 border border-gray-200 active:scale-95 active:bg-[#eb2630]/10 px-3 py-1.5 transition-colors duration-100 uppercase font-mono tracking-widest text-[#eb2630] border-[#eb2630]/50">
+                                  REGENERATE_PROMPT
+                                </button>
+                              </div>
                            </div>
                            <div className="text-[11px] text-gray-600 bg-gray-50 p-4 border border-gray-200 font-mono leading-relaxed relative group border-l-2 border-l-cyan-500/50">
                               {scene.visualPrompt ? (
@@ -885,6 +1054,14 @@ export const ScriptEditor: React.FC = () => {
                    <Film className="w-3 h-3 mx-auto mb-1" />
                    Director
                  </button>
+                 <button onClick={() => setActiveInspectorTab('propRoom')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'propRoom' ? 'bg-green-500/10 text-green-500 border-b-2 border-green-500' : 'text-gray-600 active:scale-95 border-gray-100 shadow-sm'}`}>
+                   <Database className="w-3 h-3 mx-auto mb-1" />
+                   Props
+                 </button>
+                 <button onClick={() => setActiveInspectorTab('fatigue')} className={`flex-1 p-3 text-[9px] font-mono uppercase tracking-widest transition-colors ${activeInspectorTab === 'fatigue' ? 'bg-[#eb2630]/10 text-[#eb2630] border-b-2 border-[#eb2630]' : 'text-gray-600 active:scale-95 border-gray-100 shadow-sm'}`}>
+                   <ShieldCheck className="w-3 h-3 mx-auto mb-1" />
+                   Healer
+                 </button>
                </div>
 
                {/* Tab Content */}
@@ -893,6 +1070,19 @@ export const ScriptEditor: React.FC = () => {
                  {activeInspectorTab === 'redString' && <RedStringBoard />}
                  {activeInspectorTab === 'radar' && <TacticalRadar />}
                  {activeInspectorTab === 'portal' && <BlackPortal />}
+                 {activeInspectorTab === 'propRoom' && <PropRoomPanel onSelectProp={(prop) => {
+                     setScenes(prev => {
+                         if (prev.length === 0) return prev;
+                         const newScenes = [...prev];
+                         newScenes[newScenes.length - 1].text += ` \n[PROP: ${prop.name}] `;
+                         return newScenes;
+                     });
+                     notify.classified(`تم إدراج الـ Prop: ${prop.name}`);
+                 }} />}
+                 {activeInspectorTab === 'fatigue' && <CognitiveFatigueTracker requestsCount={wordCount > 500 ? 50 : 10} errorsCount={0} onReset={() => {
+                     localStorage.removeItem('barwaz_radar_cache');
+                     notify.classified('Auto-Heal Sequence Complete. Cached artifacts purged.');
+                 }} />}
                  {activeInspectorTab === 'director' && (
                    <div className="p-4 space-y-4 overflow-y-auto h-full custom-scrollbar">
                      <h3 className="font-mono text-gray-900 font-bold text-[10px] tracking-widest border-b border-gray-200 pb-3 flex items-center gap-2 uppercase">
@@ -952,12 +1142,14 @@ export const ScriptEditor: React.FC = () => {
                          const isVRAM = block.sourceAgent === 'VRAM_MGR';
                          const isNLP = block.sourceAgent === 'NLP_ENGINE';
                          const isTTS = block.sourceAgent === 'TTS_ENGINE';
+                         const isWritersRoom = block.sourceAgent === 'WRITERS_ROOM';
                          
                          let iconColor = 'text-blue-600';
                          let borderColor = 'border-blue-500/40';
                          if(isVRAM) { iconColor = 'text-[#eb2630]'; borderColor = 'border-[#eb2630]/40'; }
                          if(isNLP) { iconColor = 'text-purple-400'; borderColor = 'border-purple-400/40'; }
                          if(isTTS) { iconColor = 'text-cyan-400'; borderColor = 'border-cyan-400/40'; }
+                         if(isWritersRoom) { iconColor = 'text-emerald-500'; borderColor = 'border-emerald-500/40'; }
 
                          return (
                            <div key={idx} className="border border-gray-200 bg-gray-50 active:scale-95 transition-colors duration-100">
@@ -985,6 +1177,24 @@ export const ScriptEditor: React.FC = () => {
          )}
          
       </div>
+
+      <OllamaCreativeLab 
+        isOpen={isOllamaLabOpen} 
+        onClose={() => setIsOllamaLabOpen(false)} 
+        scriptText={scenes.map(s => s.text).join('\n\n')} 
+      />
+
+      <CreativeCouncilLab 
+        isOpen={isCouncilOpen} 
+        onClose={() => setIsCouncilOpen(false)} 
+        scriptText={scenes.map(s => s.text).join('\n\n')} 
+      />
+
+      <VoxCPMStudio
+        isOpen={isVoxCPMOpen}
+        onClose={() => setIsVoxCPMOpen(false)}
+        initialText={scenes.map(s => s.text).join('\n\n')}
+      />
 
       <style dangerouslySetInnerHTML={{__html: `
         .hide-scrollbar::-webkit-scrollbar {

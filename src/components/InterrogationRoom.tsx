@@ -55,21 +55,7 @@ export const InterrogationRoom: React.FC<{ scriptContent?: string }> = ({ script
                 const modelUsed = match ? match[1] : 'Unknown';
                 const cleanText = res.data.text.replace(/\[ROUTED VIA: (.*?)\]\n/, '');
 
-                setMessages(prev => [...prev, { role: 'persona', text: '', model: modelUsed }]);
-                
-                // Simulate typing effect
-                let i = 0;
-                const typingObj = setInterval(() => {
-                    setMessages(prev => {
-                        const newMsgs = [...prev];
-                        const last = { ...newMsgs[newMsgs.length - 1] };
-                        last.text = cleanText.substring(0, i+1);
-                        newMsgs[newMsgs.length - 1] = last;
-                        return newMsgs;
-                    });
-                    i++;
-                    if (i >= cleanText.length) clearInterval(typingObj);
-                }, 20); // Fast typing for Cyber-Thriller vibe
+                setMessages(prev => [...prev, { role: 'persona', text: cleanText, model: modelUsed }]);
             }
         } catch (e) {
             console.error(e);
@@ -97,20 +83,7 @@ export const InterrogationRoom: React.FC<{ scriptContent?: string }> = ({ script
                 
                 setMood('SADISTIC');
                 setVisualTags(['CRITIQUE_ACTIVE', 'FLAWS_DETECTED']);
-                setMessages(prev => [...prev, { role: 'persona', text: '', model: 'gemini-2.5-pro (Sadist)' }]);
-                
-                let i = 0;
-                const typingObj = setInterval(() => {
-                    setMessages(prev => {
-                        const newMsgs = [...prev];
-                        const last = { ...newMsgs[newMsgs.length - 1] };
-                        last.text = formatted.substring(0, i+1);
-                        newMsgs[newMsgs.length - 1] = last;
-                        return newMsgs;
-                    });
-                    i++;
-                    if (i >= formatted.length) clearInterval(typingObj);
-                }, 10);
+                setMessages(prev => [...prev, { role: 'persona', text: formatted, model: 'gemini-2.5-pro (Sadist)' }]);
             }
         } catch (e) {
             console.error(e);

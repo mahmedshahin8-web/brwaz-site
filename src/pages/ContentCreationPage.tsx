@@ -1,7 +1,5 @@
 import { apiFetch } from "../lib/apiFetch";
 import React, { useState, useEffect, useRef } from "react";
-import DocxWorker from "../workers/docxWorker?worker";
-import ZipWorker from "../workers/zipWorker?worker";
 import { notify } from "../lib/notify";
 import { motion, AnimatePresence } from "motion/react";
 import {
@@ -35,6 +33,7 @@ import {
 import { ImageWithFallback } from "../components/ImageWithFallback";
 import { SceneCard } from "../components/SceneCard";
 import { useTacticalSound } from "../hooks/useTacticalSound";
+import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
 import { executeAgent3_ArtDirector, executeAgent6_ArchiveSearch, executeAgent7_ComplianceAudit, executeAgent8_EchoChamber, executeAgent9_KnowledgeLinker, executeAgent_SceneRefiner } from "../lib/agents";
 import { ollamaQueue } from "../lib/queue";
 import {
@@ -107,6 +106,9 @@ import {
   RefreshCcw,
   Scissors,
   Sliders,
+  Music,
+  Microscope,
+  ImagePlus
 } from "lucide-react";
 import {
   extractAndCleanScript,
@@ -121,12 +123,50 @@ import { calculateTension } from "../lib/analysis";
 import { TimelineEditor } from "../components/TimelineEditor";
 import { AudioWaveform } from "../components/AudioWaveform";
 import { AudioEngine, MasteringConfig } from "../services/audioEngine";
+import { PropRoomPanel } from "../components/PropRoomPanel";
+import { CognitiveFatigueTracker } from "../components/CognitiveFatigueTracker";
 import JSZip from "jszip";
-import { saveAs } from "file-saver";
 import { db, storage } from "../lib/firebase";
+
+import toast from "react-hot-toast";
+
+const safeDownload = (blob: Blob, filename: string) => {
+  try {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    a.target = "_blank";
+    a.rel = "noopener noreferrer";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 200);
+    
+    // Proactively warn users if they are inside an iframe (like AI Studio preview)
+    if (window.parent !== window) {
+      toast("إذا لم يبدأ التنزيل، يرجى فتح التطبيق في تبويب جديد ↗️ عبر الزر أعلى اليمين", {
+        icon: 'ℹ️',
+        style: {
+          borderRadius: '10px',
+          background: '#333',
+          color: '#fff',
+          fontFamily: 'monospace',
+          fontSize: '12px'
+        },
+      });
+    }
+  } catch (err) {
+    console.error("Download failed:", err);
+    toast.error("التنزيل معلق في هذه البيئة. يرجى فتح العرض في تبويب جديد (Open in new tab)");
+  }
+};
+
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
-import { Document, Packer, Paragraph, TextRun } from "docx";
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType } from "docx";
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Highlight from "@tiptap/extension-highlight";
@@ -136,6 +176,7 @@ const sectors = [
   { id: "power", name: "قطاع النفوذ والمال", description: "سياسة، اقتصاد، استخبارات", icon: Activity, color: "#f43f5e" },
   { id: "anatomy", name: "قطاع التشريح والتحليل", description: "نقد أدبي، تشريح جنائي، بيانات", icon: Fingerprint, color: "#3B82F6" },
   { id: "modern", name: "الجيل الجديد", description: "ميمز، خرائط، فلوقات استقصائية", icon: Zap, color: "#10B981" },
+  { id: "dahih", name: "أرشيف الدحيح", description: "معارك، تريندات، ومال", icon: Waypoints, color: "#8B5CF6" },
 ];
 
 interface MoodDefinition {
@@ -143,7 +184,7 @@ interface MoodDefinition {
   icon: any;
   color: string;
   description: string;
-  sector: "shadows" | "power" | "anatomy" | "modern";
+  sector: "shadows" | "power" | "anatomy" | "modern" | "dahih";
   dna?: {
     style: string;
     paper: string;
@@ -157,7 +198,7 @@ const moods: MoodDefinition[] = [
     icon: Smile,
     color: "#facc15",
     description: "تبسيط استعراضي وكوميدي للأفكار المعقدة",
-    sector: "modern",
+    sector: "dahih",
     dna: { style: "Sketchy Cutouts & Pop-Art", paper: "Modern White Graph Paper", localization: "Urban Cairo Casual" }
   },
   {
@@ -432,6 +473,70 @@ const moods: MoodDefinition[] = [
     sector: "power",
     dna: { style: "Expressionist Ruin", paper: "Burnt Fragment Texture", localization: "Fragile Landscapes" }
   },
+  {
+    type: "فَتِّش عن السَّبُّوبَة",
+    icon: TrendingUp,
+    color: "#f43f5e",
+    description: "التفسير الاقتصادي البحت والمادي لأحداث تاريخية وفنية.",
+    sector: "dahih",
+    dna: { style: "Ledgers and Graphs", paper: "Yellowed Tax Document", localization: "Financial Districts" }
+  },
+  {
+    type: "تأثير الفراشة",
+    icon: Waypoints,
+    color: "#8B5CF6",
+    description: "كيف تسبب حدث تافه جداً في تغيير التاريخ أو صنع كارثة.",
+    sector: "dahih",
+    dna: { style: "Intricate Webs & Dominoes", paper: "Chaos Theory Notes", localization: "Chronological Timelines" }
+  },
+  {
+    type: "تشريح التريند القديم",
+    icon: Activity,
+    color: "#10B981",
+    description: "تحليل ظواهر وشائعات الماضي كأنها تريند سوشيال ميديا.",
+    sector: "dahih",
+    dna: { style: "Retro Pop-Cult", paper: "Vintage Magazine Cover", localization: "Virtual Public Squares" }
+  },
+  {
+    type: "المحكمة الموازية",
+    icon: Scale,
+    color: "#3B82F6",
+    description: "إعادة محاكمة شخصيات تاريخية ولعب دور محامي الشيطان.",
+    sector: "dahih",
+    dna: { style: "Evidence Boards", paper: "Court Summons", localization: "The Jury Box" }
+  },
+  {
+    type: "لعنة الماستر بيس",
+    icon: ImageIcon,
+    color: "#f59e0b",
+    description: "الكوابيس والانهيارات التي سبقت خروج الأعمال الفنية العظيمة.",
+    sector: "dahih",
+    dna: { style: "Tragic Classical Art", paper: "Torn Canvas", localization: "Haunted Studios" }
+  },
+  {
+    type: "كوميديا العبث التاريخي",
+    icon: Smile,
+    color: "#facc15",
+    description: "تحليل ساخر للأحداث الكبرى التي قامت لأسباب تافهة ومضحكة.",
+    sector: "dahih",
+    dna: { style: "Caricature & Satire", paper: "Theater Programmes", localization: "Absurdist Theater" }
+  },
+  {
+    type: "حلبة الدسات",
+    icon: Swords,
+    color: "#ef4444",
+    description: "العداوات والنقائض التاريخية والأدبية كأنها معارك راب.",
+    sector: "dahih",
+    dna: { style: "Aggressive Street Art", paper: "Boxing Match Poster", localization: "Underground Rings" }
+  },
+  {
+    type: "التشريح العلمي للخرافة",
+    icon: Microscope,
+    color: "#0ea5e9",
+    description: "تفنيد الأساطير الشعبية والقصص المبالغ فيها بالعلم الحديث.",
+    sector: "dahih",
+    dna: { style: "Scientific Blueprints", paper: "Graph Paper", localization: "Laboratory Desks" }
+  }
 ];
 
 const IntelGraph = ({ research }: { research: MasterOutline }) => {
@@ -511,6 +616,7 @@ export default function ContentCreationPage() {
   const [mood, setMood] = useState<MoodType>("التحليل الاستقصائي");
   const [suspenseLevel, setSuspenseLevel] = useState(5);
   const [persona, setPersona] = useState<PersonaType>("النبّاش");
+  const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
   const [isAutoPilot, setIsAutoPilot] = useState(true);
   const [liveTrends, setLiveTrends] = useState<LiveTrend[]>([]);
   const [isSweeping, setIsSweeping] = useState(false);
@@ -520,12 +626,13 @@ export default function ContentCreationPage() {
 
   const [suggestedTitles, setSuggestedTitles] = useState<RadarSuggestion[]>([]);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
-  const [activeTab, setActiveTab] = useState<"script" | "kit" | "shorts" | "audit" | "echo">(
+  const [activeTab, setActiveTab] = useState<"script" | "kit" | "assets" | "shorts" | "audit" | "echo">(
     "script",
   );
   const [isAuditing, setIsAuditing] = useState(false);
   const [auditResult, setAuditResult] = useState<{
      archives: { title: string; url: string; description: string }[];
+     notable_quotes?: { speaker: string, quote: string, source: string, fallback_strategy?: string }[];
      risks: { severity: string; finding: string; fix: string }[];
      historical_accuracy: { statement: string; status: string; notes: string }[];
   } | null>(null);
@@ -544,9 +651,23 @@ export default function ContentCreationPage() {
   const [generatedScenes, setGeneratedScenes] = useState<EpisodeScene[]>([]);
   const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
   const [fragmenterData, setFragmenterData] = useState<{
-    x_thread: string[];
-    tiktok_hook: string;
-    instagram_caption: string;
+    x_thread?: string[];
+    tiktok_hook?: string;
+    instagram_caption?: string;
+    shorts?: Array<{
+        title: string;
+        hook: string;
+        body: string;
+        cta: string;
+        visual_instructions: string;
+        image_prompt_vertical_nano?: string;
+        generated_image_url?: string;
+    }>;
+    social_posts?: Array<{
+        platform: string;
+        content: string;
+        image_prompt_square?: string;
+    }>;
   } | null>(null);
   const [isGeneratingFragments, setIsGeneratingFragments] = useState(false);
 
@@ -629,7 +750,22 @@ export default function ContentCreationPage() {
   const [tensionPoints, setTensionPoints] = useState<number[]>([]);
   const [showTeleprompter, setShowTeleprompter] = useState(false);
 
-  // Focus and infinite loop prevention
+  // Focus and infinite loop prevention helper
+  // Helper to downsample tension points for extreme performance to avoid freezing the browser on long scripts
+  const downsampleTension = (arr: number[], limit = 50): number[] => {
+    if (arr.length <= limit) return arr;
+    const step = arr.length / limit;
+    const result: number[] = [];
+    for (let i = 0; i < limit; i++) {
+      const start = Math.floor(i * step);
+      const end = Math.floor((i + 1) * step);
+      const chunk = arr.slice(start, end);
+      const avg = chunk.reduce((sum, val) => sum + val, 0) / (chunk.length || 1);
+      result.push(avg);
+    }
+    return result;
+  };
+
   const updateTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const lastForcedContent = useRef('');
 
@@ -640,32 +776,38 @@ export default function ContentCreationPage() {
       if (updateTimeoutRef.current) clearTimeout(updateTimeoutRef.current);
       updateTimeoutRef.current = setTimeout(() => {
         const text = editor.getHTML().replace(/<p>/g, '').replace(/<\/p>/g, '\n').replace(/<br\s*\/?>/g, '\n').replace(/<[^>]+>/g, '').trim();
-        lastForcedContent.current = text;
-        setFinalVoiceScript(text);
+        if (lastForcedContent.current !== text) {
+           lastForcedContent.current = text;
+           setFinalVoiceScript(text);
+        }
       }, 500);
     },
   });
 
   useEffect(() => {
-    if (editor && finalVoiceScript && finalVoiceScript !== lastForcedContent.current && !editor.isFocused) {
-      lastForcedContent.current = finalVoiceScript;
-      editor.commands.setContent(finalVoiceScript.split('\n').join('<br>'));
+    if (editor && finalVoiceScript && !editor.isFocused) {
+      if (lastForcedContent.current !== finalVoiceScript) {
+        lastForcedContent.current = finalVoiceScript;
+        editor.commands.setContent(finalVoiceScript.split('\n').join('<br>'));
+      }
     }
   }, [finalVoiceScript, editor]);
 
   useEffect(() => {
     if (finalVoiceScript) {
-      setTensionPoints(calculateTension(finalVoiceScript));
+      const rawPoints = calculateTension(finalVoiceScript);
+      const downsampled = downsampleTension(rawPoints, 50);
+      setTensionPoints(downsampled);
     }
   }, [finalVoiceScript]);
 
   const renderTensionHeatmap = () => (
-    <div className="flex gap-1 h-2 w-full">
+    <div className="flex gap-[1px] h-2 w-full">
       {tensionPoints.map((score, i) => (
         <div
           key={i}
-          className={`flex-1 ${score > 0.7 ? "bg-red-500" : score > 0.4 ? "bg-blue-600" : "bg-gray-100"}`}
-          title={`Tension: ${score}`}
+          className={`flex-1 ${score > 7 ? "bg-red-500" : score > 4 ? "bg-blue-600" : "bg-gray-100"}`}
+          title={`Tension: ${score.toFixed(1)}`}
         />
       ))}
     </div>
@@ -761,7 +903,7 @@ export default function ContentCreationPage() {
     setIsABTesting(sceneId);
     notify.classified("بدء توليد النسخة المقارنة (VS Mode)...");
 
-    const otherEngine = globalEngine === "gemini" ? "ollama" : "gemini";
+    const otherEngine = !useOllama ? "ollama" : "gemini";
     
     try {
       // Re-generate this specific scene with the other engine
@@ -855,6 +997,7 @@ export default function ContentCreationPage() {
       const linksData = await executeAgent9_KnowledgeLinker(data.video_title, JSON.stringify(researchMap));
       setAuditResult({
         archives: archiveData.archives,
+        notable_quotes: archiveData.notable_quotes,
         risks: auditData.risks,
         historical_accuracy: auditData.historical_accuracy
       });
@@ -949,13 +1092,43 @@ export default function ContentCreationPage() {
                        <div className="p-2 bg-blue-600/10 text-blue-600">
                           <Database size={14} />
                        </div>
-                       <ArrowRight size={14} className="text-gray-500 group-active:scale-95 group-active:scale-95 transition-all" />
+                       <ArrowRight size={14} className="text-gray-500 group-hover:-rotate-45 transition-all" />
                     </div>
                     <h5 className="text-[11px] font-mono text-gray-900 mb-2 line-clamp-1">{arc.title}</h5>
                     <p className="text-[10px] text-gray-500 line-clamp-2 leading-relaxed">{arc.description}</p>
                  </a>
               ))}
            </div>
+
+           {auditResult.notable_quotes && auditResult.notable_quotes.length > 0 && (
+              <div className="mt-8 pt-6 border-t border-gray-200">
+                 <h4 className="text-sm font-mono text-amber-600 uppercase tracking-[0.5em] flex items-center gap-3 mb-6">
+                   <Archive size={16} /> Notable_Testimonies
+                 </h4>
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {auditResult.notable_quotes.map((quote, i) => (
+                       <div key={i} className="p-5 bg-amber-50/50 border border-amber-100 rounded-xl relative group/quote hover:shadow-md transition-shadow">
+                          <div className="flex justify-between items-center mb-3 text-amber-900 font-bold uppercase text-xs tracking-wider">
+                             {quote.speaker}
+                          </div>
+                          <blockquote className="text-base font-arabic text-amber-800 italic pr-3 border-r-2 border-amber-300">
+                             "{quote.quote}"
+                          </blockquote>
+                          <div className="mt-4 pt-3 border-t border-amber-200/50 space-y-2 opacity-0 group-hover/quote:opacity-100 transition-opacity duration-300">
+                             <p className="text-[10px] font-mono text-amber-700/80 uppercase">
+                                <strong className="text-amber-900/60 mr-1">Source:</strong> {quote.source}
+                             </p>
+                             {quote.fallback_strategy && (
+                                <p className="text-[10px] font-mono text-blue-600/80 uppercase">
+                                   <strong className="text-blue-900/60 mr-1">Fallback:</strong> {quote.fallback_strategy}
+                                </p>
+                             )}
+                          </div>
+                       </div>
+                    ))}
+                 </div>
+              </div>
+           )}
         </div>
       </div>
     );
@@ -1322,7 +1495,7 @@ export default function ContentCreationPage() {
     const blob = new Blob([finalVoiceScript], {
       type: "text/plain;charset=utf-8",
     });
-    saveAs(
+    safeDownload(
       blob,
       `VoiceScript_${data?.video_title.replace(/\s+/g, "_") || "script"}.txt`,
     );
@@ -1332,19 +1505,12 @@ export default function ContentCreationPage() {
   const [showPersonaModal, setShowPersonaModal] = useState(false);
   const [showArchive, setShowArchive] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [globalEngine, setGlobalEngine] = useState<"gemini" | "ollama">(() => 
-    (localStorage.getItem("globalEngine") as "gemini" | "ollama") || "gemini"
-  );
   const [isTagTeam, setIsTagTeam] = useState(() => 
     localStorage.getItem("isTagTeam") === "true"
   );
   const [isQuotaShield, setIsQuotaShield] = useState(() => 
     localStorage.getItem("isQuotaShield") !== "false"
   );
-
-  useEffect(() => {
-    localStorage.setItem("globalEngine", globalEngine);
-  }, [globalEngine]);
 
   useEffect(() => {
     localStorage.setItem("isTagTeam", String(isTagTeam));
@@ -1354,20 +1520,21 @@ export default function ContentCreationPage() {
     localStorage.setItem("isQuotaShield", String(isQuotaShield));
   }, [isQuotaShield]);
 
-  const mainAccent = globalEngine === "ollama" ? "#10B981" : "#3b82f6";
-  const mainAccentLight = globalEngine === "ollama" ? "rgba(16, 185, 129, 0.2)" : "rgba(59, 130, 246, 0.2)";
-  
-  const [useOllama, setUseOllama] = useState(
-    () => localStorage.getItem("useOllama") === "true",
-  );
+  const [useOllama, setUseOllama] = useState(() => {
+    const stored = localStorage.getItem("useOllama");
+    return stored === null ? true : stored === "true";
+  });
+
+  const mainAccent = useOllama ? "#10B981" : "#3b82f6";
+  const mainAccentLight = useOllama ? "rgba(16, 185, 129, 0.2)" : "rgba(59, 130, 246, 0.2)";
   const [ollamaUrl, setOllamaUrl] = useState(() => {
     const stored = localStorage.getItem("ollamaUrl");
     return stored && stored !== "http://127.0.0.1:11434"
       ? stored
-      : "http://localhost:11434";
+      : "https://improvise-attire-giblet.ngrok-free.dev";
   });
   const [ollamaModel, setOllamaModel] = useState(
-    () => localStorage.getItem("ollamaModel") || "gemma2:9b-instruct-q4_0",
+    () => localStorage.getItem("ollamaModel") || "gemma4:31b-cloud",
   );
   const [elevenLabsKey, setElevenLabsKey] = useState(
     () => localStorage.getItem("elevenLabsKey") || "",
@@ -1446,7 +1613,7 @@ export default function ContentCreationPage() {
         />
         {data.scenes.map((scene, i) => (
           <SceneCard
-            key={scene.asset_id}
+            key={`${scene.asset_id || 'scene'}-${i}`}
             scene={scene}
             onUpdate={(updated) => handleSceneUpdate(scene.asset_id, updated)}
              onVSMode={() => handleVSMode(scene.asset_id)}
@@ -1468,181 +1635,284 @@ export default function ContentCreationPage() {
     );
   }, [data?.scenes, data?.opening_sketch, isRecording, isABTesting, isProcessingAudio, sceneAudioUrls]);
 
-  const handleExportXML = () => {
-    
-    // A simplified FCP XML format (Premiere Pro compatible) to create sequences/placeholders
-    const xml = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE xmeml>
-<xmeml version="4">
-  <project>
-    <name>${data.video_title.replace(/[&<>"']/g, '')}</name>
-    <children>
-      <bin>
-        <name>Barwaz Auto-Sequence</name>
-        <children>
-          <sequence>
-            <name>${data.video_title.replace(/[&<>"']/g, '')} - Master</name>
-            <duration>${data.scenes.length * 300}</duration>
-            <rate>
-              <timebase>25</timebase>
-              <ntsc>FALSE</ntsc>
-            </rate>
-            <media>
-              <video>
-                <format>
-                  <samplecharacteristics>
-                    <rate><timebase>25</timebase><ntsc>FALSE</ntsc></rate>
-                    <width>1920</width>
-                    <height>1080</height>
-                  </samplecharacteristics>
-                </format>
-                <track>
-                  ${data.scenes.map((s, i) => `
-                  <clipitem id="clipitem-${i}">
-                    <name>Scene ${i + 1}: ${s.visual_cue.replace(/[&<>"']/g, '').substring(0, 50)}...</name>
-                    <duration>300</duration>
-                    <rate><timebase>25</timebase><ntsc>FALSE</ntsc></rate>
-                    <in>0</in>
-                    <out>300</out>
-                    <start>${i * 300}</start>
-                    <end>${(i + 1) * 300}</end>
-                    <file id="file-${i}">
-                      <name>Placeholder</name>
-                      <media>
-                        <video>
-                          <duration>300</duration>
-                        </video>
-                      </media>
-                    </file>
-                  </clipitem>
-                  `).join('')}
-                </track>
-              </video>
-            </media>
-          </sequence>
-        </children>
-      </bin>
-    </children>
-  </project>
-</xmeml>`;
 
-    const blob = new Blob([xml], { type: "text/xml;charset=utf-8" });
-    saveAs(blob, `Barwaz_${data.video_title.replace(/\s+/g, "_")}.xml`);
-    notify.classified("تم تصدير ملف XML بنجاح للمونتاج");
-  };
 
     const handleExportDocx = async () => {
     if (!data || isExportingDocx) return;
     setIsExportingDocx(true);
-    notify.classified("بدأ تصدير DOCX في الخلفية...");
+    notify.classified("بدأ تصدير DOCX...");
 
-    const worker = new DocxWorker();
-    
-    worker.onmessage = (e) => {
-      const { success, blob, error } = e.data;
-      if (success) {
-        saveAs(blob, `Barwaz_Script_${data.video_title.replace(/\s+/g, "_")}.docx`);
-        notify.classified("تم تصدير ملف DOCX بنجاح");
+    try {
+      const docChildren: any[] = [
+        new Paragraph({
+          children: [
+            new TextRun({ text: "CONFIDENTIAL // BARWAZ INTELLIGENCE DOCUMENT", bold: true, size: 28 }),
+          ],
+        }),
+        new Paragraph({ text: `PROJECT: ${data.video_title}` }),
+        new Paragraph({ text: `TIMESTAMP: ${new Date().toISOString()}` }),
+        new Paragraph({ text: `MOOD: ${data.mood}` }),
+        new Paragraph({ text: "" }),
+        new Paragraph({
+          children: [
+            new TextRun({ text: "THE SCRIPT & DIRECTOR CUES", bold: true, size: 24 }),
+          ],
+        }),
+        new Paragraph({ text: "" }),
+      ];
+
+      const scenes = data.scenes || [];
+      if (scenes.length > 0 || data.opening_sketch) {
+        // Create a 2-column table: Left for Visual Cues, Right for Voiceover
+        const tableRows = [
+          new TableRow({
+            children: [
+              new TableCell({ 
+                children: [new Paragraph({ children: [new TextRun({ text: "Visual Cues (B-Roll / Camera)", bold: true })]})],
+                width: { size: 40, type: WidthType.PERCENTAGE }
+              }),
+              new TableCell({ 
+                children: [new Paragraph({ children: [new TextRun({ text: "Voiceover (Script)", bold: true })]})],
+                width: { size: 60, type: WidthType.PERCENTAGE }
+              }),
+            ]
+          }),
+        ];
+
+        // Add Opening Sketch if exists
+        if (data.opening_sketch) {
+          tableRows.push(
+            new TableRow({
+              children: [
+                new TableCell({ 
+                  children: [
+                    new Paragraph({ text: `[OPENING HOOK]` }),
+                    new Paragraph({ text: data.opening_sketch.visual_cue || "" }),
+                    new Paragraph({ children: [new TextRun({ text: `Keywords: ${data.opening_sketch.b_roll_keywords || data.opening_sketch.b_roll_search_query || ""}`, italics: true })] })
+                  ] 
+                }),
+                new TableCell({ children: [new Paragraph({ text: data.opening_sketch.voice_over || "", alignment: "right" as any })] }),
+              ]
+            })
+          );
+        }
+
+        scenes.forEach((scene: any) => {
+          tableRows.push(
+            new TableRow({
+              children: [
+                new TableCell({ 
+                  children: [
+                    new Paragraph({ text: `[${scene.asset_id}]` }),
+                    new Paragraph({ text: scene.visual_cue || "" }),
+                    new Paragraph({ children: [new TextRun({ text: `Keywords: ${scene.b_roll_keywords || scene.b_roll_search_query || ""}`, italics: true })] })
+                  ] 
+                }),
+                new TableCell({ children: [new Paragraph({ text: scene.voice_over || "", alignment: "right" as any })] }),
+              ]
+            })
+          );
+        });
+
+        docChildren.push(
+          new Table({
+            rows: tableRows,
+            width: {
+              size: 100,
+              type: WidthType.PERCENTAGE,
+            },
+          })
+        );
       } else {
-        console.error("Worker Error: ", error);
-        notify.breach("فشل في التصدير لـ DOCX");
+        // Fallback if no scenes
+        docChildren.push(...finalVoiceScript.split('\n').map((line: string) => new Paragraph({ text: line })));
       }
-      setIsExportingDocx(false);
-      worker.terminate();
-    };
 
-    worker.onerror = (err) => {
-      console.error(err);
+      // Add Omnichannel / Social Posts if available
+      const compiledShorts = fragmenterData?.shorts || data.shorts;
+      
+      if ((compiledShorts && compiledShorts.length > 0) || (fragmenterData?.social_posts && fragmenterData.social_posts.length > 0)) {
+         docChildren.push(new Paragraph({ text: "" }));
+         docChildren.push(new Paragraph({ text: "" }));
+         docChildren.push(
+            new Paragraph({
+               children: [new TextRun({ text: "OMNICHANNEL & SOCIAL MEDIA PACKAGING", bold: true, size: 24 })],
+            })
+         );
+         docChildren.push(new Paragraph({ text: "" }));
+      }
+
+      if (fragmenterData?.social_posts && fragmenterData.social_posts.length > 0) {
+         docChildren.push(new Paragraph({ children: [new TextRun({ text: "SOCIAL POSTS", bold: true, size: 20 })] }));
+         fragmenterData.social_posts.forEach(post => {
+            docChildren.push(new Paragraph({ children: [new TextRun({ text: `[${post.platform}]`, bold: true })] }));
+            docChildren.push(new Paragraph({ text: post.content, alignment: "right" as any }));
+            if (post.image_prompt_square) {
+               docChildren.push(new Paragraph({ children: [new TextRun({ text: `> Image Prompt (1:1): ${post.image_prompt_square}`, italics: true })] }));
+            }
+            docChildren.push(new Paragraph({ text: "" }));
+         });
+      }
+
+      if (compiledShorts && compiledShorts.length > 0) {
+         docChildren.push(new Paragraph({ children: [new TextRun({ text: "SHORT-FORM VERTICAL (REELS/SHORTS/TIKTOK)", bold: true, size: 20 })] }));
+         compiledShorts.forEach((short: any) => {
+            docChildren.push(new Paragraph({ children: [new TextRun({ text: short.title || "Short", bold: true })] }));
+            docChildren.push(new Paragraph({ children: [new TextRun({ text: `HOOK: `, bold: true }), new TextRun({ text: short.hook || "" }) ], alignment: "right" as any }));
+            docChildren.push(new Paragraph({ text: short.script || short.body || "", alignment: "right" as any }));
+            docChildren.push(new Paragraph({ children: [new TextRun({ text: `CTA: `, bold: true }), new TextRun({ text: short.cta || "" }) ], alignment: "right" as any }));
+            docChildren.push(new Paragraph({ children: [new TextRun({ text: `> Visual Instructions: ${short.visual_instructions || ""}`, italics: true })] }));
+            if (short.image_prompt_vertical_nano) {
+               docChildren.push(new Paragraph({ children: [new TextRun({ text: `> Image Prompt (9:16): ${short.image_prompt_vertical_nano}`, italics: true })] }));
+            }
+            docChildren.push(new Paragraph({ text: "" }));
+         });
+      }
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: docChildren,
+        }],
+      });
+
+      const blob = await Packer.toBlob(doc);
+      safeDownload(blob, `Barwaz_Script_${data.video_title.replace(/\s+/g, "_")}.docx`);
+      notify.classified("تم تصدير ملف DOCX بنجاح");
+    } catch (err: any) {
+      console.error("DOCX generation error:", err);
       notify.breach("فشل في التصدير لـ DOCX");
+    } finally {
       setIsExportingDocx(false);
-      worker.terminate();
-    };
-
-    // Pass data without parsing complex objects (functions/DOM nodes) to the worker
-    worker.postMessage({
-      video_title: data.video_title,
-      mood: data.mood,
-      finalVoiceScript,
-      scenes: data.scenes || []
-    });
+    }
   };
+
+
 
   const handleExportZip = async () => {
     if (!data || isExportingZip) return;
     setIsExportingZip(true);
-    notify.classified("بدأ تجميع محرك الـ Omnichannel في الخلفية...");
+    notify.classified("بدأ تجميع محرك الـ Omnichannel في الذاكرة...");
 
     try {
-      const worker = new ZipWorker();
+      const zip = new JSZip();
+
+      // 1. Script
+      zip.file("Script.txt", finalVoiceScript || "");
       
-      worker.onmessage = (e) => {
-        const { success, blob, error } = e.data;
-        if (success) {
-          saveAs(blob, `Omnichannel_Barwaz_${data.video_title.replace(/[\s:]+/g, "_")}.zip`);
-          notify.classified("تم تصدير حزمة الـ ZIP الشاملة بنجاح!");
-        } else {
-          console.error("Worker Error: ", error);
-          notify.breach("فشل في بناء حزمة הZIP");
+      // 2. Audio Voiceover (ElevenLabs optimized)
+      const cleanVoiceover = (finalVoiceScript || "").replace(/\.{2,}/g, '،').replace(/\n\s*\n/g, '\n');
+      zip.file("Audio_Voiceover.txt", cleanVoiceover);
+      
+      // 3. Packaging & SEO
+      if (data.publishing_kit || fragmenterData) {
+        zip.file("Social_Media_Packaging.json", JSON.stringify(fragmenterData || data.publishing_kit, null, 2));
+      }
+
+      // 4. Shorts (if available)
+      const compiledShorts = fragmenterData?.shorts || data.shorts;
+      if (compiledShorts && compiledShorts.length > 0) {
+        zip.file("Shorts_Scripts.json", JSON.stringify(compiledShorts, null, 2));
+        const shortsText = compiledShorts.map((s: any, idx: number) => `Short ${idx + 1} (${s.title || ''}):\nHOOK: ${s.hook || ''}\nBODY: ${s.script || s.body || ""}\nCTA: ${s.cta || ''}\nVISUAL: ${s.visual_instructions || ''}`).join("\n\n----------------------------\n\n");
+        zip.file("Shorts_Scripts.txt", shortsText);
+      }
+
+      // 4.1 Social Posts
+      if (fragmenterData?.social_posts && fragmenterData.social_posts.length > 0) {
+        const socialText = fragmenterData.social_posts.map((p) => `[${p.platform}]\n\n${p.content}\n\n[Image Prompt (1:1)]:\n${p.image_prompt_square || ''}`).join("\n\n============================\n\n");
+        zip.file("Social_Media_Posts.txt", socialText);
+      }
+      
+      // 4.2 X Thread
+      if (fragmenterData?.x_thread && fragmenterData.x_thread.length > 0) {
+         zip.file("X_Twitter_Thread.txt", fragmenterData.x_thread.join("\n\n--[NEXT POST]--\n\n"));
+      }
+
+      // 5. Structure & Metadata folders
+      const scriptFolder = zip.folder("1_Script")!;
+      let scriptText = `السكريبت الكامل لـ: ${data.video_title}\nالمود السردي: ${data.mood}\n\n`;
+      const allScenes = [data.opening_sketch, ...(data.scenes || [])].filter(Boolean);
+      if (allScenes.length > 0) {
+        allScenes.forEach((scene: any) => {
+          scriptText += `[المشهد ${scene.asset_id || ""}]\n`;
+          scriptText += `الراوي: ${scene.voice_over}\n`;
+          scriptText += `بصريات: ${scene.visual_cue}\n`;
+          scriptText += `كلمات مفتاحية: ${scene.b_roll_keywords || scene.b_roll_search_query || ""}\n`;
+          scriptText += `صوتيات: ${scene.sound_design || scene.sfx || ""}\n\n----------------------------\n\n`;
+        });
+      }
+      scriptFolder.file("Master_Script.txt", scriptText);
+
+      // YouTube Assets
+      const ytFolder = zip.folder("2_YouTube_Assets")!;
+      let ytText = `العناوين المقترحة:\n`;
+      if (data.publishing_kit?.youtube_titles) {
+        data.publishing_kit.youtube_titles.forEach((t: string) => ytText += `- ${t}\n`);
+      }
+      ytText += `\nالوصف:\n${data.publishing_kit?.description_al_daheeh_style || data.publishing_kit?.description || ""}\n`;
+      ytText += `\nالكلمات المفتاحية (Tags):\n${(data.publishing_kit?.tags || []).join(", ")}\n`;
+      ytText += `\nفكرة الصورة المصغرة:\n${data.publishing_kit?.thumbnail_concept || data.thumbnail?.image_prompt || ""}\n`;
+      ytText += `\nPrompt الصورة للذكاء الاصطناعي:\n${data.publishing_kit?.thumbnail_midjourney_prompt || ""}\n`;
+      ytFolder.file("YouTube_Metadata.txt", ytText);
+
+      // Shorts Folder
+      const shortsFolder = zip.folder("3_Shorts")!;
+      if (data.shorts && data.shorts.length > 0) {
+        data.shorts.forEach((s: any, idx: number) => {
+          let shortText = `Short ${idx + 1}: ${s.title || ""}\n\n`;
+          shortText += `Hook:\n${s.hook || ""}\n\n`;
+          shortText += `Body:\n${s.body || s.script || ""}\n\n`;
+          shortText += `CTA:\n${s.cta || ""}\n\n`;
+          shortText += `Visuals:\n${s.visual_instructions || s.visual_prompt || ""}\n`;
+          shortsFolder.file(`Short_${idx + 1}.txt`, shortText);
+        });
+      } else {
+        shortsFolder.file("Shorts_Info.txt", "No shorts available.");
+      }
+
+      // Social Media (Omnichannel)
+      const socialFolder = zip.folder("4_Social_Media")!;
+      if (data.omnichannel) {
+        if (data.omnichannel.twitter_thread && data.omnichannel.twitter_thread.length > 0) {
+          let threadText = data.omnichannel.twitter_thread.map((t: string, i: number) => `${i+1}/ ${t}`).join("\n\n");
+          if (threadText) socialFolder.file("Twitter_Thread.txt", threadText);
         }
-        setIsExportingZip(false);
-        worker.terminate();
-      };
+        if (data.omnichannel.social_posts && data.omnichannel.social_posts.length > 0) {
+          let postsText = "";
+          data.omnichannel.social_posts.forEach((p: any) => {
+            postsText += `[ ${p.platform || ""} ]\n${p.content || ""}\n\n---\n\n`;
+          });
+          if (postsText) socialFolder.file("Social_Posts.txt", postsText);
+        }
+      } else if (data.publishing_kit?.omnichannel) {
+        const omni = data.publishing_kit.omnichannel;
+        if (omni.twitter_thread && omni.twitter_thread.length > 0) {
+          let threadText = omni.twitter_thread.map((t: string, i: number) => `${i+1}/ ${t}`).join("\n\n");
+          socialFolder.file("Twitter_Thread.txt", threadText);
+        }
+        if (omni.social_posts && omni.social_posts.length > 0) {
+          let postsText = "";
+          omni.social_posts.forEach((p: any) => {
+            postsText += `[ ${p.platform || ""} ]\n${p.content || ""}\n\n---\n\n`;
+          });
+          socialFolder.file("Social_Posts.txt", postsText);
+        }
+      } else {
+        socialFolder.file("Social_Media.txt", "Social media assets not generated.");
+      }
 
-      worker.onerror = (err) => {
-        console.error(err);
-        notify.breach("فشل استدعاء محرك الـ Omnichannel (ZIP)");
-        setIsExportingZip(false);
-        worker.terminate();
-      };
-
-      worker.postMessage({
-        data,
-        exportType: "omni",
-        finalVoiceScript
-      });
+      const zipBlob = await zip.generateAsync({ type: "blob" });
+      safeDownload(zipBlob, `Omnichannel_Barwaz_${data.video_title.replace(/[\s:]+/g, "_")}.zip`);
+      notify.classified("تم تصدير حزمة الـ ZIP الشاملة بنجاح!");
     } catch(err) {
-        console.error(err);
-        notify.breach("Error");
-        setIsExportingZip(false);
+      console.error(err);
+      notify.breach("فشل في بناء حزمة الـ ZIP");
+    } finally {
+      setIsExportingZip(false);
     }
   };
 
-  const handleExportIntelligenceDocument = () => {
-    if (!data) return;
-    const doc = `
-================================================================================
-CONFIDENTIAL // LEAKED INTELLIGENCE DOCUMENT
-PROJECT: BARWAZ_ARCHIVE_GATEWAY
-TIMESTAMP: ${new Date().toISOString()}
-TOPIC: ${data.video_title}
-MOOD: ${data.mood}
-STATUS: FINAL_ASSEMBLY
-================================================================================
 
-[EXECUTIVE SUMMARY]
-${researchMap?.central_hypothesis || "No hypothesis generated."}
-
-[CORE ARCHITECTURE]
-${data.scenes.map((s, i) => `ACT ${i + 1}: ${s.asset_id}\nVO: ${s.voice_over}\nVISUAL: ${s.visual_cue}\n---`).join("\n\n")}
-
-[RESEARCH VERIFICATION]
-${data.audit_report?.executive_summary || "Pending search audit."}
-
-[DISTRIBUTION CHANNELS]
-X Thread: ${fragmenterData?.x_thread.join("\n\n") || "Not generated"}
-TikTok Hook: ${fragmenterData?.tiktok_hook || "Not generated"}
-
-[SOURCES]
-${data.sources.map((s) => typeof s === "string" ? `- ${s}` : `- ${s.title}: ${s.url}`).join("\n")}
-
-================================================================================
-END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
-================================================================================
-    `;
-    const blob = new Blob([doc], { type: "text/plain" });
-    saveAs(blob, `CLASSIFIED_${data.video_title.replace(/\s+/g, "_")}.txt`);
-    notify.classified("DOWNLOAD_SUCCESS");
-  };
 
   const renderIntelGraph = (research: MasterOutline) => {
     return (
@@ -1725,32 +1995,85 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
     if (!fragmenterData) return null;
     return (
       <div className="space-y-6">
-        <div className="space-y-3">
-          <label className="text-[9px] font-mono text-cyan-400/50 uppercase tracking-widest flex items-center gap-2">
-            <Share2 className="w-3 h-3" /> X_Thread_Structure
-          </label>
-          <div className="space-y-2">
-            {fragmenterData.x_thread.map((post, i) => (
-              <div
-                key={i}
-                className="p-4 bg-white border-gray-100 shadow-sm border border-gray-200 text-micro text-gray-600 leading-relaxed font-arabic relative"
-              >
-                <span className="absolute top-2 right-2 text-[8px] font-mono text-gray-500">
-                  {i + 1}/7
-                </span>
-                {post}
-              </div>
-            ))}
+        {fragmenterData.shorts && fragmenterData.shorts.length > 0 && (
+          <div className="space-y-4">
+             <label className="text-[9px] font-mono text-cyan-500 uppercase tracking-widest flex items-center gap-2">
+                 <Zap className="w-3 h-3" /> Short_Form_Clips (Vertical 9:16)
+             </label>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {fragmenterData.shorts.map((short, idx) => (
+                 <div key={idx} className="bg-white border text-right font-arabic border-gray-200 p-4 relative group shadow-sm hover:shadow-md transition-shadow">
+                    <div className="absolute left-2 top-2 px-2 py-1 bg-black text-white text-[8px] font-mono">REEL_{idx+1}</div>
+                    <h5 className="font-bold text-sm text-gray-900 mb-2 mt-4">{short.title}</h5>
+                    <p className="text-xs text-red-600 font-bold mb-1">Hook: {short.hook}</p>
+                    <p className="text-xs text-gray-700 leading-relaxed mb-3">{short.body}</p>
+                    <p className="text-xs text-blue-600 mb-3 block border-t pt-2 border-dashed border-gray-200">CTA: {short.cta}</p>
+                    {short.image_prompt_vertical_nano && (
+                      <div className="mt-3 p-3 bg-gray-50 border border-gray-100 text-left relative">
+                        <label className="text-[8px] font-mono text-gray-500 mb-1 flex items-center gap-1 group-hover:text-amber-500 transition-colors"><ImagePlus className="w-3 h-3" /> Image Prompt [9:16]</label>
+                        <p className="text-[10px] font-mono text-gray-400 break-words leading-relaxed">{short.image_prompt_vertical_nano}</p>
+                      </div>
+                    )}
+                 </div>
+               ))}
+             </div>
           </div>
-        </div>
-        <div className="p-4 bg-cyan-400/5 border border-cyan-400/20">
-          <label className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest block mb-2 font-bold">
-            TikTok_Hook
-          </label>
-          <p className="text-sm font-arabic text-gray-900/90 ">
-            "{fragmenterData.tiktok_hook}"
-          </p>
-        </div>
+        )}
+
+        {fragmenterData.x_thread && fragmenterData.x_thread.length > 0 && (
+            <div className="space-y-3">
+              <label className="text-[9px] font-mono text-cyan-400/50 uppercase tracking-widest flex items-center gap-2 border-t border-gray-100 pt-6">
+                <Share2 className="w-3 h-3" /> X_Thread_Structure
+              </label>
+              <div className="space-y-2">
+                {fragmenterData.x_thread.map((post, i) => (
+                  <div
+                    key={i}
+                    className="p-4 bg-white border-gray-100 shadow-sm border border-gray-200 text-micro text-gray-600 leading-relaxed font-arabic relative"
+                  >
+                    <span className="absolute top-2 right-2 text-[8px] font-mono text-gray-500">
+                      {i + 1}/{fragmenterData.x_thread!.length}
+                    </span>
+                    {post}
+                  </div>
+                ))}
+              </div>
+            </div>
+        )}
+        {fragmenterData.tiktok_hook && (
+            <div className="p-4 bg-cyan-400/5 border border-cyan-400/20">
+              <label className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest block mb-2 font-bold">
+                TikTok_Hook (Legacy)
+              </label>
+              <p className="text-sm font-arabic text-gray-900/90 ">
+                "{fragmenterData.tiktok_hook}"
+              </p>
+            </div>
+        )}
+
+        {fragmenterData.social_posts && fragmenterData.social_posts.length > 0 && (
+          <div className="space-y-4">
+             <label className="text-[9px] font-mono text-cyan-500 uppercase tracking-widest flex items-center gap-2 border-t border-gray-100 pt-6">
+                 <Share2 className="w-3 h-3" /> Social Network Posts (Facebook/Insta/LinkedIn)
+             </label>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               {fragmenterData.social_posts.map((post, idx) => (
+                 <div key={idx} className="bg-white border text-right font-arabic border-gray-200 p-4 relative group shadow-sm hover:shadow-md transition-shadow">
+                    <div className="absolute left-2 top-2 px-2 py-1 bg-black text-white text-[8px] font-mono">{post.platform}</div>
+                    <div className="mt-8">
+                       <p className="text-xs text-gray-800 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+                    </div>
+                    {post.image_prompt_square && (
+                      <div className="mt-3 p-3 bg-gray-50 border border-gray-100 text-left relative">
+                        <label className="text-[8px] font-mono text-gray-500 mb-1 flex items-center gap-1 group-hover:text-cyan-600 transition-colors"><ImagePlus className="w-3 h-3" /> Image Prompt [1:1]</label>
+                        <p className="text-[10px] font-mono text-gray-400 break-words leading-relaxed">{post.image_prompt_square}</p>
+                      </div>
+                    )}
+                 </div>
+               ))}
+             </div>
+          </div>
+        )}
       </div>
     );
   };
@@ -1950,12 +2273,8 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
         notify.breach("فقد الاتصال بالمولد");
         setError(errorMsg.replace("Ollama Proxy Error: 500 -", "").trim());
       } else if (isQuota) {
-        let waitSecs = "";
-        const match = errorMsg.match(/429_all_keys_suspended:(\d+)/i);
-        if (match && match[1]) waitSecs = ` (${match[1]} ثانية)`;
-        
-        notify.breach(`انتهى حد الاستخدام. يرجى الانتظار${waitSecs}.`);
-        setError(`تجاوزت الحد المسموح. يرجى الانتظار${waitSecs}.`);
+        notify.breach(`تجاوزت الحد المسموح حالياً. يرجى الانتظار دقيقة واحدة واعادة المحاولة.`);
+        setError(`تجاوزت الحد المسموح. يرجى الانتظار 60 ثانية.`);
       } else if (isFailedProxy || err.message?.includes("Failed to call")) {
         setError("تعثر الاتصال بالخادم بسبب الضغط. حاول مرة أخرى لاحقاً.");
         notify.breach("واجهنا مشكلة في التوليد");
@@ -2178,9 +2497,9 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
               });
             },
             (text) => setStatus(`[SYSTEM] ${text}`),
-            "gemini",
-            "gemini",
-            "gemini",
+            useOllama ? "ollama" : "gemini",
+            useOllama ? "ollama" : "gemini",
+            useOllama ? "ollama" : "gemini",
             narrativeStrategy,
             suspenseLevel
           );
@@ -2246,12 +2565,8 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
         notify.breach("مشكلة في مفاتيح API");
         setError(errorMsg.replace("Ollama Proxy Error: 500 -", "").trim());
       } else if (isQuota) {
-        let waitSecs = "";
-        const match = errorMsg.match(/429_all_keys_suspended:(\d+)/i);
-        if (match && match[1]) waitSecs = ` (${match[1]} ثانية)`;
-        
-        notify.breach(`انتهى حد الاستخدام المجاني حالياً. يرجى الانتظار${waitSecs}.`);
-        setError(`تجاوزت الحد المجاني لموديل AI (Quota Exceeded)${waitSecs}.`);
+        notify.breach(`تجاوزت الحد المسموح حالياً. يرجى الانتظار دقيقة واحدة واعادة المحاولة.`);
+        setError(`تجاوزت الحد المجاني لموديل AI (Quota Exceeded). يرجى الانتظار 60 ثانية والمحاولة مرة أخرى.`);
       } else if (isFailedProxy) {
         notify.breach("واجهنا مشكلة في خوادم النظام بسبب طول المحتوى.");
         setError(
@@ -2351,7 +2666,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
         researchMap.research_data,
         mood,
         cumulativeScenes,
-        globalEngine,
+        useOllama ? "ollama" : "gemini",
         undefined, // onChunk
         abortControllerRef.current?.signal,
       );
@@ -2475,12 +2790,8 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
         notify.breach("مشكلة في مفاتيح API");
         setError(errorMsg.replace("Ollama Proxy Error: 500 -", "").trim());
       } else if (isQuota) {
-        let waitSecs = "";
-        const match = errorMsg.match(/429_all_keys_suspended:(\d+)/i);
-        if (match && match[1]) waitSecs = ` (${match[1]} ثانية)`;
-        
-        notify.breach(`انتهى حد الاستخدام المجاني. يرجى الانتظار${waitSecs}.`);
-        setError(`عفواً، انتهى حد الاستخدام المتاح حالياً. يرجى الانتظار${waitSecs}.`);
+        notify.breach(`تجاوزت الحد المسموح حالياً. يرجى الانتظار دقيقة واحدة واعادة المحاولة.`);
+        setError(`عفواً، تجاوزت الحد المتاح حالياً. يرجى الانتظار 60 ثانية والمحاولة مرة أخرى.`);
       } else if (isFailedProxy) {
         setError("واجه الاتصال مشكلة أثناء التوليد، حاول مجددًا");
       } else {
@@ -2547,7 +2858,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
     }
 
     const blob = new Blob([content], { type: "text/markdown;charset=utf-8" });
-    saveAs(blob, `Barwaz_Script_${data.video_title.replace(/\s+/g, "_")}.md`);
+    safeDownload(blob, `Barwaz_Script_${data.video_title.replace(/\s+/g, "_")}.md`);
   };
 
   const handleGenerateAudioBatch = async () => {
@@ -2606,7 +2917,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
       }
 
       const zipBlob = await zip.generateAsync({ type: "blob" });
-      saveAs(
+      safeDownload(
         zipBlob,
         `Barwaz_Audio_${data.video_title.replace(/\s+/g, "_")}.zip`,
       );
@@ -2804,76 +3115,75 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                       </button>
                     </div>
                   </div>
-
-                  {/* SECTOR SELECTOR */}
-                  <div className="space-y-4">
-                    <label className="text-[10px] font-mono text-gray-400 uppercase tracking-widest font-bold px-2">Operational Sectors</label>
-                    <div className="grid grid-cols-2 gap-4">
-                      {sectors.map((sec) => (
-                        <button
-                          key={sec.id}
-                          onClick={() => {
-                            setSelectedSector(sec.id);
-                            playClick();
-                          }}
-                          className={`p-6 text-right transition-all group relative overflow-hidden rounded-2xl border ${
-                            selectedSector === sec.id 
-                              ? "bg-white border-blue-500 shadow-sm" 
-                              : "bg-gray-50 border-gray-100 active:scale-95 active:scale-95"
-                          }`}
-                        >
-                          <div className={`p-2 rounded-xl inline-flex mb-4 transition-colors ${selectedSector === sec.id ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-400 group-active:scale-95"}`}>
-                            <sec.icon className="w-6 h-6" />
-                          </div>
-                          <h3 className={`text-lg font-arabic font-bold block ${selectedSector === sec.id ? "text-gray-900" : "text-gray-500"}`}>{sec.name}</h3>
-                          <p className="text-[10px] font-mono mt-1 tracking-widest font-bold uppercase text-gray-400">{sec.description}</p>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
                 </div>
 
                 <div className="space-y-6">
-                  {/* MOOD GRID */}
+                  {/* MOOD GRID (القالب البرامجي) */}
                   <div className="space-y-4">
                     <div className="flex justify-between items-center px-2">
-                      <label className="text-[10px] font-mono text-gray-400 uppercase tracking-widest font-bold">Select Narrative</label>
-                      <span className="text-[10px] font-mono text-gray-400 uppercase tracking-widest font-bold bg-white px-2 py-0.5 rounded-full border border-gray-100">{moods.filter(m => m.sector === selectedSector).length} FOUND</span>
+                       <label className="text-[10px] font-mono text-gray-400 uppercase tracking-widest font-bold">القالب البرامجي (Show Format)</label>
                     </div>
-                    <div className="grid grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                      {moods.filter(m => m.sector === selectedSector).map((m) => (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                      {moods.map((m) => (
                         <button
                           key={m.type}
                           onClick={() => {
                             setMood(m.type);
-                            setPersona(getPersonaForMood(m.type));
                             playClick();
                           }}
                           onPointerOver={() => playHover()}
-                          className={`p-6 border text-right transition-all group relative rounded-2xl ${
+                          className={`p-4 border text-right transition-all group relative rounded-2xl flex flex-col items-center text-center ${
                             mood === m.type 
                               ? "bg-white border-blue-500 shadow-sm ring-1 ring-blue-500" 
-                              : "bg-gray-50 border-gray-100 active:scale-95 active:scale-95"
+                              : "bg-gray-50 border-gray-100 active:scale-95 hover:bg-white"
                           }`}
                         >
-                           <div className="flex flex-row-reverse items-center justify-between mb-4">
-                             <div className={`p-2 rounded-xl border transition-colors ${mood === m.type ? "text-blue-600 border-blue-200 bg-blue-50" : "text-gray-400 bg-white border-gray-100 group-active:scale-95"}`}>
-                               <m.icon className="w-5 h-5" />
-                             </div>
-                             {mood === m.type && <div className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />}
-                           </div>
-                           <h4 className={`text-base font-arabic font-bold transition-colors ${mood === m.type ? "text-gray-900" : "text-gray-500 group-hover/mood:text-gray-700"}`}>{m.type}</h4>
-                           <p className="text-[11px] font-arabic text-gray-500 mt-2 leading-relaxed opacity-0 group-active:scale-95 transition-opacity h-0 group-active:scale-95 overflow-hidden">{m.description}</p>
+                           <m.icon className={`w-6 h-6 mb-3 transition-colors ${mood === m.type ? "text-blue-600" : "text-gray-400 group-hover:text-blue-500"}`} />
+                           <h4 className={`text-sm font-arabic font-bold transition-colors ${mood === m.type ? "text-gray-900" : "text-gray-600"}`}>{m.type}</h4>
                         </button>
                       ))}
                     </div>
+                  </div>
 
-                    {/* Visual DNA DNA Informant */}
-                    <motion.div 
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="bg-blue-50/50 border-l-2 border-blue-500 p-6 mt-4 space-y-4 relative overflow-hidden rounded-xl"
-                    >
+                  {/* PERSONA SELECTOR (أسلوب الراوي) */}
+                  <div className="space-y-4 pt-4 border-t border-gray-100 mt-6">
+                    <div className="flex justify-between items-center px-2">
+                       <label className="text-[10px] font-mono text-gray-400 uppercase tracking-widest font-bold">هوية الراوي (Narrator Voice / Persona)</label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { id: "النبّاش", label: "المحقق النبّاش", desc: "صحفي استقصائي، حاد وموضوعي" },
+                        { id: "برواز التاريخ", label: "برواز التاريخ", desc: "أسلوب ملحمي للقصص التاريخية" },
+                        { id: "برواز التكنو", label: "برواز التكنو", desc: "إيقاع سريع وخيال علمي/ديسطوبي" },
+                        { id: "برواز الحكاوي", label: "الحكواتي", desc: "نوستالجيا وسرد شعبي كلاسيكي" },
+                        { id: "شاهد على العصر", label: "شاهد على العصر", desc: "سرد يعتمد على الأرشيف والشهادات" },
+                        { id: "الشاهد الصامت", label: "الشاهد الصامت", desc: "تقمص روح كائن أو جماد حضر الواقعة" }
+                      ].map((p) => (
+                         <button
+                           key={p.id}
+                           onClick={() => {
+                             setPersona(p.id as PersonaType);
+                             playClick();
+                           }}
+                           className={`p-4 text-right transition-all group relative overflow-hidden rounded-2xl border ${
+                             persona === p.id 
+                               ? "bg-blue-50 border-blue-500 shadow-sm" 
+                               : "bg-white border-gray-200 hover:bg-gray-50 active:scale-95"
+                           }`}
+                         >
+                           <h3 className={`text-sm font-arabic font-bold block ${persona === p.id ? "text-blue-900" : "text-gray-700"}`}>{p.label}</h3>
+                           <p className="text-[10px] font-arabic mt-1 text-gray-500 leading-relaxed">{p.desc}</p>
+                         </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Visual DNA DNA Informant */}
+                  <motion.div 
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="bg-blue-50/50 border-l-2 border-blue-500 p-6 space-y-4 relative overflow-hidden rounded-xl mt-6"
+                  >
                       <div className="absolute top-0 right-0 p-2 opacity-5">
                          <Fingerprint className="w-12 h-12 text-blue-900" />
                       </div>
@@ -2899,7 +3209,6 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                         [!] يتم دمج "البصمة المصرية" أوتوماتيكياً في كل الصور. النظام يحلل العصر ويعدل الملامح والخلفيات لتناسب الهوية العربية دون تدخل يدوي.
                       </p>
                     </motion.div>
-                  </div>
 
                   {/* RADAR SUGGESTIONS - RESULTS FOR STEP 1 */}
                   {suggestedTitles.length > 0 && (
@@ -3134,68 +3443,76 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                           </h1>
                         </div>
                         
-                        <div className="flex flex-wrap gap-3 w-full lg:w-auto">
-                          <button
-                            onClick={handleExportDocx}
-                            disabled={isExportingDocx}
-                            className={`flex-1 lg:flex-none px-6 py-4 border border-gray-200 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm ${isExportingDocx ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white text-gray-700 active:scale-95 active:scale-95'}`}
-                            title="تصدير النص النهائي للتدوين"
-                          >
-                            {isExportingDocx ? <Loader2 size={16} className="animate-spin text-gray-400" /> : <FileText size={16} className="text-gray-700" />}
-                            {isExportingDocx ? "GENERATING..." : "DOCX"}
-                          </button>
-                          <button
-                            onClick={handleExportXML}
-                            className="flex-1 lg:flex-none px-6 py-4 bg-white border border-gray-200 text-gray-700 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm active:scale-95 active:scale-95"
-                            title="تصدير تايم لاين أدوبي بريمير"
-                          >
-                            <Scissors size={16} className="text-gray-700" />
-                            Premiere XML
-                          </button>
-                          
-                          <button
-                            onClick={handleExportZip}
-                            disabled={isExportingZip}
-                            className={`col-span-full lg:col-auto px-6 py-4 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm ${isExportingZip ? 'bg-gray-800 text-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-gray-900 to-black text-[#f4eee0] active:scale-95 active:scale-95'}`}
-                            title="تحميل جميع المواد الشاملة (سكريبت، يوتيوب، شورتس، إكس، סشوشيال ميديا)"
-                          >
-                            {isExportingZip ? <Loader2 size={16} className="animate-spin text-gray-400" /> : <Archive size={16} className="text-[#f4eee0]" />}
-                            {isExportingZip ? "ARCHIVING..." : "PRODUCTION OMNI.ZIP"}
-                          </button>
-                          <button
-                            onClick={handleExportIntelligenceDocument}
-                            className="flex-1 lg:flex-none px-6 py-4 bg-white border border-gray-200 text-gray-700 font-mono text-[10px] uppercase tracking-widest font-bold flex items-center justify-center gap-3 active:scale-95 transition-all rounded-xl shadow-sm"
-                          >
-                            <Download size={16} className="text-gray-500" />
-                            TXT Intel
-                          </button>
-                          <button
-                            onClick={() => {
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                              const currentData = { ...data };
-                              setArchive((prev) => [currentData, ...prev]);
-                              setIsحفظd(true);
-                              notify.classified("تم أرشفة التقرير في السجلات");
-                            }}
-                            disabled={isحفظd}
-                            className={`flex-1 lg:flex-none px-8 py-4 ${isحفظd ? "bg-green-50 text-green-600 border-green-200" : "bg-blue-600 text-gray-900 border-blue-600 active:scale-95 active:scale-95"} border text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-all rounded-xl shadow-sm`}
-                          >
-                            <Save size={16} />
-                            {isحفظd ? "Archived" : "Archive Result"}
-                          </button>
+                        <div className="w-full lg:w-auto lg:min-w-[320px]">
+                          <div className="bg-white border border-gray-200 rounded-2xl p-4 shadow-sm flex flex-col gap-3">
+                            <span className="text-[10px] font-mono font-bold text-gray-400 tracking-widest uppercase mb-1">Export Center (تصدير الحزم)</span>
+                            <div className="flex gap-2">
+                              <button
+                                onClick={handleExportZip}
+                                disabled={isExportingZip}
+                                className="flex-1 px-4 py-3 bg-zinc-900 hover:bg-zinc-800 text-white active:scale-95 border border-zinc-800 text-[10px] font-mono font-bold uppercase tracking-widest flex flex-col items-center justify-center gap-2 transition-all rounded-xl"
+                              >
+                                <Download className={`w-5 h-5 ${isExportingZip ? 'animate-bounce' : ''}`} />
+                                {isExportingZip ? "Zipping..." : "ZIP Full"}
+                              </button>
+                              
+                              <button
+                                onClick={handleGenerateAudioBatch}
+                                disabled={isProcessingAudio}
+                                className="flex-1 px-4 py-3 bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 active:scale-95 text-[10px] font-mono font-bold uppercase tracking-widest flex flex-col items-center justify-center gap-2 transition-all rounded-xl"
+                              >
+                                <Volume2 className={`w-5 h-5 ${isProcessingAudio ? 'animate-pulse text-blue-400' : ''}`} />
+                                {isProcessingAudio ? "Processing..." : "Audio"}
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                onClick={handleExportDocx}
+                                disabled={isExportingDocx}
+                                className="px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 active:scale-95 text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-lg"
+                              >
+                                <FileText className={`w-3.5 h-3.5 ${isExportingDocx ? 'animate-pulse' : ''}`} />
+                                DOCX
+                              </button>
+
+                              <button
+                                onClick={handleDownloadNote}
+                                className="px-3 py-2 bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200 active:scale-95 text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-lg"
+                              >
+                                <FileText className="w-3.5 h-3.5" />
+                                Markdown
+                              </button>
+                            </div>
+
+                            <button
+                              onClick={() => {
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                                const currentData = { ...data };
+                                setArchive((prev) => [currentData, ...prev]);
+                                setIsحفظd(true);
+                                notify.classified("تم أرشفة التقرير في السجلات");
+                              }}
+                              disabled={isحفظd}
+                              className={`w-full px-4 py-3 ${isحفظd ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50 active:scale-95"} border text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-xl mt-1`}
+                            >
+                              <Save size={14} />
+                              {isحفظd ? "Archived" : "Archive in Radar"}
+                            </button>
+                          </div>
                         </div>
                       </div>
 
                       {/* TABS NAVIGATION */}
                       <div className="flex gap-8 border-b border-gray-100 overflow-x-auto no-scrollbar">
-                        {["script", "kit", "shorts", "audit", "echo"].map(tab => (
+                        {["script", "assets", "kit", "shorts", "audit", "echo"].map(tab => (
                           <button
                             key={tab}
                             onClick={() => setActiveTab(tab as any)}
                             className={`pb-4 px-6 text-[10px] font-mono uppercase tracking-widest font-bold transition-all relative shrink-0 ${activeTab === tab ? "text-blue-600" : "text-gray-400 active:scale-95"}`}
                           >
                             {activeTab === tab && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[3px] bg-blue-600 rounded-t-full shadow-[0_-5px_15px_rgba(37,99,235,0.2)]" />}
-                            {tab === "script" ? "01 Script Core" : tab === "kit" ? "02 Visual Identity" : tab === "shorts" ? "03 Social Fragments" : tab === "audit" ? "04 Audit Radar" : "05 Echo Chamber"}
+                            {tab === "script" ? "01 Script Core" : tab === "assets" ? "02 Media Manifest" : tab === "kit" ? "03 Visual Identity" : tab === "shorts" ? "04 Social Fragments" : tab === "audit" ? "05 Audit Radar" : "06 Echo Chamber"}
                           </button>
                         ))}
                       </div>
@@ -3214,7 +3531,7 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                               >
                                  <div className="bg-white border border-gray-200 p-10 space-y-8 relative overflow-hidden rounded-3xl shadow-sm">
                                     <div className="flex justify-between items-center bg-gray-50 p-4 -mt-10 -mx-10 border-b border-gray-100 mb-8 rounded-t-3xl">
-                                       <span className="text-[10px] font-mono text-blue-600 uppercase tracking-widest font-black">Master Vocal Profile</span>
+                                       <span className="text-[10px] font-mono text-blue-600 uppercase tracking-widest font-black">غرفة العمليات (War Room) / Desktop</span>
                                        <div className="flex gap-4">
                                           <button onClick={() => setShowTeleprompter(true)} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center active:scale-95 transition-colors text-gray-400 bg-white shadow-sm" title="Teleprompter Mode">
                                             <Eye size={16} />
@@ -3222,23 +3539,67 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                           <button onClick={handlePlayVoice} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center active:scale-95 transition-colors text-gray-400 bg-white shadow-sm">
                                             {isPlayingVoice ? <Square size={14} className="fill-current" /> : <Volume2 size={16} />}
                                           </button>
-                                          <button onClick={() => copyToClipboard(finalVoiceScript)} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center active:scale-95 transition-colors text-gray-400 bg-white shadow-sm">
+                                          <button onClick={handleDownloadVoiceScript} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center active:scale-95 transition-colors text-gray-400 bg-white shadow-sm hover:text-blue-600" title="Download Script (.txt)">
+                                            <Download size={16} />
+                                          </button>
+                                          <button onClick={() => copyToClipboard(finalVoiceScript)} className="w-10 h-10 border border-gray-200 rounded-xl flex items-center justify-center active:scale-95 transition-colors text-gray-400 bg-white shadow-sm hover:text-blue-600" title="Copy to Clipboard">
                                             <Copy size={16} />
                                           </button>
                                        </div>
                                     </div>
 
-                                    <div className="flex gap-4">
-                                       <div className="flex-1 relative text-right" dir="rtl">
+
+
+                                    <div className="flex flex-row-reverse gap-8 border-t border-gray-100 pt-8 mt-4">
+                                       
+                                       {/* MIDDLE: EDITOR */}
+                                       <div className="flex-1 relative text-right min-w-[500px]" dir="rtl">
                                           <div className="tiptap-editor-wrapper text-right">
                                             <EditorContent editor={editor} className="w-full min-h-[600px] bg-transparent text-xl lg:text-3xl font-arabic leading-[2.5] text-gray-800 p-0 outline-none focus:text-gray-900 transition-colors custom-scrollbar border-0" dir="rtl" />
                                           </div>
                                        </div>
                                        
-                                       {/* SOURCE MARGIN */}
-                                       <div className="w-64 shrink-0 border-r border-gray-200 pr-6 hidden xl:block overflow-hidden relative" dir="ltr">
+                                       {/* RIGHT (Arabic Left): DOSSIER & ARCHIVE PANEL */}
+                                       <div className="w-80 shrink-0 border-l border-gray-200 pl-6 overflow-hidden relative" dir="rtl">
                                           <div className="sticky top-0 space-y-6">
-                                             <h4 className="text-[9px] font-mono text-blue-600 uppercase tracking-widest border-b border-gray-100 pb-2 text-left font-bold">Verified Sources</h4>
+                                             <h4 className="text-[11px] font-mono text-gray-900 uppercase tracking-widest border-b border-gray-200 pb-3 text-right font-bold flex items-center justify-between">
+                                                <span className="flex items-center gap-2"><Archive size={14} className="text-blue-500"/> أرشيف عقل الباحث</span>
+                                                <span className="bg-blue-100 text-blue-600 px-2 py-0.5 rounded text-[9px]">LIVE</span>
+                                             </h4>
+                                             <div className="space-y-4 max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
+                                                <div className="bg-white p-5 border border-gray-200 rounded-xl hover:shadow-lg hover:border-blue-200 transition-all cursor-pointer relative group flex flex-col gap-2">
+                                                    <div className="absolute top-0 right-0 w-1 h-full bg-blue-500 rounded-r-xl"></div>
+                                                    <h5 className="font-bold text-gray-900 text-sm">الرواية الرسمية</h5>
+                                                    <p className="text-xs text-gray-500 leading-relaxed font-arabic line-clamp-4 group-hover:line-clamp-none transition-all">
+                                                        {researchMap?.core_conflict_or_mystery || "جاري جلب الروايات من الأرشيف..."}
+                                                    </p>
+                                                    <span className="text-[9px] font-mono text-blue-500 font-bold uppercase mt-2 opacity-0 group-hover:opacity-100 transition-opacity">استخراج أدلة</span>
+                                                </div>
+                                                <div className="bg-white p-5 border border-gray-200 rounded-xl hover:shadow-lg hover:border-red-200 transition-all cursor-pointer relative group flex flex-col gap-2">
+                                                    <div className="absolute top-0 right-0 w-1 h-full bg-red-500 rounded-r-xl"></div>
+                                                    <h5 className="font-bold text-gray-900 text-sm">هجوم الأعداء / النقيض</h5>
+                                                    <p className="text-xs text-gray-500 leading-relaxed font-arabic line-clamp-4 group-hover:line-clamp-none transition-all">
+                                                        {researchMap?.hidden_patterns_or_contradictions?.[0] || researchMap?.editorial_angle || "لا توجد أدلة مضادة متوفرة حالياً."}
+                                                    </p>
+                                                    <span className="text-[9px] font-mono text-red-500 font-bold uppercase mt-2 opacity-0 group-hover:opacity-100 transition-opacity">توظيف كحبكة مضادة</span>
+                                                </div>
+                                                <div className="bg-white p-5 border border-gray-200 rounded-xl hover:shadow-lg hover:border-amber-200 transition-all cursor-pointer relative group flex flex-col gap-2">
+                                                    <div className="absolute top-0 right-0 w-1 h-full bg-amber-500 rounded-r-xl"></div>
+                                                    <h5 className="font-bold text-gray-900 text-sm">كواليس المقربين</h5>
+                                                    <p className="text-xs text-gray-500 leading-relaxed font-arabic line-clamp-4 group-hover:line-clamp-none transition-all">
+                                                        {researchMap?.timeline?.[0]?.event_description || "أسرار ما وراء الكواليس قيد التحقق..."}
+                                                    </p>
+                                                </div>
+                                             </div>
+                                          </div>
+                                       </div>
+                                       
+                                       {/* LEFT (Arabic Right): SOURCE MARGIN */}
+                                       <div className="w-56 shrink-0 border-r border-gray-200 pr-6 overflow-hidden relative" dir="ltr">
+                                          <div className="sticky top-0 space-y-6">
+                                             <h4 className="text-[10px] font-mono text-gray-400 uppercase tracking-widest border-b border-gray-100 pb-3 text-left font-bold flex items-center gap-2">
+                                                <Database size={12}/> Verified Sources
+                                             </h4>
                                              <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar">
                                                 {data.sources.map((src, i) => {
                                                    const s = typeof src === 'string' ? { title: src, url: '#' } : src;
@@ -3290,6 +3651,88 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                               </motion.div>
                             )}
 
+                            {activeTab === "assets" && (
+                              <motion.div 
+                                key="ts-assets"
+                                initial={{ opacity: 0, x: -10 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                exit={{ opacity: 0, x: 10 }}
+                                className="space-y-6"
+                              >
+                                <div className="p-8 bg-zinc-950 font-mono text-zinc-300">
+                                  <div className="flex justify-between items-end mb-8 border-b border-zinc-800 pb-4">
+                                    <div>
+                                      <h3 className="text-xl font-bold uppercase tracking-widest text-[#f4eee0]">Media_Manifest</h3>
+                                      <p className="text-xs text-zinc-500 mt-2">B-Roll, SFX, and Generation Directives</p>
+                                    </div>
+                                    <span className="text-[10px] bg-blue-600/20 text-blue-400 px-3 py-1 rounded-full">{data.scenes.length} Scenes Indexed</span>
+                                  </div>
+
+                                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    {data.scenes.map((scene, i) => (
+                                      <div key={i} className="bg-zinc-900 border border-zinc-800 p-4 rounded-lg flex flex-col gap-4">
+                                        <div className="flex justify-between items-center bg-zinc-950 p-2 rounded">
+                                          <span className="text-[10px] uppercase font-bold tracking-widest text-zinc-500">Node_{i + 1}</span>
+                                        </div>
+                                        
+                                        {/* Frame 1 Prompt */}
+                                        <div>
+                                          <h4 className="text-[9px] uppercase tracking-[0.2em] text-cyan-500 mb-2 flex items-center gap-2"><ImageIcon size={12}/> First Frame Image</h4>
+                                          <p className="text-xs text-zinc-400 bg-zinc-950 p-2 rounded leading-relaxed break-words">{scene.first_frame_image_prompt || "None"}</p>
+                                        </div>
+
+                                        {/* Frame 1 Motion */}
+                                        <div>
+                                          <h4 className="text-[9px] uppercase tracking-[0.2em] text-cyan-500 mb-2 flex items-center gap-2"><Video size={12}/> First Frame Motion</h4>
+                                          <p className="text-xs text-zinc-400 bg-zinc-950 p-2 rounded leading-relaxed break-words">{scene.first_frame_motion_prompt || "None"}</p>
+                                        </div>
+
+                                        {/* Frame 2 Prompt */}
+                                        <div>
+                                          <h4 className="text-[9px] uppercase tracking-[0.2em] text-pink-500 mb-2 flex items-center gap-2"><ImageIcon size={12}/> Second Frame Image</h4>
+                                          <p className="text-xs text-zinc-400 bg-zinc-950 p-2 rounded leading-relaxed break-words">{scene.second_frame_image_prompt || "None"}</p>
+                                        </div>
+
+                                        {/* Frame 2 Motion */}
+                                        <div>
+                                          <h4 className="text-[9px] uppercase tracking-[0.2em] text-pink-500 mb-2 flex items-center gap-2"><Video size={12}/> Second Frame Motion</h4>
+                                          <p className="text-xs text-zinc-400 bg-zinc-950 p-2 rounded leading-relaxed break-words">{scene.second_frame_motion_prompt || "None"}</p>
+                                        </div>
+
+                                        {/* Multi-Cam */}
+                                        {scene.multi_camera_angles && scene.multi_camera_angles.length > 0 && (
+                                          <div>
+                                            <h4 className="text-[9px] uppercase tracking-[0.2em] text-emerald-500 mb-2 flex items-center gap-2"><Camera size={12}/> Cam_Angles</h4>
+                                            <div className="flex gap-2 flex-wrap">
+                                              {scene.multi_camera_angles.map((cam, camIdx) => (
+                                                <span key={camIdx} className="text-[9px] bg-emerald-950/40 text-emerald-400 border border-emerald-900 px-2 py-1 rounded">
+                                                  {cam.type} ({cam.lens})
+                                                </span>
+                                              ))}
+                                            </div>
+                                          </div>
+                                        )}
+
+                                        {/* Pexels Search Query */}
+                                        <div>
+                                          <h4 className="text-[9px] uppercase tracking-[0.2em] text-purple-500 mb-2 flex items-center gap-2"><Search size={12}/> B-Roll_Query</h4>
+                                          <p className="text-[11px] bg-zinc-950 p-2 rounded text-zinc-300 font-bold">{scene.b_roll_search_query || (scene as any).b_roll_keywords || "None"}</p>
+                                        </div>
+
+                                        {/* SFX */}
+                                        {(scene.sfx || scene.sfx_prompt) && (
+                                          <div>
+                                            <h4 className="text-[9px] uppercase tracking-[0.2em] text-yellow-500 mb-2 flex items-center gap-2"><Music size={12}/> SFX</h4>
+                                            <p className="text-[11px] text-zinc-500">{scene.sfx || scene.sfx_prompt}</p>
+                                          </div>
+                                        )}
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </motion.div>
+                            )}
+
                             {activeTab === "kit" && (
                               <motion.div 
                                 key="ts-kit"
@@ -3331,7 +3774,18 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                         try {
                                            const script = [data.opening_sketch.voice_over, ...data.scenes.map(s => s.voice_over)].join("\n\n");
                                            const packResult = await generatePackaging(data.video_title, script, mood, data.scenes);
-                                           setFragmenterData(packResult.packaging);
+                                           setFragmenterData({
+                                              ...packResult.packaging,
+                                              x_thread: packResult.omnichannel?.twitter_thread,
+                                              social_posts: packResult.omnichannel?.social_posts?.map((p: any) => ({
+                                                 ...p,
+                                                 image_prompt_square: p.image_prompt_square ? applyGlobalStyle(p.image_prompt_square, mood) + " --ar 1:1" : undefined
+                                              })),
+                                              shorts: packResult.shorts?.map((s: any) => ({
+                                                ...s,
+                                                image_prompt_vertical_nano: applyGlobalStyle(s.image_prompt_vertical_nano || s.visual_instructions, mood, true)
+                                              }))
+                                           });
                                         } catch (e) {
                                           notify.breach("Fragmentation Failed");
                                         } finally {
@@ -3368,16 +3822,40 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                               <AnimatePresence mode="wait">
                                 {intelTab === "audit" && (
                                   <motion.div key="it-audit" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
-                                     <div className="p-5 bg-green-500/5 border border-green-500/10 text-right">
-                                        <p className="text-xs font-arabic text-green-500/80 leading-relaxed">
-                                          {data.audit_report.executive_summary}
-                                        </p>
+                                     <div className="flex gap-4">
+                                       <div className="flex-1 p-5 bg-green-500/5 border border-green-500/10 text-right h-full">
+                                         <p className="text-xs font-arabic text-green-500/80 leading-relaxed">
+                                           {data.audit_report.executive_summary}
+                                         </p>
+                                       </div>
+                                       {data.audit_report.red_team_score !== undefined && (
+                                         <div className="w-24 shrink-0 flex flex-col items-center justify-center p-4 bg-slate-900 border border-slate-700 shadow-inner rounded-sm">
+                                           <span className="text-[10px] uppercase font-black text-slate-500 tracking-wider mb-2 text-center leading-tight">Red Team<br/>Eval</span>
+                                           <span className={`text-2xl font-mono ${data.audit_report.red_team_score > 80 ? 'text-green-400' : data.audit_report.red_team_score > 60 ? 'text-yellow-400' : 'text-red-500'}`}>
+                                             {data.audit_report.red_team_score}<span className="text-xs text-slate-500">/100</span>
+                                           </span>
+                                         </div>
+                                       )}
                                      </div>
                                      <div className="space-y-3">
-                                        {data.audit_report.issues.map((issue, i) => (
-                                          <div key={i} className="flex flex-row-reverse gap-4 p-4 border border-gray-200 bg-white border-gray-100 shadow-sm items-start">
-                                            {issue.severity === "high" ? <AlertTriangle size={14} className="text-red-500 shrink-0" /> : <CheckCircle2 size={14} className="text-blue-600 shrink-0" />}
-                                            <p className="text-[11px] font-arabic text-gray-600 text-right leading-relaxed">{issue.description}</p>
+                                        {data.audit_report.issues.map((issue: any, i) => (
+                                          <div key={i} className="flex flex-col gap-2 p-4 border border-gray-200 bg-white shadow-sm">
+                                            <div className="flex flex-row-reverse gap-4 items-start">
+                                              {issue.severity === "high" || issue.type === "logic" || issue.type === "legal" ? <AlertTriangle size={14} className="text-red-500 shrink-0" /> : <CheckCircle2 size={14} className="text-blue-600 shrink-0" />}
+                                              <p className="text-[11px] font-arabic max-w-full text-right leading-relaxed"><strong className="text-gray-900 ml-1">[{issue.type?.toUpperCase() || 'ISSUE'}]</strong> <span className="text-gray-700">{issue.finding || issue.description}</span></p>
+                                            </div>
+                                            {(issue.recommendation) && (
+                                              <div className="flex flex-row-reverse gap-2 text-[10px] text-gray-500 font-arabic text-right">
+                                                <strong className="text-blue-600 shrink-0">التوصية:</strong>
+                                                <span>{issue.recommendation}</span>
+                                              </div>
+                                            )}
+                                            {issue.source_reference && (
+                                              <div className="flex flex-row-reverse gap-2 text-[10px] text-gray-400 font-arabic text-right mt-1">
+                                                <strong className="text-gray-500 shrink-0">المصدر:</strong>
+                                                <span>{issue.source_reference}</span>
+                                              </div>
+                                            )}
                                           </div>
                                         ))}
                                      </div>
@@ -3421,14 +3899,6 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                                            <span className="text-lg font-mono text-gray-900 font-bold">DETECTED</span>
                                         </div>
                                      </div>
-                                     <button 
-                                      onClick={handleExportZip}
-                                      disabled={isExportingZip}
-                                      className={`w-full py-6 font-mono text-[11px] font-black uppercase flex items-center justify-center gap-3 transition-all group ${isExportingZip ? 'bg-gray-50 text-gray-400 cursor-not-allowed' : 'bg-white text-black active:scale-95'}`}
-                                     >
-                                       {isExportingZip ? <Loader2 size={16} className="animate-spin text-gray-400" /> : <Download size={16} className="text-gray-900 group-active:scale-95.5 transition-transform" />}
-                                       {isExportingZip ? "ARCHIVING..." : "Deploy_Asset_Package (OMNI.ZIP)"}
-                                     </button>
                                   </motion.div>
                                 )}
                                 {activeTab === "audit" && (
@@ -3455,25 +3925,53 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
                              )}
                            </AnimatePresence>
 
-                           {/* TENSION / PACING MONITOR */}
-                           <div className="bg-white shadow-sm border border-gray-200 p-8 space-y-6  overflow-hidden relative">
-                              <div className="absolute top-0 left-0 w-full h-[3px]">
-                                {renderTensionHeatmap()}
-                              </div>
-                              <div className="flex justify-between items-center pt-2">
-                                 <span className="text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em] flex items-center gap-2 italic">
-                                    <Activity size={12} className="text-red-500 animate-pulse" /> Emotional_Pacing
-                                 </span>
-                                 <span className="text-[9px] font-mono text-gray-400 uppercase">Live_Analysis</span>
-                              </div>
+                               {/* TENSION / PACING MONITOR */}
+                               <div className="bg-white shadow-sm border border-gray-200 p-8 space-y-6  overflow-hidden relative">
+                                  <div className="absolute top-0 left-0 w-full h-[3px]">
+                                    {renderTensionHeatmap()}
+                                  </div>
+                                  <div className="flex justify-between items-center pt-2">
+                                     <span className="text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em] flex items-center gap-2 italic">
+                                        <Activity size={12} className="text-red-500 animate-pulse" /> Narrative_Pacing_Curve
+                                     </span>
+                                     <div className="flex gap-4">
+                                      <span className="text-[10px] text-gray-500 font-arabic flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-red-500 block"></span> ذروة (Climax)</span>
+                                      <span className="text-[10px] text-gray-500 font-arabic flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-blue-500 block"></span> صعود (Rising)</span>
+                                      <span className="text-[10px] text-gray-500 font-arabic flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-gray-200 block"></span> هدوء (Valley)</span>
+                                     </div>
+                                  </div>
+                                  {tensionPoints.length > 0 && (
+                                     <div className="h-32 w-full mt-4">
+                                       <ResponsiveContainer width="100%" height="100%">
+                                          <AreaChart data={tensionPoints.map((val, i) => ({ index: i, value: val }))} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
+                                            <defs>
+                                              <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                              </linearGradient>
+                                            </defs>
+                                            <Tooltip content={({ active, payload }) => {
+                                              if (active && payload && payload.length) {
+                                                return (
+                                                  <div className="bg-slate-900 border border-slate-700 p-2 shadow-xl rounded text-xs text-white">
+                                                    Intensity: {payload[0].value}
+                                                  </div>
+                                                );
+                                              }
+                                              return null;
+                                            }} />
+                                            <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={2} fillOpacity={1} fill="url(#colorValue)" />
+                                          </AreaChart>
+                                       </ResponsiveContainer>
+                                     </div>
+                                  )}
                               
                               <div className="flex items-end gap-[2px] h-20 w-full pt-4">
                                 {tensionPoints.map((p, i) => (
-                                  <motion.div 
+                                  <div 
                                     key={i}
-                                    initial={{ height: 0 }}
-                                    animate={{ height: `${p * 100}%` }}
-                                    className={`flex-1 ${p > 0.7 ? "bg-red-500" : p > 0.4 ? "bg-blue-600" : "bg-gray-100"}`}
+                                    style={{ height: `${(p / 10) * 100}%` }}
+                                    className={`flex-1 transition-all duration-500 ${p > 7 ? "bg-red-500" : p > 4 ? "bg-blue-600" : "bg-gray-100"}`}
                                   />
                                 ))}
                               </div>
@@ -3580,15 +4078,21 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
            
            <div className="w-[1px] h-8 bg-white border-gray-100 shadow-sm" />
            
-           <div className="flex gap-4 items-center flex-row-reverse">
-              <div className="p-2 border border-gray-200 bg-white">
+           <button 
+             onClick={() => setIsPersonaModalOpen(true)}
+             title="تغيير العدسة السردية (Persona)"
+             className="flex gap-4 items-center flex-row-reverse group cursor-pointer hover:bg-gray-50 p-2 transition-colors -m-2"
+           >
+              <div className="p-2 border border-gray-200 bg-white group-hover:border-cyan-400 transition-colors">
                 <User size={14} className="text-cyan-400" />
               </div>
-              <div>
-                <p className="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-0.5">Vocal_DNA</p>
-                <p className="text-xs font-arabic text-gray-900 font-bold leading-none">{persona}</p>
+              <div className="text-right">
+                <p className="text-[9px] font-mono text-gray-500 uppercase tracking-widest mb-0.5 group-hover:text-blue-600 transition-colors">صوت الراوي</p>
+                <p className="text-xs font-arabic text-gray-900 font-bold leading-none">
+                  {persona === 'النبّاش' ? 'المحقق' : persona.replace('برواز ', '')}
+                </p>
               </div>
-           </div>
+           </button>
         </div>
 
         <div className="flex items-center gap-6">
@@ -3605,15 +4109,15 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
            <div className="flex items-center gap-4 px-6 py-4 bg-white border-gray-100 shadow-sm border border-gray-200 whitespace-nowrap">
               <div className="flex items-center gap-2">
                  <button 
-                  onClick={() => setGlobalEngine("gemini")}
-                  className={`p-1.5 border transition-all ${globalEngine === "gemini" ? 'border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]' : 'border-gray-200 text-gray-500 active:scale-95'}`}
+                  onClick={() => setUseOllama(false)}
+                  className={`p-1.5 border transition-all ${!useOllama ? 'border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]' : 'border-gray-200 text-gray-500 active:scale-95'}`}
                   title="Cloud Engine (Gemini)"
                  >
                    <Zap size={14} />
                  </button>
                  <button 
-                  onClick={() => setGlobalEngine("ollama")}
-                  className={`p-1.5 border transition-all ${globalEngine === "ollama" ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]' : 'border-gray-200 text-gray-500 active:scale-95'}`}
+                  onClick={() => setUseOllama(true)}
+                  className={`p-1.5 border transition-all ${useOllama ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]' : 'border-gray-200 text-gray-500 active:scale-95'}`}
                   title="Local Engine (Ollama)"
                  >
                    <Database size={14} />
@@ -3632,16 +4136,24 @@ END OF DOCUMENT // NO UNAUTHORIZED DUPLICATION
               </button>
               <div className="w-[1px] h-4 bg-gray-100 mx-1" />
               <div className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor]`} style={{ color: mainAccent, backgroundColor: mainAccent }} />
-              <span className="text-[10px] font-mono text-gray-600 uppercase tracking-[0.4em] font-bold">{globalEngine === 'ollama' ? 'LOCAL_ACTIVE' : 'CLOUD_ACTIVE'}</span>
+              <span className="text-[10px] font-mono text-gray-600 uppercase tracking-[0.4em] font-bold">{useOllama ? 'LOCAL_ACTIVE' : 'CLOUD_ACTIVE'}</span>
            </div>
         </div>
       </footer>
 
       {/* MODALS & OVERLAYS */}
       <AnimatePresence>
-         <SettingsUI />
+         <PersonaSelectionModal 
+           key="persona-modal"
+           isOpen={isPersonaModalOpen}
+           onClose={() => setIsPersonaModalOpen(false)}
+           currentPersona={persona}
+           onSelect={setPersona}
+         />
+         <SettingsUI key="settings-ui" />
          {showTeleprompter && (
             <TeleprompterOverlay 
+              key="teleprompter"
               script={finalVoiceScript}
               onClose={() => setShowTeleprompter(false)} 
             />
@@ -3692,9 +4204,23 @@ const PersonaSelectionModal: React.FC<PersonaSelectionModalProps> = ({
     {
       type: "برواز الحكاوي",
       icon: Headphones,
-      title: "الراوي القصصي",
+      title: "الحكواتي (الراوي الحميمي)",
       description:
-        "راوي قصص غامضة ومثيرة تعتمد على الفولكلور والحكاوي الشعبية.",
+        "يأخذ المشاهد في رحلة مليئة بالنوستالجيا وسرد شعبي كلاسيكي.",
+    },
+    {
+      type: "شاهد على العصر",
+      icon: Video,
+      title: "شاهد على العصر",
+      description:
+        "يعتمد على الوثائق والأرشيف واقتباسات الشهود لسرد سيرة ومسيرة الشخصيات.",
+    },
+    {
+      type: "الشاهد الصامت",
+      icon: Eye,
+      title: "الشاهد الصامت",
+      description:
+        "سرد من منظور غير اعتيادي (تقمص روح كائن أو جماد حضر الواقعة).",
     },
   ];
 

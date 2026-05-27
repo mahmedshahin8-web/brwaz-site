@@ -51,8 +51,8 @@ export const BARWAZ_DNA: ChannelDNA = {
     "المثير للاهتمام"
   ],
   visual_rules: {
-    global_style: "Cinematic lighting, 8k resolution, highly detailed, masterpieces style, hyper-realistic textures, ultra photorealistic",
-    negative_prompt: "no people, no humans, no faces, no characters, no text, no letters, no typography, no Arabic, no words, no clones, no duplicates, low quality, blurry, distorted"
+    global_style: "retro-futuristic mid-century modern illustration style, vintage editorial illustrations, atomic age design. flat geometric shapes, minimal elegant detail, textured paper grain, muted retro color palette, soft vintage print imperfections, clean vector-like composition, cinematic negative space. textured screenprint look.",
+    negative_prompt: "realistic, 3d render, photography, text, letters, watermark"
   }
 };
 
@@ -75,6 +75,16 @@ ${dna.dialect_instructions}
 [RECOMMENDED PHRASES & LEXICON (Use naturally, do not overuse)]:
 - ${dna.vocabulary_lexicon.join("\n- ")}
 
+[MANDATORY SCRIPT STRUCTURE: THE 5-ACT SCRIPT STRUCTURE]
+توجيه صارم للنموذج: يُمنع الدخول في السرد التاريخي أو التحليلي مباشرة (Body) دون المرور بـ (Hook) و (Intro) قويين يهيئان المشاهد، مهما كان الموضوع المختار. لضمان خروج السكريبتات في شكل حلقات وثائقية احترافية جاهزة للإنتاج، يجب أن تتبع بنية سردية خماسية إجبارية في جميع الأوضاع وفي أي موضوع يتم اختياره.
+
+يجب أن يُولد السكريبت مقسماً هندسياً إلى الأقسام التالية:
+1. [THE HOOK / COLD OPEN]: يجب أن يبدأ السكريبت بصدمة (Paradox) أو مفارقة غريبة أو سرد نتيجة كارثية دون مقدمات، لجذب المشاهد في أول 30 ثانية.
+2. [THE INTRO]: الترحيب بالمشاهد، طرح التساؤل الرئيسي للحلقة (The Core Question)، والتمهيد للموضوع.
+3. [THE BODY & ARCHIVE]: السرد التحليلي العميق، مدمجاً بـ (محرك الشهادات والأرشيف) لكسر الرتابة وعرض الأدلة.
+4. [THE CLIMAX]: الوصول لأعلى نقطة ذروة أو صراع في الموضوع (أكبر مؤامرة، أكبر صدمة نفسية أو علمية).
+5. [THE OUTRO]: خاتمة فلسفية أو ساخرة تربط الماضي بالحاضر، مع قفلة درامية قوية (Punchline)، تليها جملة الختام المعتادة لطلب التفاعل (اللايك، الاشتراك، ومشاركة الرأي في التعليقات).
+
 [WRITING RULES]:
 1. CRITICAL: DO NOT REPEAT YOURSELF. Each scene and paragraph must present NEW facts and information. Do not re-use sentences or concepts from previous scenes.
 2. Vary your vocabulary natively as a real Egyptian storyteller would. Do not start multiple scenes with the same phrase.
@@ -83,8 +93,8 @@ ${dna.dialect_instructions}
 5. Use punctuation (..., !, ؟) clearly to indicate pauses and tone changes for the voice actor.
 
 [VISUAL AUTOMATION RULES]:
-When generating AI Image Prompts (like Midjourney, DALL-E) always adhere to the following visual rules unless explicitly overridden for text overlays:
-Global Style: ${dna.visual_rules.global_style}
-Negative Prompt (Things to ALWAYS exclude): ${dna.visual_rules.negative_prompt}
+When generating ANY image prompt (such as image_prompt_nano_banana), you MUST ALWAYS APPEND EXACTLY the following style block at the end of the prompt:
+", ${dna.visual_rules.global_style} --ar 16:9 --v 6.0 --no ${dna.visual_rules.negative_prompt}"
+DO NOT alter or paraphrase this style string. It is our mandatory visual fingerprint.
 `;
 }

@@ -63,7 +63,7 @@ export const KnowledgeGraphPage: React.FC = () => {
       <header className="flex flex-col gap-2 border-b border-gray-200 pb-6 shrink-0 relative z-10">
         <div className="flex items-center gap-3 text-blue-600">
           <Zap size={24} className="animate-pulse" />
-          <h1 className="text-3xl font-mono font-black tracking-tighter uppercase leading-none">[KNOWLEDGE_GRAPH] // مرصد العمليات</h1>
+          <h1 className="text-3xl font-mono font-black tracking-tighter uppercase leading-none">[ENTITY_RADAR] // رادار الكيانات</h1>
         </div>
         <p className="text-gray-600 font-mono text-[10px] leading-relaxed mt-2 uppercase tracking-widest flex items-center gap-4">
           <span><Activity className="inline w-3 h-3 text-cyan-400 mr-1"/> ACTIVE_NODES: {graphData.nodes.length}</span>

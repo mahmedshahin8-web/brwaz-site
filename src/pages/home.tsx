@@ -96,7 +96,7 @@ export const Home: React.FC = () => {
             مرحباً بك في برواز ستوديو
           </h2>
           <p className="text-gray-500 font-arabic">
-            إدارة المحتوى، متابعة الأحداث الجارية، وبناء السكريبتات الذكية من مكان واحد.
+            إدارة المحتوى، متابعة الأحداث الساخنة، وبناء السكريبتات الذكية من مكان واحد.
           </p>
         </div>
         <div className="flex gap-4">
@@ -171,7 +171,7 @@ export const Home: React.FC = () => {
                  onClick={() => navigate('/content')}
                />
                <ActionCard 
-                 title="محرر السكريبت" 
+                 title="كتابة السيناريو" 
                  desc="إنشاء وتعديل النصوص" 
                  icon={FileText} 
                  onClick={() => navigate('/script-editor')}

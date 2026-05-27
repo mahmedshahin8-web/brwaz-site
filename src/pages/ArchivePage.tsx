@@ -56,7 +56,7 @@ export default function ArchivePage() {
                    <span className="data-text neon-red text-[10px] tracking-[0.5em] font-bold">CLASSIFIED_VAULT_ACCESS // SECTOR_DEEP_RPA</span>
                </div>
                <h2 className="text-5xl font-black tracking-widest text-gray-900 leading-none uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                 أرشيف الكيانات <span className="font-mono text-red-600 opacity-80">[THE_VAULT]</span>
+                 المسودات والأرشيف <span className="font-mono text-red-600 opacity-80">[THE_VAULT]</span>
                </h2>
            </div>
         </div>

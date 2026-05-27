@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
       <header className="flex flex-col md:flex-row gap-4 justify-between items-start md:items-center border-b border-gray-200 pb-6 relative z-10">
         <div className="flex items-center gap-3 text-cyan-400">
           <Network className="w-6 h-6" />
-          <h1 className="text-3xl font-arabic font-black tracking-tighter uppercase leading-none">[IMPACT_RADAR] // تقرير الانتشار المعرفي</h1>
+          <h1 className="text-3xl font-arabic font-black tracking-tighter uppercase leading-none">[IMPACT_RADAR] // تقارير الأداء</h1>
         </div>
       </header>
 

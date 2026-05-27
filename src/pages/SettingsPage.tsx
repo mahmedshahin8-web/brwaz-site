@@ -3,12 +3,15 @@ import { Cpu, Mic2, ShieldAlert } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function SettingsPage() {
-  const [useOllama, setUseOllama] = useState(() => localStorage.getItem("useOllama") === "true");
+  const [useOllama, setUseOllama] = useState(() => {
+    const stored = localStorage.getItem("useOllama");
+    return stored === null ? true : stored === "true";
+  });
   const [ollamaUrl, setOllamaUrl] = useState(() => {
     const stored = localStorage.getItem("ollamaUrl");
-    return (stored && stored !== "http://127.0.0.1:11434") ? stored : "http://localhost:11434";
+    return (stored && stored !== "http://127.0.0.1:11434") ? stored : "https://improvise-attire-giblet.ngrok-free.dev";
   });
-  const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("ollamaModel") || "llama3.1");
+  const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("ollamaModel") || "gemma4:31b-cloud");
   const [elevenLabsKey, setElevenLabsKey] = useState(() => localStorage.getItem("elevenLabsKey") || "");
   const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState(() => localStorage.getItem("elevenLabsVoiceId") || "pNInz6obbfDQGcgMyIGC");
   const [conflictBias, setConflictBias] = useState(() => parseInt(localStorage.getItem("conflictBias") || "50"));

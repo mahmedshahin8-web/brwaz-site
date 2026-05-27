@@ -71,6 +71,7 @@ Available Moods:
 - برواز الحكاوي: Warm, nostalgic, folklore.
 - برواز التاريخ: Epic, ancient, academic past.
 - برواز التكنو: Futuristic, paranoid, cyber.
+- شاهد على العصر: Public figures, biographies, heavy reliance on archival quotes and TV interviews.
 - النبّاش: Harsh investigator, urban reality, exposing truths.
 
 Output JSON only.`;
@@ -125,6 +126,10 @@ export function getPersonaInstructions(persona: PersonaType): string {
       return coreAnchor + "\n[العدسة السردية: التاريخ]: وجه تحليلك المخابراتي/الصحفي نحو الماضي. استخدم مجازات بصرية كالوثائق الصفراء والمخطوطات، واجعل نبرتك ملحمية وتاريخية دون التخلي عن العامية القاهرية الرصينة.";
     case "برواز التكنو":
       return coreAnchor + "\n[العدسة السردية: التكنو]: اجعل إيقاعك أسرع قليلاً، وضخ البارانويا التحذيرية والخيال العلمي والسايبرسكيورتي في تحليلك. أنت محقق يعيش في المستقبل الديسطوبي.";
+    case "شاهد على العصر":
+      return coreAnchor + "\n[العدسة السردية: شاهد على العصر]: يركز السرد على مسيرة الشخصيات العامة، صراعاتهم التراجيدية والملحمية. استعن بكثرة باقتباسات أرشيفية دقيقة من لقاءاتهم التليفزيونية أو شهادات المعاصرين لهم. السرد يعتمد على كسر إيقاع النص بمقاطع وشهادات من الأرشيف.";
+    case "الشاهد الصامت":
+      return coreAnchor + "\n[العدسة السردية: الشاهد الصامت]: تتقمص روح كائن مهمش أو جماد حضر الواقعة (حصان في معركة، باب قلعة في حصار، وثيقة على مكتب رئيس). اروِ الحدث التاريخي أو الديني من هذه الزاوية غير المعتادة ببراعة. اجعل السرد ذاتياً وعاطفياً من منظور هذا الكائن دون أن تكشف عن طبيعتك بشكل مباشر منذ البداية، وتجنب السرد التقريري التقليدي المباشر.";
     case "النبّاش":
     default:
       return coreAnchor + "\n[العدسة السردية: النبّاش]: أنت صحفي استقصائي حاد يسير في الشوارع وخلف المكاتب بحثاً عن الحقيقة الملفقة. صياغتك صارمة، واقعية، تفكك الجرائم والأسرار المالية والسياسية.";
@@ -164,6 +169,12 @@ export const Node2Schema = z.object({
   music_prompt: z.string().describe("Music prompt for Lyria 3 based on mood, including recommended instruments and pacing state"),
   music_bpm: z.number().describe("Recommended Beats Per Minute (BPM) for this scene's tension level"),
   sfx_prompt: z.string().describe("Targeted SFX prompt for Lyria 3"),
+  archival_quotes: z.array(z.object({
+    speaker: z.string().describe("Name of the public figure or witness"),
+    quote_text: z.string().describe("The exact historical quote or testimony"),
+    source_context: z.string().optional().describe("Context of where/when it was said (e.g. '1998 TV Interview')"),
+    is_audio_available: z.boolean().optional().describe("Would this quote likely have actual video/audio available in archives?")
+  })).optional().describe("Archival quotes or TV interview testimonies to break the pacing and add documentary depth"),
 });
 
 export type Node2Narrative = z.infer<typeof Node2Schema>;
@@ -175,8 +186,10 @@ export const Node3Schema = z.object({
     visual_cue: z.string(),
     montage_instructions: z.string(),
     sound_design: z.string(),
-    image_prompt_nano_banana: z.string(),
-    ai_video_prompt: z.string(),
+    first_frame_image_prompt: z.string(),
+    first_frame_motion_prompt: z.string(),
+    second_frame_image_prompt: z.string(),
+    second_frame_motion_prompt: z.string(),
     b_roll_keywords: z.string().optional()
   }))
 });
@@ -218,7 +231,15 @@ export type MoodType =
   | "الصندوق الأسود"
   | "النبش المعماري"
   | "لوغاريتمات السلطة"
-  | "أطلس الانهيار";
+  | "أطلس الانهيار"
+  | "حلبة الدسات"
+  | "كوميديا العبث التاريخي"
+  | "لعنة الماستر بيس"
+  | "المحكمة الموازية"
+  | "تشريح التريند القديم"
+  | "تأثير الفراشة"
+  | "فَتِّش عن السَّبُّوبَة"
+  | "التشريح العلمي للخرافة";
 
 export function getMoodContext(mood: MoodType): {
   researchAngle: string;
@@ -461,6 +482,62 @@ export function getMoodContext(mood: MoodType): {
       archivalTreasureRules: "ربط الأحداث بالمدارس الفلسفية القديمة، تحليل الظاهراتية، مقولات الفلاسفة وانعكاسها على الحوادث المجتمعية المستحدثة.",
       ragVaults: ["كتب الفلسفة الإسلامية والعربية", "أمهات الكتب في علم الاجتماع (ابن خلدون)", "مقالات زكي نجيب محمود ومصطفى محمود"],
     };
+  } else if (mood === "حلبة الدسات") {
+    return {
+      researchAngle: "التعامل مع الشعراء والأدباء والشخصيات التاريخية كأنهم مقاتلين في حلبة راب. تحليل النقائض والعداوات التاريخية.",
+      scriptingStyle: "Aggressive, competitive, and lyrical. سرد يتميز بأسلوب المواجهة، كأنه يغطي معركة أو ديس تراك.",
+      visualAudioStyle: "Split-screens, fast-paced cuts, beat-driven rhythm, boxing ring aesthetics.",
+      archivalTreasureRules: "استخراج القصائد الهجائية، المراسلات القاسية المتبادلة، ومانشيتات الهجوم الصحفي.",
+    };
+  } else if (mood === "كوميديا العبث التاريخي") {
+    return {
+      researchAngle: "تحليل الأحداث التاريخية الكبرى التي قامت لأسباب تافهة والقرارات السلطوية الغريبة بشكل ساخر ونقد منطقي.",
+      scriptingStyle: "Absurdist, satirical, and mocking. الاعتماد على المنطق الحديث لفضح جنون الماضي.",
+      visualAudioStyle: "Comedic timing, awkward silences, juxtaposed absurd images with serious classical music.",
+      archivalTreasureRules: "مخطوطات المؤرخين عن النوادر، نصوص المعابد القديمة السخيفة، أوامر ملكية منسية، وسجلات الخسائر المضحكة.",
+    };
+  } else if (mood === "لعنة الماستر بيس") {
+    return {
+      researchAngle: "التركيز على المآسي، الآلام، والانهيارات النفسية والمادية التي صاحبت خروج الأعمال الفنية العظيمة للنور.",
+      scriptingStyle: "Tragic, reverent, yet deeply melancholic. سرد يفصل بين عظمة العمل ومعاناة صانعه.",
+      visualAudioStyle: "Haunting beauty, slow zooms on details of art, tragic and somber score.",
+      archivalTreasureRules: "مذكرات الفنانين، مسودات مكتظة بالشطب، حسابات الإنتاج، وخطابات الانتحار أو الاكتئاب.",
+    };
+  } else if (mood === "المحكمة الموازية") {
+    return {
+      researchAngle: "إعادة محاكمة شخصية تاريخية أو عامة (شريرة أو عظيمة جداً) ولعب دور محامي الشيطان للبحث عن المبررات أو العيوب.",
+      scriptingStyle: "Legalistic, provocative, and balanced. مرافعة محامي تثير الشكوك وتعكس الصورة النمطية.",
+      visualAudioStyle: "Cold sterile lighting, magnifying glass overlays, ticking clock, gavel impacts.",
+      archivalTreasureRules: "شهادات المعاصرين الكارهين والمحبين، وثائق المحاكمات القديمة، مذكرات التبرير، ورسائل الاعتذار.",
+    };
+  } else if (mood === "تشريح التريند القديم") {
+    return {
+      researchAngle: "تحليل الظواهر، الخرافات، والشائعات التاريخية وكأنها 'تريندات' سوشيال ميديا انتشرت في الماضي.",
+      scriptingStyle: "Pop-cultural, analytical, past-meets-present. لغة عصر الإنترنت مطبقة على أحداث الجاهلية أو العصور الوسطى.",
+      visualAudioStyle: "Retro UI elements intersecting with old scrolls, scroll/swipe sound effects.",
+      archivalTreasureRules: "كتب التراث، حكايات الرحالة، قصاصات الجرائد عن الحوادث الجماهيرية الغريبة والشائعات.",
+    };
+  } else if (mood === "تأثير الفراشة") {
+    return {
+      researchAngle: "تتبع سلسلة الأسباب الكارثية الناتجة عن حدث تافه جداً أو قرار غير مهم في وقته.",
+      scriptingStyle: "Reverse-chronological or chain-reaction storytelling. سرد متسارع يبدأ بالنتيجة الكارثية ويرجع للسبب التافه.",
+      visualAudioStyle: "Rewind effects, domino chains, intricate connecting webs, escalating tension.",
+      archivalTreasureRules: "التركيز على التفاصيل الصغيرة في اليوميات والمذكرات، الأحداث الهامشية التي أهملها المؤرخون الرئيسيون.",
+    };
+  } else if (mood === "فَتِّش عن السَّبُّوبَة") {
+    return {
+      researchAngle: "التفسير الاقتصادي البحت والمادي لأحداث أدبية وفنية وتاريخية، إثبات أن المال والمصلحة هما المحرك الأساسي.",
+      scriptingStyle: "Cynical, transactional, 'Follow the Money' vibe. سرد براجماتي يفكك المثالية بنظرية السوق.",
+      visualAudioStyle: "Clinking coins, cash registers, ledgers, ascending/descending market graphs.",
+      archivalTreasureRules: "الأرقام، عقود الإنتاج، وثائق الضرائب القديمة، ميزانيات الجيوش وحملات الدعاية القبلية أو السياسية.",
+    };
+  } else if (mood === "التشريح العلمي للخرافة") {
+    return {
+      researchAngle: "وضع الخرافات والأساطير التاريخية تحت ميكروسكوب العلم الحديث، الطب، والفيزياء لفهم أبعادها وتفنيدها.",
+      scriptingStyle: "Scientific, skeptical, yet highly entertaining. صدمة علمية كوميدية تفكك المبالغات.",
+      visualAudioStyle: "Microscopes, blueprints, X-rays, scientific calculations overlaid on classic paintings.",
+      archivalTreasureRules: "الأبحاث العلمية الحديثة، التقارير الطبية، ونظريات الفيزياء المطبقة بأثر رجعي.",
+    };
   }
   return { researchAngle: "بحث موضوعي", scriptingStyle: "سرد تقليدي", visualAudioStyle: "مرئي عام", archivalTreasureRules: "ابحث في الموسوعات العامة" };
 }
@@ -486,40 +563,32 @@ CRITICAL DIRECTIVE: You MUST adjust the level of conflict, contradiction highlig
   return basePrompt + "\n" + conflictInstructions;
 }
 
-const GLOBAL_IMAGE_STYLE = "Hand-drawn Ink Sketch, deep black ink, etching style, high contrast, fine line work, masterpiece, highly detailed, expressive strokes";
-const GLOBAL_NEGATIVE_PROMPT = "Western features, European people, blue eyes, blonde hair, 3d render, cartoon, plastic, typography, text, letters, watermarks, signatures, blurry, low resolution, multiple people";
-
-export function applyGlobalStyle(prompt: string, mood?: MoodType): string {
+export function applyGlobalStyle(prompt: string, mood?: MoodType, isVertical = false): string {
   if (!prompt || prompt.trim() === "") return prompt;
+
+  const DNA = getChannelDNA('barwaz_classic');
+  const GLOBAL_IMAGE_STYLE = DNA.visual_rules.global_style;
+  const GLOBAL_NEGATIVE_PROMPT = DNA.visual_rules.negative_prompt;
 
   let finalPrompt = prompt;
   
   // Add base DNA
-  if (!finalPrompt.toLowerCase().includes("ink sketch")) {
+  if (!finalPrompt.includes("retro-futuristic")) {
     finalPrompt = `${finalPrompt}, ${GLOBAL_IMAGE_STYLE}`;
   }
 
-  // Add Paper Texture DNA
-  if (!finalPrompt.toLowerCase().includes("paper")) {
-    finalPrompt = `${finalPrompt}, on aged vintage yellowed paper with coffee stains and ink splatters, rough paper texture`;
-  }
-
-  // Add Marginalia DNA
-  if (!finalPrompt.toLowerCase().includes("margin")) {
-    finalPrompt = `${finalPrompt}, messy handwritten Arabic calligraphy scribbles in the side margins as annotations`;
-  }
-
-  // Add Egyptian Soul DNA (Anti-Euro bias)
-  finalPrompt = `${finalPrompt}, authentic Egyptian features, dark hair, olive skin, Cairene soul`;
-
-  // Add Negative Prompt
-  if (!finalPrompt.includes(GLOBAL_NEGATIVE_PROMPT)) {
-    finalPrompt = `${finalPrompt} --no ${GLOBAL_NEGATIVE_PROMPT}`;
-  }
-
-  // Add Aspect Ratio
+  // Ensure aspect ratio and version for Midjourney
   if (!finalPrompt.includes("--ar")) {
-    finalPrompt = `${finalPrompt} --ar 16:9`;
+    finalPrompt = `${finalPrompt} --ar ${isVertical ? '9:16' : '16:9'}`;
+  }
+  if (!finalPrompt.includes("--v")) {
+    finalPrompt = `${finalPrompt} --v 6.0`;
+  }
+
+  if (GLOBAL_NEGATIVE_PROMPT) {
+      if (!finalPrompt.includes("--no")) {
+          finalPrompt = `${finalPrompt} --no ${GLOBAL_NEGATIVE_PROMPT}`;
+      }
   }
 
   return finalPrompt;
@@ -565,17 +634,22 @@ export async function generateAIContentRaw(
 5. قاعدة حماية النصوص البصرية (Visual Text Lock):
 - النص المطلوب داخل التصميمات يكتب EXACTLY كما هو بالعربية. لا لترجمة النصوص داخل التصميم.
 
-6. بروتوكول Narrative DNA v2.1:
-- الالتزام الصارم بقواعد (HCS/HAP) في الافتتاحية.
-- إدارة دوائر الفضول (Open Loops) عبر علامات O و C.
-- إنهاء الفيديو بأسلوب (Guillotine Ending) الصادم دون خاتمة تقليدية.`;
+6. بروتوكول البنية الخماسية (The 5-Act Structure) - الإجباري:
+- [THE HOOK / COLD OPEN]: صدمة البداية في أول 30 ثانية.
+- [THE INTRO]: طرح التساؤل الرئيسي للحلقة (The Core Question).
+- [THE BODY & ARCHIVE]: السرد التحليلي العميق وعرض الأدلة.
+- [THE CLIMAX]: ذروة الصراع أو أكبر صدمة.
+- [THE OUTRO]: خاتمة فلسفية، تليها قفلة درامية (Punchline)، وطلب التفاعل (لايك، اشتراك، تعليق). يُمنع السرد بدون المرور بالهوك والمقدمة أولاً.`;
 
   try {
-    const globalEngine = typeof window !== "undefined" ? localStorage.getItem("globalEngine") || "gemini" : "gemini";
+    const useOllamaLocal = typeof window !== "undefined" ? localStorage.getItem("useOllama") === "true" : false;
+    const globalEngineFallback = useOllamaLocal ? "ollama" : "gemini";
     const quotaShield = typeof window !== "undefined" ? localStorage.getItem("isQuotaShield") !== "false" : true;
     
-    // Use engine if explicitly provided, else use globalEngine
-    const targetEngine = engine || globalEngine;
+    // Use engine if explicitly provided, else use the toggle fallback
+    const targetEngine = engine || globalEngineFallback;
+    const ollamaUrl = typeof window !== "undefined" ? localStorage.getItem("ollamaUrl") : undefined;
+    const ollamaModel = typeof window !== "undefined" ? localStorage.getItem("ollamaModel") : undefined;
 
     const performFetch = async () => {
       const response = await apiFetch("/api/ai/generate", {
@@ -585,6 +659,8 @@ export async function generateAIContentRaw(
           prompt,
           systemInstruction: engineSystemInstruction,
           engine: targetEngine,
+          ollamaUrl: targetEngine === "ollama" ? ollamaUrl : undefined,
+          ollamaModel: targetEngine === "ollama" ? ollamaModel : undefined,
           schema,
           temperature,
           quotaShield
@@ -710,6 +786,12 @@ export function safeJsonParse(text: string, fallback: any = null) {
     }
   }
 
+  // Attempt to auto-repair common JSON errors (like missing commas between fields)
+  cleanedText = cleanedText.replace(/(["}\]])\s*\n\s*"/g, '$1,\n"');
+  
+  // Check for trailing commas which break JSON.parse
+  cleanedText = cleanedText.replace(/,\s*([}\]])/g, '$1');
+
   try {
     return JSON.parse(cleanedText);
   } catch (e) {
@@ -738,28 +820,9 @@ export async function generateTitle(
   const moodContext = getMoodContext(mood);
   let specificRules = "";
 
-  // Ideation Engine V2: Dynamic Seed Matrices for Randomness
-  const eras = [
-    "مصر في القرن التاسع عشر", "حقبة المماليك", "أوائل القرن العشرين",
-    "فترة الستينيات الباردة", "عصر النهضة العمرانية القديمة", "الحرب العالمية في مصر"
-  ];
-  const domains = [
-    "الطب الشعبي والتشريح", "الهندسة المعمارية الغامضة", "الجاسوسية والوثائق السرية",
-    "جرائم غير محلولة بعبقرية", "مخطوطات اختفت فجأة", "انهيار اقتصادي تاريخي منسي",
-    "صراعات فكرية أدت لجرائم"
-  ];
-  const angles = [
-    "الخيانة من أٌقرب الناس", "الجشع الذي دمر مدينة", "الفرصة الذهبية التي تحولت للعنة",
-    "الصدفة التي غيرت التاريخ", "الغرور الذي أعمى البصيرة", "العبقرية المجنونة"
-  ];
-
-  const randomEra = eras[Math.floor(Math.random() * eras.length)];
-  const randomDomain = domains[Math.floor(Math.random() * domains.length)];
-  const randomAngle = angles[Math.floor(Math.random() * angles.length)];
-
   const isRandomSeed = !topic || topic.trim() === "";
   const effectiveTopic = isRandomSeed 
-      ? `[Dynamic Seed]: فكرة عشوائية وتاريخية تدور حول (${randomDomain}) في (${randomEra}) مع تركيز درامي على (${randomAngle}).` 
+      ? `[Dynamic Seed]: قم بابتكار موضوع أصلي، نادر، ومثير جداً للاهتمام، يتناسب بنسبة ١٠٠٪ مع المود المختار وتخصصه الدقيق. لا تستخدم أفكاراً مستهلكة، بل ابحث عن قصة تنسجم بالكامل مع متطلبات المود السردية.` 
       : topic;
 
   if (mood === "حكاوي الأجداد" && isRandomSeed) {
@@ -894,12 +957,12 @@ RULES:
 [CRITICAL]: Your response must be PURE JSON matching the schema.
 {
   "packaging": { "youtube_titles": ["string"], "thumbnail_concept": "string", "thumbnail_midjourney_prompt": "string", "description_al_daheeh_style": "string", "tags": ["string"] },
-  "shorts": [ { "title": "string", "hook": "string", "body": "string", "cta": "string", "visual_instructions": "string" } ],
+  "shorts": [ { "title": "string", "hook": "string", "body": "string", "cta": "string", "visual_instructions": "string", "image_prompt_vertical_nano": "string" } ],
   "omnichannel": {
     "twitter_thread": ["string", "string", "string"],
     "social_posts": [
-      { "platform": "Facebook/LinkedIn", "content": "string" },
-      { "platform": "Instagram", "content": "string" }
+      { "platform": "Facebook/LinkedIn", "content": "string", "image_prompt_square": "string" },
+      { "platform": "Instagram", "content": "string", "image_prompt_square": "string" }
     ]
   }
 }`;
@@ -931,8 +994,9 @@ RULES:
                 body: { type: Type.STRING },
                 cta: { type: Type.STRING },
                 visual_instructions: { type: Type.STRING },
+                image_prompt_vertical_nano: { type: Type.STRING },
               },
-              required: ["title", "hook", "body", "cta", "visual_instructions"],
+              required: ["title", "hook", "body", "cta", "visual_instructions", "image_prompt_vertical_nano"],
             },
           },
           omnichannel: {
@@ -945,9 +1009,10 @@ RULES:
                   type: Type.OBJECT,
                   properties: {
                     platform: { type: Type.STRING },
-                    content: { type: Type.STRING }
+                    content: { type: Type.STRING },
+                    image_prompt_square: { type: Type.STRING }
                   },
-                  required: ["platform", "content"]
+                  required: ["platform", "content", "image_prompt_square"]
                 }
               }
             },
@@ -1382,9 +1447,14 @@ export async function generateEpisode(
   const processedScenes = allScenes.map((s, idx) => ({
     ...s,
     asset_id: `[Scene ${String(idx + 1).padStart(2, "0")}]`,
-    image_prompt_nano_banana: applyGlobalStyle(
-      s.image_prompt_nano_banana || "",
+    first_frame_image_prompt: applyGlobalStyle(
+      s.first_frame_image_prompt || "",
     ),
+    first_frame_motion_prompt: s.first_frame_motion_prompt || "",
+    second_frame_image_prompt: applyGlobalStyle(
+      s.second_frame_image_prompt || "",
+    ),
+    second_frame_motion_prompt: s.second_frame_motion_prompt || "",
   }));
   const processedShorts = (packaging.shorts || []).map((s: any) => ({
     ...s,
@@ -1405,8 +1475,10 @@ export async function generateEpisode(
       visual_cue: "",
       montage_instructions: "",
       sound_design: "",
-      image_prompt_nano_banana: "",
-      ai_video_prompt: "",
+      first_frame_image_prompt: "",
+      first_frame_motion_prompt: "",
+      second_frame_image_prompt: "",
+      second_frame_motion_prompt: "",
     },
     scenes: (processedScenes || []).slice(1),
     sources: design.sources || [],
@@ -1821,9 +1893,10 @@ RULES:
 1. THE SCRIPT: You must use the EXACT words from the provided script text, splitting them across scenes smoothly so no words are left behind or changed.
 2. VISUAL DIVERSITY: ${historyText}
 Ensure new visual prompts use different camera angles (e.g. macro shot, wide drone shot, point of view) or subjects compared to the previous visuals to prevent repetition.
-3. NEGATIVE PROMPTS: We must enforce high quality. Assume the system injects 'no text, no watermark, no clutter' automatically, but your 'image_prompt_nano_banana' must focus strictly on Subject + Action + Lighting. 
-4. ARABIC TEXT: If a scene specifically needs Arabic text visible (like a newspaper), wrap it in single quotes: 'النص هنا' in the prompt.
-5. JSON STRICTNESS: Return ONLY valid JSON matching the schema.
+3. CINEMATIC SEQUENCING: For every scene, you MUST generate two frames: 'first_frame' (e.g., establishing shot or wide angle) and 'second_frame' (e.g., close-up, reaction, or different angle). Both must share exactly the same lighting, location, era, and characters to ensure a seamless cut. High visual continuity is extremely important!
+4. NEGATIVE PROMPTS: We must enforce high quality. Assume the system injects 'no text, no watermark, no clutter' automatically, but your image prompts must focus strictly on Subject + Action + Lighting. Also enforce strict cultural rules (e.g. no European features for Arab settings).
+5. ARABIC TEXT: If a scene specifically needs Arabic text visible (like a newspaper), wrap it in single quotes: 'النص هنا' in the prompt.
+6. JSON STRICTNESS: Return ONLY valid JSON matching the schema.
 
 JSON SCHEMA:
 {
@@ -1834,8 +1907,10 @@ JSON SCHEMA:
       "visual_cue": "Arabic desc of visual",
       "montage_instructions": "Arabic notes",
       "sound_design": "Arabic SFX notes",
-      "image_prompt_nano_banana": "English image prompt",
-      "ai_video_prompt": "English motion prompt for runway/kling",
+      "first_frame_image_prompt": "English image prompt for shot 1",
+      "first_frame_motion_prompt": "English motion prompt for runway/kling for shot 1",
+      "second_frame_image_prompt": "English image prompt for shot 2 (seamless continuation)",
+      "second_frame_motion_prompt": "English motion prompt for runway/kling for shot 2",
       "b_roll_keywords": "comma separated english keywords for stock footage search"
     }
   ]
@@ -1862,11 +1937,13 @@ ${scriptText}
                 visual_cue: { type: Type.STRING },
                 montage_instructions: { type: Type.STRING },
                 sound_design: { type: Type.STRING },
-                image_prompt_nano_banana: { type: Type.STRING },
-                ai_video_prompt: { type: Type.STRING },
+                first_frame_image_prompt: { type: Type.STRING },
+                first_frame_motion_prompt: { type: Type.STRING },
+                second_frame_image_prompt: { type: Type.STRING },
+                second_frame_motion_prompt: { type: Type.STRING },
                 b_roll_keywords: { type: Type.STRING },
               },
-              required: ["asset_id", "voice_over", "visual_cue", "montage_instructions", "sound_design", "image_prompt_nano_banana", "ai_video_prompt", "b_roll_keywords"]
+              required: ["asset_id", "voice_over", "visual_cue", "montage_instructions", "sound_design", "first_frame_image_prompt", "first_frame_motion_prompt", "second_frame_image_prompt", "second_frame_motion_prompt", "b_roll_keywords"]
             }
           }
         },
@@ -1880,6 +1957,126 @@ ${scriptText}
     return Node3Schema.parse({
       scenes: parsedData.scenes || []
     });
+  });
+}
+
+export async function executeAgent_DeepResearcher(
+  topic: string,
+  mood: MoodType,
+  engine: string,
+  onChunk?: (text: string) => void
+) {
+  if (onChunk) onChunk("[!] عقل الباحث: استخراج مثلث الأدلة (الرواية، الكواليس، الهجوم)...");
+  
+  const prompt = `[Agent: Deep Researcher (عقل الباحث)]
+You are a highly skilled Deep Researcher. Analyze the topic: "${topic}"
+Extract the "Evidence Triangle" (مثلث الأدلة):
+1. الرواية الرسمية (The Official Story)
+2. كواليس المقربين (Insider Secrets / Behind the scenes)
+3. هجوم الأعداء (The Enemy's Attack / Counter-narrative)
+
+Output JSON ONLY strictly following this structure:
+{
+  "official_story": "...",
+  "insider_secrets": "...",
+  "enemy_attack": "..."
+}`;
+  const rawContent = await callWithRetry(async () => {
+    return await generateAIContentRaw(prompt, null, engine, undefined, undefined, false, 0.65);
+  });
+  return safeJsonParse(rawContent, { official_story: "No data", insider_secrets: "No data", enemy_attack: "No data" });
+}
+
+export async function executeAgent_MasterStoryteller(
+  topic: string,
+  dossier: any,
+  durationMinutes: number,
+  mood: MoodType,
+  engine: string,
+  onChunk?: (text: string) => void
+) {
+  if (onChunk) onChunk("[!] حبكة السيناريست: بناء الهيكل الخماسي الثقيل وتوسيع السرد لـ 35-40 دقيقة...");
+  const prompt = `[Agent: Master Storyteller (حبكة السيناريست)]
+You are the Master Storyteller. Write a comprehensive documentary script (in Egyptian Arabic) for a strict 35-40 minute episode based on:
+Topic: ${topic}
+Research Triangle:
+- Official: ${dossier?.official_story || ''}
+- Insider: ${dossier?.insider_secrets || ''}
+- Enemy: ${dossier?.enemy_attack || ''}
+
+Strict Rules:
+1. 5-ACT STRUCTURE is mandatory: Hook -> Intro -> Body -> Climax -> Outro.
+2. COLD OPEN: Start with a shocking paradox or link a historical event to a modern trend (e.g., comparing ancient rivalry to a modern rap diss track). 
+3. NO GENERALIZATIONS: You MUST use specific "Case Studies" (شخصيات أو قصص حقيقية) to prove your points.
+4. NO LAZY SUMMARIES: This must be extremely dense to fill 35-40 minutes (approx 5000+ words target conceptually). Expand deeply on every point. 
+
+Output ONLY the raw script text in Arabic. Label the sections clearly like [ACT 1: HOOK].`;
+  
+  return await callWithRetry(async () => {
+    return await generateAIContentRaw(prompt, null, engine, undefined, undefined, false, 0.7);
+  });
+}
+
+export async function executeAgent_PunchlineWriter(
+  draftScript: string,
+  engine: string,
+  onChunk?: (text: string) => void
+) {
+  if (onChunk) onChunk("[!] الكاتب الساخر: كسر الجدار الرابع وحقن المصطلحات الحديثة...");
+  const prompt = `[Agent: Punchline Writer (الكاتب الساخر)]
+You are a brilliant Dark Comedy Writer. Take this documentary script and inject the "Faceless Daheeh" flavor:
+1. Break the 4th wall gracefully.
+2. Use dark humor, modern street slang (عامية الشارع), and relatable modern economic terms to explain ideas.
+3. Don't lose the educational depth, but make it absolutely highly engaging and satirical.
+4. Maintain exactly the 5-Act structure.
+
+Script Draft:
+${draftScript}
+
+Return ONLY the rewritten script in Egyptian Arabic.`;
+
+  const raw = await callWithRetry(async () => {
+    return await generateAIContentRaw(prompt, null, engine, undefined, undefined, false, 0.8);
+  });
+  return raw;
+}
+
+export async function executeAgent_PacingEditor(
+  polishedScript: string,
+  topic: string,
+  engine: string,
+  onChunk?: (text: string) => void
+) {
+  if (onChunk) onChunk("[!] مقص المونتير النصّي: هندسة الإيقاع وإدراج الفواصل المرئية...");
+  const prompt = `[Agent: Pacing Editor (مقص المونتير النصّي)]
+You are the Pacing Editor for a "Faceless" documentary channel. We have no human presenter, so pacing breakers are essential.
+Your goal is to sustain a long format by injecting visual/audio cues into the script without shrinking the word count.
+
+Rules:
+1. Every ~400 words, insert director instructions to break the monotony.
+2. Use [AI IMAGE GAG: <arabic description>] for bizarre visual metaphors (e.g. [AI IMAGE GAG: صورة لملك عباسي يشرب الشيشة محبطاً]).
+3. VERY IMPORTANT: Immediately follow every [AI IMAGE GAG] with an exact English prompt ready for Midjourney: [IMAGE_PROMPT: <english cinematic prompt>].
+
+--- THE MIDJOURNEY PROMPT FORMULA (MANDATORY) ---
+To prevent historical inaccuracies (anachronisms) and cultural misrepresentation, EVERY [IMAGE_PROMPT: ...] MUST follow this exact structure:
+[IMAGE_PROMPT: <Main Subject> in <EXACT ERA/YEAR, e.g., 1960s, Ancient Egypt, 12th Century> <EXACT LOCATION, e.g., Cairo, Desert> -- Wardrobe: <Historically accurate clothing> -- Atmosphere: <Lighting & film stock, e.g., 35mm, chiaroscuro> --no modern tools, modern clothing, smartphones, European facial features, western architecture]
+
+Example 1 (Historical): [IMAGE_PROMPT: An exhausted Abbasid caliph sitting in a royal tent in 8th Century Baghdad, smoking a traditional shisha -- Wardrobe: Authentic Abbasid robes and turban -- Atmosphere: Cinematic lighting, dimly lit with oil lamps --no modern furniture, modern clothes, european features]
+Example 2 (1960s): [IMAGE_PROMPT: Two Egyptian men whispering in a cafe in 1960s Cairo -- Wardrobe: 1960s vintage suits and tarboush -- Atmosphere: 35mm film grain, sepia tone --no modern cars, smartphones, modern fashion, european features]
+--------------------------------------------------
+
+4. Use [SFX: <audio effect>] constantly to create atmosphere (e.g. [SFX: توقف موسيقى مفاجئ وصوت صرصار حقل]).
+
+Topic Context:
+${topic}
+
+Script:
+${polishedScript}
+
+Return ONLY the final script with these tags naturally injected. Do NOT cut the text.`;
+
+  return await callWithRetry(async () => {
+    return await generateAIContentRaw(prompt, null, engine, undefined, undefined, false, 0.7);
   });
 }
 
@@ -1898,60 +2095,35 @@ export async function executePipeline_Orchestrator(
   strategy: "HCS" | "HAP" = "HCS",
   suspenseLevel: number = 5
 ): Promise<EpisodeData> {
-  onProgress?.(5, "[SYSTEM:BOOT] // إقلاع محرك النبّاش الإصدار 2.1... (بروتوكول Narrative DNA نشط)");
+  onProgress?.(5, "[SYSTEM:BOOT] // إقلاع محرك النبّاش الإصدار 2.1... وتفعيل ورشة العمل الافتراضية...");
   
-  // Tag-Team Logic: Research & Intelligence (Logic Heavy) -> Usually Gemini
-  // Scriptwriting & Review (Dialect/Tone Heavy) -> Usually Ollama
   const isTagTeam = typeof window !== "undefined" ? localStorage.getItem("isTagTeam") === "true" : false;
-  
   const researchEngine = isTagTeam ? "gemini" : engineNode1;
   const scriptEngine = isTagTeam ? "ollama" : engineNode1;
 
+  // New Agent 1: Deep Researcher
+  onProgress?.(10, "[1/4] عقل الباحث: النبش واستخراج مثلث الأدلة...");
+  const deepResearchDossier = await executeAgent_DeepResearcher(topic, mood, researchEngine, onChunk);
+
+  // Still get OSINT and Map for the UI research tab (we keep them so the UI doesn't break)
   const dossier = await executeNode0_OSINT(topic, mood, persona, researchEngine, onChunk);
+  const design = await generateResearchMap(topic, durationValue, mood, note, researchEngine, onChunk);
 
-  onProgress?.(10, "[RESEARCH_MOD] // فحص الوثائق وبناء الخريطة البحثية المعمقة...");
-  const design = await generateResearchMap(
-    topic,
-    durationValue,
-    mood,
-    note,
-    researchEngine,
-    onChunk
-  );
+  // New Agent 2: Master Storyteller
+  onProgress?.(20, "[2/4] حبكة السيناريست: بناء الهيكل الخماسي الصارم وتوسيع السرد (35-40 دقيقة)...");
+  let masterScript = await executeAgent_MasterStoryteller(topic, deepResearchDossier, durationValue, mood, scriptEngine, onChunk);
 
-  onProgress?.(15, "[!] الكاتب الصحفي: يتم كتابة النص الكامل بناءً على المعطيات... (يُرجى الانتظار، السرد يتشكل)");
-  const { executeAgent1_Scriptwriter, executeAgent_Editor, executeAgent2_Director, executeAgent3_ArtDirector, executeAgent4_Reviewer, executeAgent5_Publisher } = await import('./agents');
-  
-  let masterScript = await executeAgent1_Scriptwriter(
-    topic,
-    design,
-    durationValue,
-    mood,
-    persona,
-    scriptEngine,
-    onChunk,
-    strategy,
-    suspenseLevel
-  );
+  // New Agent 3: Punchline Writer
+  onProgress?.(30, "[3/4] الكاتب الساخر: تلوين النص بالكوميديا السوداء والمصطلحات المعاصرة...");
+  masterScript = await executeAgent_PunchlineWriter(masterScript, scriptEngine, onChunk);
 
-  onProgress?.(25, "[EDITOR:AUDIT] المحرر الموثق: مراجعة النص وتنقيته من الكليشيهات (المصفاة الذهبية)...");
-  masterScript = await executeAgent4_Reviewer(
-    masterScript,
-    mood,
-    persona,
-    scriptEngine,
-    onChunk
-  );
+  // New Agent 4: Pacing Editor
+  onProgress?.(40, "[4/4] مقص المونتير النصّي: هندسة الإيقاع وإدراج الفواصل المرئية للـ Faceless...");
+  masterScript = await executeAgent_PacingEditor(masterScript, topic, scriptEngine, onChunk);
 
-  onProgress?.(30, "[EDITOR:CUT] مقص: إزالة الحشو البصري واللغوي لزيادة مستوى الـ Pacing...");
-  masterScript = await executeAgent_Editor(
-    masterScript,
-    mood,
-    scriptEngine,
-    onChunk
-  );
+  const { executeAgent2_Director, executeAgent3_ArtDirector, executeAgent5_Publisher } = await import('./agents');
 
-  onProgress?.(35, "[!] المخرج: يتم تفكيك النص وتوزيعه إلى مشاهد، وحساب المدة الزمنية التقديرية...");
+  onProgress?.(50, "[!] المخرج: يتم تفكيك النص وتوزيعه إلى مشاهد، وحساب المدة الزمنية التقديرية...");
   const directorScenes = await executeAgent2_Director(
     masterScript,
     engineNode1,
@@ -2004,8 +2176,10 @@ export async function executePipeline_Orchestrator(
         // Legacy / fallback mappings to prevent breaking strict types
         montage_instructions: generatedScene.montage_instructions || "",
         sound_design: generatedScene.sound_and_sfx || "",
-        image_prompt_nano_banana: "",
-        ai_video_prompt: "",
+        first_frame_image_prompt: "",
+        first_frame_motion_prompt: "",
+        second_frame_image_prompt: "",
+        second_frame_motion_prompt: "",
         b_roll_keywords: generatedScene.b_roll_search_query || "",
         loop_type: generatedScene.loop_type || null,
         loop_id: generatedScene.loop_id || null,
@@ -2078,8 +2252,10 @@ export async function executePipeline_Orchestrator(
       visual_cue: "",
       montage_instructions: "",
       sound_design: "",
-      image_prompt_nano_banana: "",
-      ai_video_prompt: "",
+      first_frame_image_prompt: "",
+      first_frame_motion_prompt: "",
+      second_frame_image_prompt: "",
+      second_frame_motion_prompt: "",
     },
     scenes: (allScenes || []).slice(1),
     sources: dossier.sources.map((s) => ({ title: s.title, url: s.url, info: s.key_takeaway })),
@@ -2090,6 +2266,62 @@ export async function executePipeline_Orchestrator(
   };
 }
 
+
+export interface CouncilFeedback {
+  khafi: { score: number; comment: string; recommendation: string };
+  adala: { score: number; comment: string; recommendation: string };
+  ain: { score: number; comment: string; recommendation: string };
+  overall_verdict: string;
+}
+
+export async function executeCreativeCouncil(
+  script: string,
+  engine = "gemini",
+  signal?: AbortSignal
+): Promise<CouncilFeedback> {
+  const prompt = `[NODE: CREATIVE COUNCIL REVIEW]
+You are a panel of three expert AI agents grading a YouTube video script:
+1. 'Khafi' (Research & Hooks): Grades the factual intrigue and storytelling hooks.
+2. 'Adala' (Pacing & Editor): Grades the pacing, rhythm, and sentence flow.
+3. 'Ain' (Art Director): Grades the visual cues and cinematic potential.
+
+Review the following script snippet:
+"""
+${script.substring(0, 4000)}
+"""
+
+Provide a critical, objective evaluation. Give a score (1-10) for each agent, a brief savage/insightful comment in ARABIC, and one strict recommendation in ARABIC.
+Output MUST be strict JSON matching this structure:
+{
+  "khafi": { "score": 8, "comment": "string", "recommendation": "string" },
+  "adala": { "score": 7, "comment": "string", "recommendation": "string" },
+  "ain": { "score": 9, "comment": "string", "recommendation": "string" },
+  "overall_verdict": "string in ARABIC (final conclusion)"
+}`;
+
+  return await callWithRetry(async () => {
+    const raw = await generateAIContentRaw(
+      prompt,
+      undefined, // schema
+      engine,
+      undefined, // onChunk
+      signal,
+      false, // useGrounding
+      0.7 // temperature
+    );
+    try {
+      const parsed = JSON.parse(raw);
+      return parsed as CouncilFeedback;
+    } catch {
+      return {
+        khafi: { score: 5, comment: "تحليل غير متاح", recommendation: "راجع دقة المعلومات" },
+        adala: { score: 5, comment: "تحليل غير متاح", recommendation: "راجع وتيرة السرد" },
+        ain: { score: 5, comment: "تحليل غير متاح", recommendation: "أضف توجيهات بصرية" },
+        overall_verdict: "حدث خطأ أثناء تقييم الوكلاء."
+      };
+    }
+  }, 1);
+}
 
 export async function auditScriptWithDevilsAdvocate(
   fullScript: string,
@@ -2145,9 +2377,10 @@ Audit Output:
             },
             required: ["type", "finding", "recommendation"]
           }
-        }
+        },
+        red_team_score: { type: Type.INTEGER, description: "Score from 0 to 100 on how bulletproof it is" }
       },
-      required: ["status", "executive_summary", "issues"]
+      required: ["status", "executive_summary", "issues", "red_team_score"]
     }, engine, undefined, signal);
     
     return safeJsonParse(text);

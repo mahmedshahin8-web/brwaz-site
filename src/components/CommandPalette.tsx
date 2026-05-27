@@ -60,7 +60,10 @@ export function CommandPalette() {
             {searchQuery.length > 2 && (
               <Command.Group heading="[AI_SUGGESTIONS] // البحث الذكي" className="px-2 py-2 text-gray-500 text-[10px] uppercase tracking-widest [&_[cmdk-group-heading]]:mb-2 text-right">
                 <Command.Item
-                  onSelect={() => { /* Mock search action */ setOpen(false); }}
+                  onSelect={() => { 
+                     navigate('/script-editor', { state: { magicDraftTopic: searchQuery } });
+                     setOpen(false); 
+                  }}
                   value={`بحث عن ${searchQuery}`}
                   className="flex flex-col gap-1 px-3 py-3 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
                 >
@@ -80,7 +83,7 @@ export function CommandPalette() {
                 className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <Radar className="w-4 h-4 text-cyan-400" />
-                DASHBOARD // لوحة القيادة
+                DASHBOARD // المركز الرئيسي
               </Command.Item>
               <Command.Item
                 onSelect={() => navigateTo('script-editor')}
@@ -88,7 +91,7 @@ export function CommandPalette() {
                 className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <FileText className="w-4 h-4 text-[#eb2630]" />
-                NEW_DIG // بدء نبش جديد (محرر)
+                NEW_DIG // بدء كتابة السيناريو
               </Command.Item>
               <Command.Item
                 onSelect={() => navigateTo('archive')}
@@ -96,7 +99,7 @@ export function CommandPalette() {
                 className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <Archive className="w-4 h-4 text-blue-600" />
-                VAULTS // بنوك الأرشيف
+                VAULTS // المسودات والأرشيف
               </Command.Item>
                <Command.Item
                 onSelect={() => navigateTo('trends')}
@@ -112,7 +115,7 @@ export function CommandPalette() {
                 className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <BarChart2 className="w-4 h-4 text-cyan-400" />
-                SYSTEM_ANALYTICS // مراقبة النظام
+                PERFORMANCE_REPORTS // تقارير الأداء
               </Command.Item>
                <Command.Item
                 onSelect={() => navigateTo('graph')}
@@ -120,7 +123,7 @@ export function CommandPalette() {
                 className="flex items-center gap-3 px-3 py-2 text-gray-900/70 active:scale-95 border-gray-100 shadow-sm active:scale-95 cursor-pointer transition-colors duration-100 aria-selected:bg-white border-gray-100 shadow-sm aria-selected:text-gray-900"
               >
                 <Zap className="w-4 h-4 text-blue-600" />
-                KNOWLEDGE_GRAPH // الخريطة المعرفية
+                ENTITY_RADAR // رادار الكيانات
               </Command.Item>
             </Command.Group>
 

@@ -174,6 +174,14 @@ Output strict JSON:
       "visual_treatment": "string (Directorial Metadata for editor: e.g. Smooth Slow-Mo, Speed Ramping)",
       "stock_search_queries": [
         { "platform": "pexels" | "mixkit" | "freesound", "query": "string + licensing tags" }
+      ],
+      "archival_quotes": [
+        {
+          "speaker": "string (Name of the public figure)",
+          "quote_text": "string (The exact historical quote or testimony found in the script)",
+          "source_context": "string (Where/when it was said, e.g. '1998 TV Interview')",
+          "is_audio_available": "boolean"
+        }
       ]
     }
   ]
@@ -205,6 +213,29 @@ Note:
   return allScenes;
 }
 
+function getCreativeFraming(mood: MoodType): string {
+  switch (mood) {
+    case "أرشيف الضلمة":
+    case "ملفات متقفلش":
+      return "Framing: The scene is viewed as if it's a glowing projection illuminating a smoky, dark investigations room. Or seen through the lens of a microfiche reader, with forensic markings on the edges.";
+    case "خرافات شعبية":
+    case "حكاوي الأجداد":
+    case "حواديت شوارع":
+      return "Framing: The scene is illustrated within the jagged, torn pages of an ancient, dusty leather-bound manuscript. Intricate arabesque borders frame the image, with ink spillage and candle-lit ambiance surrounding the book.";
+    case "صراع العروش العربي":
+      return "Framing: The scene is woven into a massive, grand historical tapestry hanging on a stone wall, or painted as a mural in a royal Mamluk palace with flaking gold leaf and distressed plaster.";
+    case "تكنولوجيا مرعبة":
+    case "سبوبة ولا ابتكار":
+      return "Framing: The scene is viewed through the distorted, fragmented panels of a shattered CRT monitor or holographic display. Glitch art elements, cyberpunk HUD overlays, and neon scanlines border the main image.";
+    case "كلاكيت وتزوير":
+      return "Framing: The scene is presented as a stack of vintage, sepia-toned Polaroid photos scattered on a messy director's desk, with red marker circles and 'Classified' stamps overlaying the images.";
+    case "اقتصاد الشارع":
+      return "Framing: The scene is depicted as a gritty, chaotic graffiti mural painted on a textured, weathered brick wall in a bustling alleyway, framed by peeling posters and neon signs.";
+    default:
+      return "Framing: The scene is framed creatively within its thematic setting, avoiding standard full-screen presentation. Use physical mediums like vintage photos scattered on a desk, a projection on a smoky wall, or a page in an old book.";
+  }
+}
+
 export async function executeAgent3_ArtDirector(
   sceneSegment: any,
   mood: MoodType,
@@ -213,6 +244,7 @@ export async function executeAgent3_ArtDirector(
   globalVisualCondition?: string
 ) {
   const moodContext = getMoodContext(mood);
+  const framingContext = getCreativeFraming(mood);
   
   const basePrompt = `[Agent: "عين" (Art Director) - Hybrid Cinematic & Archival System]
 Task: Generate pristine, Culturally-Anchored visual directions for this specific scene.
@@ -224,21 +256,45 @@ ${JSON.stringify(sceneSegment, null, 2)}
 === GLOBAL VISUAL CONDITION (MANDATORY THEME) ===
 ${globalVisualCondition ? globalVisualCondition : "Hybrid Style: Cinematic Realism mixed with Archival Charcoal/Ink aesthetics."}
 
+=== CREATIVE FRAMING RECOMMENDER ===
+Instead of generating the frame inside the image, we now use Video Editing Green-Screen templates.
+Your task is to recommend one of the following Template IDs for this scene:
+- "old_tv": Best for retro tech, broadcasts, intense monitoring.
+- "archival_book": Best for history, myths, ancient stories.
+- "classified_folder": Best for investigations, crimes, secrets.
+- "hologram_projector": Best for sci-fi, modern tech, future analysis.
+- "FULLSCREEN": If no template is needed and the scene should just be a regular cinematic shot.
+Generate the actual 'image_prompt' as a clean, full-screen cinematic shot (without placing it inside a book/tv). The video editor will handle inserting it into the template.
+
 === THE VISUAL DILEMMA (ANTI-ORIENTALISM PROTOCOL) ===
 CRITICAL: To avoid "Western Bias" and Orientalist tropes (Aladdin style, stereotypical bazaars, generic middle-eastern slop), you MUST use cultural anchors.
 - Use explicit architectural anchors (e.g., Mamluk architecture, Fatimid motifs, Cairene alleyways "Hara").
 - Emphasize lighting: Chiaroscuro, 35mm film grain, moody shadows, olive-brown tones.
 - NEGATIVE PROMPTS (Always append to image ideas): Do NOT use European facial features, do not use Aladdin styles, no shiny golden domes unless historically accurate.
 
+=== THE MIDJOURNEY PROMPT FORMULA (MANDATORY) ===
+To prevent historical inaccuracies (anachronisms) and cultural misrepresentation, the "image_prompt" MUST follow this exact structure:
+<Main Subject> in <EXACT ERA/YEAR, e.g., 1960s, Ancient Egypt, 12th Century> <EXACT LOCATION, e.g., Cairo, Desert> -- Wardrobe: <Historically accurate clothing> -- Atmosphere: <Lighting & film stock, e.g., 35mm, chiaroscuro> --no modern tools, modern clothing, smartphones, European facial features, western architecture
+
+Example 1 (Historical): An exhausted Abbasid caliph sitting in a royal tent in 8th Century Baghdad, smoking a traditional shisha -- Wardrobe: Authentic Abbasid robes and turban -- Atmosphere: Cinematic lighting, dimly lit with oil lamps --no modern furniture, modern clothes, european features
+Example 2 (1960s): Two Egyptian men whispering in a cafe in 1960s Cairo -- Wardrobe: 1960s vintage suits and tarboush -- Atmosphere: 35mm film grain, sepia tone --no modern cars, smartphones, modern fashion, european features
+
 === OUTPUT PROTOCOL ===
 Generate a highly descriptive prompt for the visual engine.
-1. "image_prompt": The precise english generative AI prompt (e.g., "35mm film, chiaroscuro lighting, intense close-up of aged Egyptian hands holding a stained Mamluk manuscript, olive-brown tones, highly detailed, photorealistic. Negative prompt: European, Aladdin, cartoonish, bright colors").
-2. "b_roll_search_query": Stock video search query (Pexels).
-3. "sfx": Arabic SFX description.
+1. "recommended_template": (e.g. "old_tv", "archival_book", "classified_folder", "hologram_projector", or "FULLSCREEN")
+2. "image_prompt": The precise english generative AI prompt (CLEAN SHOT, DO NOT MENTION TV/BOOK IN PROMPT).
+3. "multi_camera_angles": An array of 3 distinct directorial angles for the editor (e.g. Wide, Close-Up, Dutch Angle) with lens descriptors.
+4. "b_roll_search_query": Stock video search query (Pexels).
+5. "sfx": Arabic SFX description.
 
 Output strict JSON:
 {
+  "recommended_template": "string",
   "image_prompt": "string",
+  "multi_camera_angles": [
+    { "type": "Wide Angle", "description": "Establishing shot of...", "lens": "24mm" },
+    { "type": "Close-Up", "description": "Tight on the eyes...", "lens": "85mm macro" }
+  ],
   "b_roll_search_query": "string (ENGLISH ONLY)",
   "sfx": "string"
 }
@@ -465,27 +521,35 @@ export async function executeAgent6_ArchiveSearch(
   script: string,
   engine = "gemini",
   onChunk?: (text: string) => void
-): Promise<{ archives: { title: string, url: string, description: string }[] }> {
-  const prompt = `[Agent: Archival Research Specialist]
-You are a researcher tasked with finding REAL archival sources or search queries for a video about "${topic}".
+): Promise<{ 
+  archives: { title: string, url: string, description: string }[],
+  notable_quotes: { speaker: string, quote: string, source: string, fallback_strategy?: string }[]
+}> {
+  const prompt = `[Agent: Archival Research Specialist (Archive_Researcher_Agent)]
+You are a master researcher tasked with finding REAL archival sources, search queries, and historical quotes for a video about "${topic}".
 Based on this script:
 ${script.substring(0, 2000)}
 
 Task:
 1. Provide 3-5 specific search queries that would yield historical footage or documents on Archive.org, YouTube, or OpenLibrary.
 2. If you know specific real collections (like 'Associated Press', 'British Pathé', or 'Egyptian National Archives'), list them.
+3. Provide 2-3 notable, highly dramatic historical quotes OR testimonies from public figures related to the topic. 
+4. Fallback Strategy: If this topic/figure is too ancient to have video/audio archives, provide a 'fallback_strategy' (e.g., 'Rely on written letters from 1920', 'Use newspaper headlines').
 
 Output STRICT JSON:
 {
   "archives": [
-    { "title": "Archive Search Query 1", "url": "https://archive.org/search.php?query=...", "description": "Why this is useful" }
+    { "title": "string", "url": "string (URL or search query)", "description": "string" }
+  ],
+  "notable_quotes": [
+    { "speaker": "string", "quote": "string", "source": "string", "fallback_strategy": "string (optional)" }
   ]
 }
 `;
 
   return callWithRetry(async () => {
     const rawContent = await generateAIContentRaw(prompt, null, engine, onChunk);
-    return safeJsonParse(rawContent, { archives: [] });
+    return safeJsonParse(rawContent, { archives: [], notable_quotes: [] });
   });
 }
 
@@ -587,5 +651,47 @@ Output STRICT JSON:
   return callWithRetry(async () => {
     const rawContent = await generateAIContentRaw(prompt, null, engine, onChunk);
     return safeJsonParse(rawContent, { suggested_links: [] });
+  });
+}
+
+export async function executeAgent10_DevilsAdvocate(
+  script: string,
+  topic: string,
+  engine = "gemini",
+  onChunk?: (text: string) => void
+): Promise<{
+  fatal_flaws: { quote: string, flaw: string, counter_argument: string }[],
+  narrative_gaps: { missing_element: string, why_it_matters: string }[],
+  verdict: string,
+  red_team_score: number
+}> {
+  const prompt = `[Agent: "محامي الشيطان" - The Devil's Advocate (Red Team)]
+You are the ultimate Red Team editor for documentary scripts. 
+Your job is to violently attack the logic, narrative flow, and factual basis of the script to make it bulletproof.
+Do NOT be polite. Look for:
+1. Logical leaps or missing evidence (Fatal Flaws).
+2. Missing perspectives or counter-arguments that the viewer will immediately think of (Narrative Gaps).
+
+Topic: ${topic}
+Script:
+${script.substring(0, 3000)}
+
+Output STRICT JSON:
+{
+  "fatal_flaws": [
+    { "quote": "the weak sentence from script", "flaw": "why this is illogical or weak", "counter_argument": "the skeptic's argument" }
+  ],
+  "narrative_gaps": [
+    { "missing_element": "what did the writer ignore?", "why_it_matters": "how this hurts credibility" }
+  ],
+  "verdict": "Brutal 1-sentence summary of the script's weakness in Arabic",
+  "red_team_score": 85
+}
+Note: red_team_score is 0-100 (100 being bulletproof).
+`;
+
+  return callWithRetry(async () => {
+    const rawContent = await generateAIContentRaw(prompt, null, engine, onChunk);
+    return safeJsonParse(rawContent, { fatal_flaws: [], narrative_gaps: [], verdict: "", red_team_score: 0 });
   });
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BookOpen, Archive, Settings, LayoutDashboard, ChevronRight, Zap, Target, Calendar, Activity, BarChart2 } from "lucide-react";
+import { BookOpen, Archive, Settings, LayoutDashboard, ChevronRight, Zap, Calendar, BarChart2 } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 
 export default function Sidebar() {
@@ -8,14 +8,12 @@ export default function Sidebar() {
   const navigate = useNavigate();
 
   const menuItems = [
-    { id: "dashboard", label: "لوحة القيادة", icon: LayoutDashboard },
-    { id: "trends", label: "الأحداث الجارية", icon: Activity },
-    { id: "script-editor", label: "محرر السكريبت", icon: BookOpen },
+    { id: "dashboard", label: "المركز الرئيسي", icon: LayoutDashboard },
+    { id: "script-editor", label: "كتابة السيناريو", icon: BookOpen },
     { id: "content", label: "الوسائط والنصوص", icon: Zap },
-    { id: "graph", label: "مراقبة الكيانات", icon: Target },
-    { id: "scheduler", label: "جدولة النشر", icon: Calendar },
-    { id: "archive", label: "الأرشيف", icon: Archive },
-    { id: "analytics", label: "التقارير والإحصاءات", icon: BarChart2 },
+    { id: "scheduler", label: "خطة النشر", icon: Calendar },
+    { id: "archive", label: "المسودات والأرشيف", icon: Archive },
+    { id: "analytics", label: "تقارير الأداء", icon: BarChart2 },
     { id: "settings", label: "الإعدادات", icon: Settings },
   ];
 
@@ -71,21 +69,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      {/* User Section */}
-      <div className="p-4 border-t border-gray-50">
-        <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'gap-3 px-3 py-2 rounded-xl border border-transparent active:scale-95 transition-colors'} text-right`}>
-          <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600 font-bold text-sm shrink-0">
-            AS
-          </div>
-          {!isCollapsed && (
-            <div className="flex flex-col flex-1 overflow-hidden">
-              <span className="text-gray-800 text-sm font-semibold truncate">Ahmed Shahin</span>
-              <span className="text-gray-500 text-xs truncate">Admin</span>
-            </div>
-          )}
-        </div>
-      </div>
     </aside>
   );
 }
