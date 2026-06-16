@@ -87,7 +87,9 @@ export interface MasterOutline {
   timeline?: any[];
 }
 
-export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو" | "برواز الحكاوي" | "شاهد على العصر" | "الشاهد الصامت";
+export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو" | "برواز الحكاوي" | "شاهد على العصر" | "الشاهد الصامت" | "الهرم الرابع" | "الدحيح";
+
+export type MoodType = string;
 
 export interface ArchivalQuote {
   speaker: string;
@@ -99,10 +101,11 @@ export interface ArchivalQuote {
 export interface EpisodeScene {
   asset_id: string;
   voice_over: string;
+  clean_tts?: string;
   visual_cue: string;
   b_roll_search_query?: string;
   sfx?: string;
-  image_prompt_nano_banana?: string;
+  image_prompt?: string;
   ai_video_prompt?: string;
   multi_camera_angles?: any[];
   pexelsAsset?: {
@@ -130,9 +133,14 @@ export interface EpisodeScene {
   estimated_duration_seconds?: number; // Estimated time in seconds
   asset_prompts?: string[];
   sources?: SourceDef[];
+  asset_status?: "pending" | "rendering" | "completed";
   status?: "pending" | "approved" | "regenerating";
   retention_pattern?: string; // Pattern Interrupt, Fast Cut Formula, etc.
   psychoacoustic_guidance?: string; // Binaural Beats, ambient suggestions, etc.
+  transition_to_next_scene?: "Match Cut" | "Hard Cut" | "Same Scene" | "New Location";
+  generated_video_url?: string;
+  first_frame_url?: string;
+  second_frame_url?: string;
   // Optional legacy fields to avoid breaking existing UI
   visual_audio_map?: string;
   overlay_image?: string;
@@ -173,6 +181,7 @@ export interface ShortsData {
   body: string; // Plan 3: specific structure
   cta: string; // Plan 3
   visual_instructions: string;
+  vertical_image_prompt?: string;
 }
 
 export interface OmnichannelKit {
@@ -181,9 +190,11 @@ export interface OmnichannelKit {
 }
 
 export interface AuditIssue {
-  type: "fact_check" | "logic" | "legal" | "tone";
+  type: "fact_check" | "logic" | "legal" | "tone" | "boredom_alert" | "open_loop" | "time_pricing" | "sentence_too_long";
   finding: string;
   recommendation: string;
+  flawed_text_snippet?: string;
+  scene_index?: number;
   source_reference?: string;
   severity?: "high" | "medium" | "low";
   description?: string;

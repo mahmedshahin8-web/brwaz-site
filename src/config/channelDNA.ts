@@ -51,8 +51,8 @@ export const BARWAZ_DNA: ChannelDNA = {
     "المثير للاهتمام"
   ],
   visual_rules: {
-    global_style: "retro-futuristic mid-century modern illustration style, vintage editorial illustrations, atomic age design. flat geometric shapes, minimal elegant detail, textured paper grain, muted retro color palette, soft vintage print imperfections, clean vector-like composition, cinematic negative space. textured screenprint look.",
-    negative_prompt: "realistic, 3d render, photography, text, letters, watermark"
+    global_style: "authentic vintage Egyptian and Middle Eastern editorial illustration, mid-century screen print style, muted earthy color palette, textured parchment paper grain, soft halftone print imperfections, dramatic chiaroscuro lighting, highly detailed historical atmosphere.",
+    negative_prompt: "cinematic, realistic, realism, photorealistic, 3d render, photography, movie still, matte painting, hyperrealistic, volumetric lighting, text, typography, watermark, abstract geometric shapes, futuristic, sci-fi, random floating circles, meaningless network lines, flat vector, modern tech"
   }
 };
 

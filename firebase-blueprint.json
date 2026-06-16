@@ -1,27 +1,68 @@
 {
   "entities": {
-    "Dossier": {
-      "title": "Dossier",
-      "description": "A generated documentary dossier containing research, script, and visual data.",
+    "Metrics": {
+      "title": "System Metrics",
+      "description": "System usage metrics",
       "type": "object",
       "properties": {
-        "video_title": { "type": "string" },
-        "thumbnail": { "type": "object" },
-        "opening_sketch": { "type": "object" },
-        "scenes": { "type": "array" },
-        "sources": { "type": "array" },
-        "publishing_kit": { "type": "object" },
-        "shorts": { "type": "array" },
-        "createdAt": { "type": "string", "format": "date-time" },
-        "userId": { "type": "string" }
-      },
-      "required": ["video_title", "scenes", "userId", "createdAt"]
+        "tokensProcessed": { "type": "number" },
+        "lastGhostSync": { "type": "string", "format": "date-time" }
+      }
+    },
+    "Dossier": {
+      "title": "Dossier",
+      "description": "Generated content dossiers",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "PropRoomItem": {
+      "title": "Prop Room Item",
+      "description": "Saved assets and props",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "type": { "type": "string" },
+        "name": { "type": "string" },
+        "description": { "type": "string" },
+        "metadata": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "RenderJob": {
+      "title": "Render Job",
+      "description": "Render engine tracking",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "status": { "type": "string" },
+        "progress": { "type": "number" },
+        "logs": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
     }
   },
   "firestore": {
-    "/dossiers/{dossierId}": {
-      "schema": "Dossier",
-      "description": "Collection of investigative dossiers."
+    "system/metrics": {
+      "schema": { "$ref": "#/entities/Metrics" },
+      "description": "Global usage metrics"
+    },
+    "dossiers/{dossierId}": {
+      "schema": { "$ref": "#/entities/Dossier" },
+      "description": "User generated dossiers"
+    },
+    "prop_room/{propId}": {
+      "schema": { "$ref": "#/entities/PropRoomItem" },
+      "description": "Shared project props"
+    },
+    "render_jobs/{jobId}": {
+      "schema": { "$ref": "#/entities/RenderJob" },
+      "description": "Rendering status tracker"
     }
   }
 }

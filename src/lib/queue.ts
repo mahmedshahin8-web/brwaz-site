@@ -71,5 +71,6 @@ export class TaskQueue {
 }
 
 // Global queue for ollama to prevent overloading the GPU
-// Delay of 2 seconds between typical tasks
+// Set to strict sequential (concurrency: 1) mode
+// Delay of 2000ms between typical tasks to flush VRAM
 export const ollamaQueue = new TaskQueue(2000);

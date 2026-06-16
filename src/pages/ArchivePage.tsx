@@ -6,7 +6,7 @@ import { useTacticalSound } from "../hooks/useTacticalSound";
 
 const RedactedText = ({ text }: { text: string }) => {
     return (
-        <span className="bg-white/80 text-transparent active:scale-95 transition-all duration-[400ms] cursor-crosshair selection:bg-transparent inline-block">
+        <span className="bg-[#121214] /80 text-transparent active:scale-95 transition-all duration-[400ms] cursor-crosshair selection:bg-transparent inline-block">
             {text}
         </span>
     );
@@ -41,41 +41,36 @@ export default function ArchivePage() {
   };
 
   return (
-    <div className="text-gray-900 font-arabic h-full animate-in fade-in duration-500 relative" dir="rtl" onClick={playClick}>
+    <div className="text-[#fafafa] font-arabic h-full animate-in fade-in duration-500 relative" dir="rtl" onClick={playClick}>
       <div className="absolute inset-0 scanline opacity-[0.05] pointer-events-none z-50" />
       <div className="grain-overlay opacity-[0.02]" />
 
       {/* Header Section */}
-      <header className="mb-12 relative z-10 bg-white shadow-sm p-10 border-gray-200 border-r-0 border-l-2 bracket-container">
-        <div className="absolute inset-0  opacity-[0.02]" />
-        <div className="flex items-center gap-4 mb-6">
-           <div className="w-1.5 h-10 bg-red-600 shadow-[0_0_15px_#dc2626]" />
+      <header className="mb-8 relative z-10 bg-[#121214]  shadow-sm p-8 border border-[#27272a] rounded-xl flex flex-col md:flex-row justify-between items-start md:items-center gap-6 overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-5 bg-[radial-gradient(circle_at_100%_0%,_#4f46e5_1px,_transparent_1px)] bg-[size:40px_40px]" />
+        <div className="flex items-center gap-4 relative z-10">
+           <div className="w-1.5 h-12 bg-gradient-to-b from-[#4f46e5] to-[#4f46e5] rounded-full" />
            <div className="flex flex-col gap-1">
-               <div className="flex items-center gap-3">
-                   <ShieldAlert size={14} className="neon-red" />
-                   <span className="data-text neon-red text-[10px] tracking-[0.5em] font-bold">CLASSIFIED_VAULT_ACCESS // SECTOR_DEEP_RPA</span>
+               <div className="flex items-center gap-2">
+                   <ArchiveIcon size={14} className="text-[#4f46e5]" />
+                   <span className="text-[#a1a1aa] font-arabic text-[10px]   font-bold">الأرشيف</span>
                </div>
-               <h2 className="text-5xl font-black tracking-widest text-gray-900 leading-none uppercase drop-shadow-[0_0_15px_rgba(255,255,255,0.1)]">
-                 المسودات والأرشيف <span className="font-mono text-red-600 opacity-80">[THE_VAULT]</span>
+               <h2 className="text-4xl font-black text-[#fafafa] font-arabic leading-none tracking-tight">
+                 الأرشيف والمسودات
                </h2>
            </div>
         </div>
-        <div className="flex justify-between items-end gap-10 relative z-10">
-           <div className="max-w-2xl">
-              <p className="data-text text-gray-500 text-[10px] uppercase leading-relaxed tracking-wider">
-                Restricted access only. All telemetry logged for audit. Tactical dossiers extracted from spectral layers. Kernel monitoring active.
-              </p>
-           </div>
-           <div className="text-right">
-                <div className="data-text text-gray-500 text-[9px] mb-2 tracking-widest uppercase">SYSCAP_CLEARANCE</div>
-                <div className="data-text neon-red text-sm font-black border border-red-500/30 px-4 py-1.5 bracket-corners bg-red-500/5">LVL_05 // ADM_ONLY</div>
-           </div>
+        <div className="flex flex-col md:items-end gap-2 relative z-10">
+             <div className="text-[#71717a] font-arabic text-[10px]  ">حالة التخزين</div>
+             <div className="text-[#4f46e5] text-sm font-bold font-arabic border border-[#4f46e5]/30 px-4 py-1.5 rounded-lg bg-[#27272a]/50 backdrop-blur">
+               عادي
+             </div>
         </div>
       </header>
 
       {/* Grid Layout */}
       {archive.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10 relative z-10">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 relative z-10">
           {archive.map((doc, i) => {
             const isRedacted = Math.random() > 0.4;
             const words = (doc.video_title || "Dossier_Unnamed").split(' ');
@@ -88,17 +83,13 @@ export default function ArchivePage() {
                   whileHover={{ scale: 1.02 }}
                   onMouseEnter={playHover}
                   transition={{ delay: i * 0.05, duration: 0.2 }}
-                  className="group p-10 bg-gray-50 bracket-corners border-gray-200 active:scale-95 active:scale-95.02] transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[350px] neon-glow-red"
+                  className="group p-8 bg-[#121214]  rounded-xl border border-[#27272a] active:scale-95 transition-all duration-300 relative overflow-hidden flex flex-col justify-between min-h-[300px] shadow-sm hover:border-[#4f46e5]/50 hover:shadow-sm"
                 >
-                  <div className="absolute inset-0  opacity-[0.02] pointer-events-none" />
-                  <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 -rotate-12 opacity-[0.01] group-active:scale-95.04] pointer-events-none transition-opacity">
-                      <span className="text-8xl font-black font-mono tracking-tighter text-red-600">CONFIDENTIAL</span>
-                  </div>
-
-                  <div className="flex justify-between items-start mb-10 relative z-10">
-                      <div className="flex flex-col gap-3">
-                          <span className="data-text bg-red-600 text-black px-3 py-1 text-[10px] self-start font-black tracking-widest uppercase shadow-[0_0_15px_#dc2626]">TOP_SECRET</span>
-                          <span className="data-text text-gray-500 text-[9px] font-mono tracking-widest">DOSSIER_REF: 0x{doc.id ? doc.id.substring(0,8).toUpperCase() : 'NULL'}</span>
+                  <div className="absolute right-0 top-0 bottom-0 w-1 bg-[#27272a] group-hover:bg-[#4f46e5] transition-colors duration-300" />
+                  <div className="flex justify-between items-start mb-8 relative z-10">
+                      <div className="flex flex-col gap-2">
+                          <span className="text-[#09090b] bg-[#4f46e5] px-3 py-1 text-[9px] rounded-lg font-arabic font-bold  ">مسودة محفوظة</span>
+                          <span className="text-[#a1a1aa] text-[9px] font-arabic ">REF: {doc.id ? doc.id.substring(0,8).toUpperCase() : 'NULL'}</span>
                       </div>
                       <button 
                         onClick={(e) => {
@@ -106,14 +97,14 @@ export default function ArchivePage() {
                           playClick();
                           doc.id && handleDelete(doc.id);
                         }}
-                        className="p-3 bg-white shadow-sm border border-gray-200 text-gray-500 active:scale-95 transition-all bracket-corners group/del"
+                        className="p-2.5 bg-[#27272a] rounded-lg border border-[#27272a] text-[#a1a1aa] hover:text-[#ef4444] hover:border-[#ef4444]/30 hover:bg-[#ef4444]/10 active:scale-95 transition-all"
                       >
-                        <Trash2 size={14} className="group-hover/del:scale-110" />
+                        <Trash2 size={14} />
                       </button>
                   </div>
                   
-                  <div className="flex-1 relative z-10 space-y-8">
-                      <h3 className="text-2xl font-black font-arabic text-gray-900 mb-4 leading-tight drop-shadow-[0_0_15px_rgba(255,255,255,0.1)] group-active:scale-95 transition-colors">
+                  <div className="flex-1 relative z-10 space-y-4">
+                      <h3 className="text-xl font-bold font-arabic text-[#fafafa] mb-2 leading-tight group-hover:text-[#4f46e5] transition-colors">
                           {words.map((w: string, idx: number) => {
                               if(isRedacted && w.length > 2 && idx % 2 !== 0) {
                                   return <span key={idx} className="mr-1"><RedactedText text={w} /></span>;
@@ -122,24 +113,24 @@ export default function ArchivePage() {
                           })}
                       </h3>
                       
-                      <div className="data-text text-gray-500 text-[11px] leading-relaxed max-h-[80px] overflow-hidden text-ellipsis line-clamp-3 font-medium">
-                          {doc.scenes ? doc.scenes.map((s:any) => s.text).join(' ') : 'System telemetry extraction...'}
+                      <div className="text-[#a1a1aa] font-arabic text-[12px] leading-relaxed max-h-[60px] overflow-hidden text-ellipsis line-clamp-2">
+                          {doc.scenes ? doc.scenes.map((s:any) => s.text).join(' ') : 'جاري استخراج البيانات من السجل الذاكري...'}
                       </div>
                   </div>
                   
-                  <div className="pt-8 border-t border-gray-200 flex justify-between items-center mt-10 relative z-10">
-                      <div className="flex gap-10">
-                          <div className="flex flex-col gap-1.5">
-                            <span className="data-text text-gray-400 text-[9px] tracking-widest uppercase">FRAG_COUNT</span>
-                            <span className="data-text text-gray-600 font-black">{doc.scenes ? doc.scenes.length : 0}</span>
+                  <div className="pt-6 border-t border-[#27272a] flex justify-between items-center mt-6 relative z-10">
+                      <div className="flex gap-8">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[#71717a] font-arabic text-[9px]  ">عدد المشاهد</span>
+                            <span className="text-[#fafafa] font-arabic font-bold">{doc.scenes ? doc.scenes.length : 0}</span>
                           </div>
-                          <div className="flex flex-col gap-1.5">
-                            <span className="data-text text-gray-400 text-[9px] tracking-widest uppercase">COM_STAMP</span>
-                            <span className="data-text text-red-500/50 font-mono text-[10px]">{new Date(doc.createdAt).toLocaleDateString('en-GB')}</span>
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[#71717a] font-arabic text-[9px]  ">التاريخ</span>
+                            <span className="text-[#a1a1aa] font-arabic text-[10px]">{new التاريخ(doc.createdAt).toLocaleالتاريخString('en-GB')}</span>
                           </div>
                       </div>
-                      <div className="p-3 bg-gray-50 border border-gray-200 bracket-corners group-active:scale-95 transition-all group-active:scale-95">
-                        <FileText size={16} className="text-gray-500 group-active:scale-95 transition-colors" />
+                      <div className="w-8 h-8 flex items-center justify-center rounded-lg bg-[#27272a] border border-[#27272a] text-[#4f46e5] group-hover:bg-[#4f46e5] group-hover:text-[#09090b] transition-colors">
+                        <FileText size={14} />
                       </div>
                   </div>
                 </motion.div>
@@ -147,12 +138,11 @@ export default function ArchivePage() {
           })}
         </div>
       ) : (
-        <div className="py-32 flex flex-col items-center justify-center space-y-8 bg-white border border-gray-200 shadow-md rounded-xl border-red-500/20 relative z-10 w-full max-w-4xl mx-auto overflow-hidden animate-pulse">
-           <div className="absolute inset-0  opacity-[0.03]" />
-           <ShieldAlert size={48} className="text-red-600/40 relative z-10" />
-           <div className="flex flex-col items-center gap-4 text-center">
-             <span className="data-text neon-red text-lg tracking-[0.5em]">ACCESS_DENIED // DB_EMPTY</span>
-             <p className="data-text text-gray-500 max-w-md">No classified dossiers found in the current security context. Initiate signal sweep to populate the vault.</p>
+        <div className="py-32 flex flex-col items-center justify-center space-y-6 bg-[#121214]  border border-[#27272a] shadow-sm rounded-xl relative z-10 w-full mx-auto overflow-hidden group hover:border-[#4f46e5]/30 transition-colors">
+           <ArchiveIcon size={48} className="text-[#27272a] group-hover:text-[#4f46e5]/40 transition-colors relative z-10" />
+           <div className="flex flex-col items-center gap-3 text-center">
+             <span className="text-[#a1a1aa] font-arabic text-lg  ">الأرشيف فارغ</span>
+             <p className="text-[#71717a] font-arabic max-w-md text-sm">لا توجد مسودات محفوظة حالياً. سيتم حفظ السكريبتات تلقائياً هنا عند الإنشاء.</p>
            </div>
         </div>
       )}

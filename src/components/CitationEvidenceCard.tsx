@@ -28,10 +28,10 @@ export const CitationEvidenceCard: React.FC<CitationCardProps> = ({
       onClick={() => setRevealed(!revealed)}
     >
       <div className="flex justify-between items-start mb-2">
-        <span className="text-[9px] font-mono font-bold text-amber-700 uppercase tracking-[0.2em]">
+        <span className="text-[9px] font-bold text-amber-700 font-medium">
           Evidence_Tag // {sourceId}
         </span>
-        <span className="text-[8px] font-mono text-amber-900 uppercase">
+        <span className="text-[8px] font-medium text-amber-900">
           {sourceType}
         </span>
       </div>
@@ -42,14 +42,14 @@ export const CitationEvidenceCard: React.FC<CitationCardProps> = ({
 
       {revealed && (
         <div className="mt-4 pt-4 border-t border-amber-900/30 animate-none">
-          <p className="text-micro italic text-zinc-400 mb-2 font-mono">
+          <p className="text-micro italic text-zinc-400 mb-2 font-arabic">
             "{citation}"
           </p>
           <a 
             href={sourceUrl} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="text-[9px] text-amber-600 underline font-mono active:scale-95"
+            className="text-[9px] text-amber-600 underline font-arabic active:scale-95"
           >
             [Access_Original_Document]
           </a>

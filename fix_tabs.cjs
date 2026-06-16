@@ -1,29 +1,24 @@
 const fs = require('fs');
+let c = fs.readFileSync('src/pages/ScriptEditor.tsx', 'utf8');
 
-function fix(file) {
-  let c = fs.readFileSync(file, 'utf8');
-  c = c.replace(/المخطط الزمنيEditor/g, 'TimelineEditor');
-  c = c.replace(/src\/components\/ErrorBoundary\.tsx/g, 'TimelineEditor');
-  
-  // Replace some english tabs or text left over
-  c = c.replace(/Seq /g, 'مشهد ');
-  c = c.replace(/BPM/g, 'الإيقاع');
-  c = c.replace(/"script"/g, '"script"'); // logic state, leave alone
-  
-  // Make sure to replace any other tabs
-  c = c.replace(/>Script</g, '>السكريبت<');
-  c = c.replace(/>Shorts</g, '>مقاطع قصيرة (Shorts)<');
-  c = c.replace(/>Kit</g, '>باقة النشر<');
-  c = c.replace(/>Processor</g, '>المعالج الصوتي<');
-  
-  c = c.replace(/Voice Configuration/g, 'إعدادات الصوت');
-  c = c.replace(/Voice ID/g, 'معرف الصوت (Voice ID)');
-  c = c.replace(/Save/g, 'حفظ');
-  c = c.replace(/Cancel/g, 'إلغاء');
-  
-  fs.writeFileSync(file, c);
-}
+c = c.replace(
+  /<button onClick={\(\) => setActiveInspectorTab\('traceability'\)} className={`flex-1 p-3 text-\[9px\] font-mono uppercase tracking-widest transition-colors \${activeInspectorTab === 'traceability' \? 'bg-\[#121214\] text-\[#fafafa\] border-b-2 border-\[#4f46e5\]' : 'text-\[#a1a1aa\] active:scale-95 border-\[#27272a\] shadow-sm'}`}>/g,
+  '<button onClick={() => setActiveInspectorTab(\'traceability\')} className={`flex-1 p-3 text-xs font-semibold font-arabic transition-colors ${activeInspectorTab === \'traceability\' ? \'bg-[#121214] text-[#fafafa] border-b-2 border-[#4f46e5]\' : \'text-[#a1a1aa] hover:text-[#fafafa] active:scale-95\'}`}>'
+);
 
-fix('src/components/TimelineEditor.tsx');
-fix('src/pages/ContentCreationPage.tsx');
-console.log('fixed');
+c = c.replace(
+  /<button onClick={\(\) => setActiveInspectorTab\('director'\)} className={`flex-1 p-3 text-\[9px\] font-mono uppercase tracking-widest transition-colors \${activeInspectorTab === 'director' \? 'bg-cyan-500\/10 text-cyan-400 border-b-2 border-cyan-400' : 'text-\[#a1a1aa\] active:scale-95 border-\[#27272a\] shadow-sm'}`}>/g,
+  '<button onClick={() => setActiveInspectorTab(\'director\')} className={`flex-1 p-3 text-xs font-semibold font-arabic transition-colors ${activeInspectorTab === \'director\' ? \'bg-[#121214] text-[#fafafa] border-b-2 border-[#4f46e5]\' : \'text-[#a1a1aa] hover:text-[#fafafa] active:scale-95\'}`}>'
+);
+
+c = c.replace(
+  /<List className="w-3 h-3 mx-auto mb-1" \/>\s*Trace\s*<\/button>/g,
+  '<List className="w-4 h-4 mx-auto mb-1" />\nالمساعد والمصادر\n</button>'
+);
+
+c = c.replace(
+  /<Film className="w-3 h-3 mx-auto mb-1" \/>\s*Director\s*<\/button>/g,
+  '<Film className="w-4 h-4 mx-auto mb-1" />\nإخراج المشاهد\n</button>'
+);
+
+fs.writeFileSync('src/pages/ScriptEditor.tsx', c);

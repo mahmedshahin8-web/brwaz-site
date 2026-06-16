@@ -1,48 +1,427 @@
-1:import React, { useState, useEffect, useRef } from "react";
-96:  const [topic, setTopic] = useState(() => {
-101:  const [duration, setDuration] = useState(10);
-102:  const [note, setNote] = useState("");
-103:  const [mood, setMood] = useState<MoodType>("التحليل الاستقصائي");
-104:  const [liveTrends, setLiveTrends] = useState<LiveTrend[]>([]);
-105:  const [isSweeping, setIsSweeping] = useState(false);
-106:  const [isTriaging, setIsTriaging] = useState(false);
-111:  const [suggestedTitles, setSuggestedTitles] = useState<RadarSuggestion[]>([]);
-112:  const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
-114:  const [researchMap, setResearchMap] = useState<MasterOutline | null>(null);
-115:  const [isLongForm, setIsLongForm] = useState(false);
-116:  const [generatedScenes, setGeneratedScenes] = useState<EpisodeScene[]>([]);
-117:  const [currentChapterIndex, setCurrentChapterIndex] = useState(0);
-119:  const [isLoading, setIsLoading] = useState(false);
-120:  const [progress, setProgress] = useState(0);
-121:  const [status, setStatus] = useState("");
-122:  const [estimatedTime, setEstimatedTime] = useState(0);
-123:  const [loadingTip, setLoadingTip] = useState("");
-124:  const [data, setData] = useState<EpisodeData | null>(null);
-131:  const [error, setError] = useState("");
-171:  const [activeTab, setActiveTab] = useState<
-174:  const [rawScriptText, setRawScriptText] = useState("");
-175:  const [finalVoiceScript, setFinalVoiceScript] = useState("");
-176:  const [isProcessingAudio, setIsProcessingAudio] = useState(false);
-177:  const [isPlayingVoice, setIsPlayingVoice] = useState(false);
-198:  const [showMoodModal, setShowMoodModal] = useState(false);
-199:  const [showArchive, setShowArchive] = useState(false);
-200:  const [showSettings, setShowSettings] = useState(false);
-201:  const [useOllama, setUseOllama] = useState(() => localStorage.getItem("useOllama") === "true");
-202:  const [ollamaUrl, setOllamaUrl] = useState(() => {
-206:  const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("ollamaModel") || "gemini-3-flash-preview");
-207:  const [elevenLabsKey, setElevenLabsKey] = useState(() => localStorage.getItem("elevenLabsKey") || "");
-208:  const [elevenLabsVoiceId, setElevenLabsVoiceId] = useState(() => localStorage.getItem("elevenLabsVoiceId") || "pNInz6obbfDQGcgMyIGC");
-218:  const [archive, setArchive] = useState<EpisodeData[]>([]);
-219:  const [archiveSearchQuery, setArchiveSearchQuery] = useState("");
-220:  const [titleCache, setTitleCache] = useState<
-231:  const [cooldown, setCooldown] = useState(0);
-246:  const [isSaving, setIsSaving] = useState(false);
-247:  const [isحفظd, setIsحفظd] = useState(false);
-278:  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-279:  const [isDraggingString, setIsDraggingString] = useState(false);
-280:  const [notePos, setNotePos] = useState({ x: 100, y: 150 });
-281:  const [isDraggingNote, setIsDraggingNote] = useState(false);
-282:  const [noteDragOffset, setNoteDragOffset] = useState({ x: 0, y: 0 });
-283:  const [modePositions, setModePositions] = useState<
-287:  const [toast, setToast] = useState<{
-291:  const [streamedChunk, setStreamedChunk] = useState("");
+import { apiFetch } from "../lib/apiFetch";
+import React, { useState } from "react";
+import { EpisodeScene } from "../types";
+import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp, Archive, Mic, Play, Wand2, Zap, ExternalLink, Video, Music, Swords, X, Search, Camera } from "lucide-react";
+import { surgicalEdit } from "../lib/gemini";
+import { generateNanoBananaImage, editNanoBananaImageText } from "../services/imageService";
+import { AudioWaveform } from "./AudioWaveform";
+import { motion, AnimatePresence } from "motion/react";
+import { BRollModal } from "./BRollModal";
+import { ImageWithFallback } from "./ImageWithFallback";
+interface SceneCardProps {
+  key?: React.Key;
+  scene: EpisodeScene;
+  onUpdate: (updatedScene: EpisodeScene) => void;
+  copyToClipboard: (text: string, message?: string) => void;
+  isDraggable?: boolean; 
+  isRecording?: boolean;
+  onStartRecording?: () => void;
+  onStopRecording?: () => void;
+  onMasterAudio?: () => void;
+  audioUrl?: string;
+  onSeek?: (time: number) => void;
+  seekTo?: number;
+  isHighlighted?: boolean;
+  onLoopClick?: (loopId: string) => void;
+  // Missing Props
+  isOpening?: boolean;
+  onRecord?: () => void;
+  onMaster?: () => void;
+  isProcessingAudio?: boolean;
+  onVSMode?: () => void;
+  onAcceptVersion?: (version: "original" | "comparison") => void;
+  isABTesting?: boolean;
+export const SceneCard = React.memo(function SceneCard({ 
+  scene, 
+  onUpdate, 
+  copyToClipboard, 
+  isDraggable,
+  isRecording,
+  onStartRecording,
+  onStopRecording,
+  onMasterAudio,
+  audioUrl,
+  onSeek,
+  seekTo,
+  isHighlighted,
+  onLoopClick,
+  isOpening,
+  onRecord,
+  onMaster,
+  isProcessingAudio,
+  onVSMode,
+  onAcceptVersion,
+  isABTesting
+}: SceneCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedVoiceOver, setEditedVoiceOver] = useState(scene.voice_over || "");
+  const [isGeneratingImage, setIsGeneratingImage] = useState(false);
+  const [interactiveInstruction, setInteractiveInstruction] = useState("");
+  const [selectedSentence, setSelectedSentence] = useState<string | null>(null);
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [isPlayingTTS, setIsPlayingTTS] = useState(false);
+  const [showBrollModal, setShowBrollModal] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const status = scene.status || "pending";
+  const handleApprove = () => {
+    onUpdate({ ...scene, status: "approved" });
+  const handleEditToggle = () => {
+    if (isEditing) {
+      onUpdate({ ...scene, voice_over: editedVoiceOver });
+    setIsEditing(!isEditing);
+  const handlePlayTTS = async () => {
+    if (isPlayingTTS) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      } else {
+        window.speechSynthesis.cancel();
+      setIsPlayingTTS(false);
+      return;
+    // Clean text by preserving pauses conceptually
+    let cleanText = editedVoiceOver.replace(/\[صمت درامي\]/g, "... ");
+    cleanText = cleanText.replace(/🔊/g, "");
+    const elKey = localStorage.getItem("elevenLabsKey")?.trim();
+    const elVoiceId = localStorage.getItem("elevenLabsVoiceId")?.trim() || "pNInz6obbfDQGcgMyIGC"; // Default to a deep voice id
+    if (elKey) {
+      setIsPlayingTTS(true);
+      try {
+        const res = await apiFetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}?output_format=mp3_44100_128`, {
+          method: "POST",
+          headers: {
+             "Content-Type": "application/json",
+             "xi-api-key": elKey
+          body: JSON.stringify({
+            text: cleanText,
+            model_id: "eleven_multilingual_v2"
+        if (!res.ok) {
+           throw new Error("ElevenLabs API failed");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+        audioRef.current = audio;
+        audio.onended = () => setIsPlayingTTS(false);
+        audio.onerror = () => setIsPlayingTTS(false);
+        audio.play();
+      } catch(e) {
+         console.error(e);
+         alert("فشل توليد الصوت عبر ElevenLabs، يرجى التأكد من المفتاح.");
+         setIsPlayingTTS(false);
+      return;
+    // Fallback to browser TTS for preview
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = "ar-EG";
+    utterance.rate = 0.9; // Slightly slower for dramatic effect
+    utterance.pitch = 0.8; // Deeper voice roughly simulation "Al Nabash"
+    utterance.onend = () => setIsPlayingTTS(false);
+    utterance.onerror = () => setIsPlayingTTS(false);
+    setIsPlayingTTS(true);
+    window.speechSynthesis.speak(utterance);
+  const handleOpenSearch = (platform: string, query: string) => {
+    let url = "";
+    if (platform === "pexels") url = `https://www.pexels.com/search/${encodeURIComponent(query)}`;
+    if (platform === "mixkit") url = `https://mixkit.co/free-stock-video/${encodeURIComponent(query).replace(/%20/g, "-")}/`;
+    if (platform === "freesound") url = `https://freesound.org/search/?q=${encodeURIComponent(query)}`;
+    if (url) window.open(url, "_blank");
+  const handleDownloadMp3 = async () => {
+    const elKey = localStorage.getItem("elevenLabsKey")?.trim();
+    const elVoiceId = localStorage.getItem("elevenLabsVoiceId")?.trim() || "pNInz6obbfDQGcgMyIGC";
+    if (!elKey) {
+      alert("يرجى إضافة مفتاح ElevenLabs من الإعدادات للتمكين من تحميل الـ MP3");
+      return;
+    try {
+      let cleanText = editedVoiceOver.replace(/\[صمت درامي\]/g, "... ");
+      cleanText = cleanText.replace(/🔊/g, "");
+      const res = await apiFetch(`https://api.elevenlabs.io/v1/text-to-speech/${elVoiceId}?output_format=mp3_44100_128`, {
+          method: "POST",
+          headers: {
+             "Content-Type": "application/json",
+             "xi-api-key": elKey
+          body: JSON.stringify({
+            text: cleanText,
+            model_id: "eleven_multilingual_v2"
+      if (!res.ok) throw new Error("خطأ في المفتاح أو تجاوز الحد الأقصى للاستخدام");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `Scene_${scene.asset_id.replace(/\W+/g, "_")}.mp3`;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch(err) {
+      alert("فشل تحميل الملف الصوتي، تأكد من مفتاح الـ API");
+  const colorCodeScript = (text: string) => {
+    let html = text;
+    // 1. Red: Danger, secrets, drama
+    const redWords = ["السر", "الانهيار", "الكارثة", "فضيحة", "فاجعة", "خطير", "مصيبة", "مستحيل", "الغريب"];
+    redWords.forEach(word => {
+      const regex = new RegExp(`\\b${word}\\b`, 'gi');
+      html = html.replace(regex, `<span class="text-red-700 font-bold px-1">${word}</span>`);
+    // 2. Gold: Numbers and specific dates
+    html = html.replace(/(\d{4}|\d+%|\d+)/g, '<span class="text-yellow-600 font-bold px-1">$1</span>');
+    // 3. Gray: Descriptive text and dramatic pauses
+    html = html.replace(/(\[صمت درامي\]|🔊|\[.*?\])/g, '<span class="text-gray-400 italic px-1">$1</span>');
+    return { __html: html };
+  const handleGenerateImage = async () => {
+    try {
+      setIsGeneratingImage(true);
+      const url = await generateNanoBananaImage(scene.image_prompt_nano_banana);
+      onUpdate({ ...scene, generated_image_url: url });
+    } catch (err) {
+      console.error(err);
+      alert("فشل في توليد الصورة.");
+    } finally {
+      setIsGeneratingImage(false);
+  const handleEditImageArabic = async () => {
+    try {
+      setIsGeneratingImage(true);
+      const url = await editNanoBananaImageText(scene.image_prompt_nano_banana, scene.generated_image_url || "");
+      onUpdate({ ...scene, generated_image_url: url });
+    } catch (err) {
+      console.error(err);
+      alert("فشل في تعديل الصورة.");
+    } finally {
+      setIsGeneratingImage(false);
+  const handleRewriteSentence = async () => {
+    if (!selectedSentence || !interactiveInstruction) return;
+    try {
+      setIsRewriting(true);
+      const revised = await surgicalEdit(selectedSentence, interactiveInstruction, editedVoiceOver);
+      const newVoiceOver = editedVoiceOver.replace(selectedSentence, revised);
+      setEditedVoiceOver(newVoiceOver);
+      onUpdate({ ...scene, voice_over: newVoiceOver });
+      setSelectedSentence(null);
+      setInteractiveInstruction("");
+    } catch (e) {
+      console.error(e);
+      alert("فشلت عملية النحت الجراحي.");
+    } finally {
+      setIsRewriting(false);
+  const handleRegenerate = async () => {
+    onUpdate({ ...scene, status: "regenerating" });
+    setTimeout(() => {
+      onUpdate({
+        ...scene,
+        visual_cue: scene.visual_cue + " (تم التحديث للتأكيد على الفكرة)",
+        image_prompt_nano_banana: scene.image_prompt_nano_banana + " --v 6.0 --style raw",
+        status: "pending"
+  const renderWords = React.useMemo(() => {
+    return (editedVoiceOver || "").split(" ").map((word, idx) => {
+      const cleanWord = word.replace(/[^\w\u0621-\u064A]/g, "");
+      const timestamp = scene.word_timestamps?.find(t => t.word === cleanWord);
+      const formattedWord = colorCodeScript(word + " ");
+      return (
+        <span
+          key={idx}
+          onDoubleClick={() => timestamp && onSeek && onSeek(timestamp.start)}
+          dangerouslySetInnerHTML={formattedWord}
+  }, [editedVoiceOver, scene.word_timestamps, onSeek]);
+  return (
+    <motion.div
+      whileTap={{ scale: 0.995, transition: { duration: 0.05 } }}
+      animate={{ 
+        boxShadow: isHighlighted ? "0 4px 20px rgba(59, 130, 246, 0.15)" : "0 1px 3px rgba(0,0,0,0.05)",
+        borderColor: isHighlighted ? "rgba(59, 130, 246, 0.4)" : "rgba(229, 231, 235, 1)"
+      transition={{ duration: 0.8, repeat: isHighlighted ? Infinity : 0, repeatType: "reverse" }}
+        status === "approved" ? "border-green-200" : "border-gray-200"
+      } ${isHighlighted ? "z-30 scale-[1.01]" : "active:scale-95"}`}
+      {scene.comparison_version && (
+              </h3>
+              <button 
+                onClick={() => onAcceptVersion?.("original")}
+                <X size={24} />
+              </button>
+           </div>
+                       {(scene.engine_source || 'gemini').toUpperCase()}
+                    </span>
+                 </div>
+                    {scene.voice_over}
+                 </div>
+                       {scene.visual_cue}
+                    </div>
+                    <button 
+                      onClick={() => onAcceptVersion?.("original")}
+                    </button>
+                 </div>
+              </div>
+                       {(scene.comparison_version.engine_source || 'ollama').toUpperCase()}
+                    </span>
+                 </div>
+                    {scene.comparison_version.voice_over}
+                 </div>
+                       {scene.comparison_version.visual_cue}
+                    </div>
+                    <button 
+                      onClick={() => onAcceptVersion?.("comparison")}
+                    </button>
+                 </div>
+              </div>
+           </div>
+        </div>
+            NODE_{scene.asset_id.replace(/\D/g, "") || "00"} {status === "approved" && "✓"}
+          </span>
+          {scene.loop_type && (
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                if (scene.loop_id && onLoopClick) onLoopClick(scene.loop_id);
+                scene.loop_type === 'O' 
+                  ? 'border border-orange-200 text-orange-600 bg-orange-50' 
+                  : 'border border-blue-200 text-blue-600 bg-blue-50'
+              } active:scale-95 active:scale-95`}
+              {scene.loop_type}
+            </button>
+             EST_DUR: {scene.estimated_duration_seconds || Math.ceil((scene.voice_over?.length || 100) / 15)}s
+          </span>
+        </div>
+        {scene.visual_treatment && (
+          </div>
+          {onVSMode && !scene.comparison_version && (
+             <button
+              onClick={onVSMode}
+              disabled={isABTesting}
+               VS Mode
+             </button>
+          {(onStartRecording || onRecord) && (
+            <button
+              onClick={isRecording ? onStopRecording : (onRecord || onStartRecording)}
+                isRecording 
+                  ? 'border-red-200 bg-red-50 text-red-600 animate-pulse' 
+                  : 'border-gray-200 text-gray-500 active:scale-95 active:scale-95'
+            </button>
+          <button
+            onClick={handleDownloadMp3}
+            title="تحميل MP3 (يتطلب مفتاح ElevenLabs)"
+          </button>
+          <button
+            onClick={handlePlayTTS}
+          </button>
+        </div>
+      </div>
+        {isEditing ? (
+             <textarea
+               value={editedVoiceOver}
+               onChange={(e) => setEditedVoiceOver(e.target.value)}
+               dir="rtl"
+          </div>
+            </div>
+              {/* SCRIPT COLUMN (2/3 width on Desktop if quotes exist) */}
+                {renderWords}
+              </div>
+              {/* ARCHIVE COLUMN (1/3 width on Desktop if quotes exist) */}
+              {scene.archival_quotes && scene.archival_quotes.length > 0 && (
+                     Archival Testimony
+                   </h4>
+                     {scene.archival_quotes.map((quote, idx) => (
+                         </div>
+                           "{quote.quote_text}"
+                         </blockquote>
+                         {quote.source_context && (
+                             [SOURCE]: {quote.source_context}
+                           </div>
+                       </div>
+                   </div>
+                 </div>
+            </div>
+          </div>
+        {selectedSentence && !isEditing && (
+              <input 
+                type="text" 
+                value={interactiveInstruction} 
+                onChange={(e) => setInteractiveInstruction(e.target.value)} 
+                placeholder="مثلاً: اجعلها أقصر، أو حولها لسؤال مشوق..."
+                dir="rtl"
+              <button 
+                onClick={handleRewriteSentence}
+                disabled={isRewriting || !interactiveInstruction}
+                {isRewriting ? "[RE-ENGAGING] // المعالجة جارية..." : "[ENGAGE] // نفذ"}
+              </button>
+            </div>
+          </div>
+        <button 
+          onClick={() => setIsExpanded(!isExpanded)}
+          {isExpanded ? (
+        </button>
+        <AnimatePresence>
+          {isExpanded && (
+            <motion.div 
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+                {(audioUrl || isRecording) && (
+                        </h3>
+                        {audioUrl && !scene.is_mastered && onMasterAudio && (
+                          <button 
+                            onClick={onMasterAudio}
+                              Run Studio Polish
+                          </button>
+                    </div>
+                    <AudioWaveform 
+                      audioUrl={audioUrl || ""} 
+                      isRecording={isRecording} 
+                      onMaster={onMasterAudio}
+                      seekTo={seekTo} 
+                  </div>
+                   {scene.visual_treatment && (
+                     </div>
+                   {scene.multi_camera_angles && scene.multi_camera_angles.length > 0 && (
+                       </strong>
+                         {scene.multi_camera_angles.map((cam, camIdx) => (
+                             </div>
+                           </div>
+                       </div>
+                     </div>
+                   {scene.visual_cue && (
+                     </div>
+                   {scene.b_roll_search_query && (
+                        <button 
+                          onClick={() => setShowBrollModal(true)}
+                          <Search size={12} /> Search
+                        </button>
+                      </div>
+                      {scene.pexelsAsset && (
+                              </a>
+                           </div>
+                        </div>
+                    </div>
+                   {scene.sfx && (
+                     </div>
+                   {scene.image_prompt_nano_banana && (
+                        {scene.generated_image_url && (
+                          </div>
+                      </div>
+                </div>
+              </div>
+            </motion.div>
+        </AnimatePresence>
+          <button 
+            onClick={handleApprove}
+            disabled={status === "approved" || isEditing}
+              status === "approved" ? "bg-green-100 text-green-700 cursor-not-allowed border border-green-200" : "bg-green-500 active:scale-95 text-gray-900 border-none"
+            {status === "approved" ? "معتمد" : "اعتماد المشهد"}
+          </button>
+          <button 
+            onClick={handleEditToggle}
+              isEditing ? "bg-blue-500 active:scale-95 text-gray-900" : "bg-amber-400 active:scale-95 text-amber-950"
+            {isEditing ? "حفظ التعديل" : "تعديل السكريبت"}
+          </button>
+          <button 
+            onClick={handleRegenerate}
+            disabled={status === "regenerating" || isEditing}
+              status === "regenerating" ? "bg-red-100 text-red-500 cursor-wait" : "bg-red-500 active:scale-95 text-gray-900"
+            {status === "regenerating" ? "جاري الإعادة..." : "الكاتب الآلي (تعديل)"}
+          </button>
+        </div>
+      </div>
+      <AnimatePresence>
+        {showBrollModal && scene.b_roll_keywords && (
+          <BRollModal 
+            keyword={scene.b_roll_keywords}
+            onClose={() => setShowBrollModal(false)}
+      </AnimatePresence>
+    </motion.div>

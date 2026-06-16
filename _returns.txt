@@ -1,0 +1,23 @@
+543:  return (
+568:          return (
+730:    return () => clearInterval(tipInterval);
+742:    return () => {
+1020:    if (isAuditing) return (
+1027:    if (!auditResult) return (
+1043:    return (
+1139:    if (isEchoing) return (
+1146:    if (!echoResult) return (
+1162:    return (
+1248:    return (
+1575:    return () => {
+1598:    return (
+1919:    return (
+1945:            return (
+1987:      return (
+1997:    return (
+2093:    return () => clearInterval(timer);
+2934:  return (
+3630:                                                   return (
+3979:                                                return (
+4251:  return (
+4319:  return (

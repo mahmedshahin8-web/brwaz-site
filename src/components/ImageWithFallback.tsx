@@ -18,16 +18,16 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, 
 
   if (isGenerating) {
     return (
-      <div className={`aspect-video bg-[#1a1a18] rounded-xl border border-dashed border-gray-200 flex flex-col items-center justify-center gap-4 ${className}`}>
-        <Loader2 className="w-8 h-8 animate-spin text-red-600" />
-        <span className="text-xs font-bold text-gray-500 font-mono animate-pulse">[DEVELOPING] // استخراج الصورة المودعة...</span>
+      <div className={`aspect-video bg-[#1a1a18] rounded-xl border border-dashed border-[#27272a] flex flex-col items-center justify-center gap-4 ${className}`}>
+        <Loader2 className="w-8 h-8 animate-spin text-[#ef4444]" />
+        <span className="text-xs font-bold text-[#71717a] font-arabic animate-pulse">[DEVELOPING] // استخراج الصورة المودعة...</span>
       </div>
     );
   }
 
   if (!src || error) {
     return (
-      <div className={`relative overflow-hidden group bg-white shadow-sm border border-gray-200 rounded-xl flex flex-col items-center justify-center p-6 gap-4 ${className}`}>
+      <div className={`relative overflow-hidden group bg-[#121214]  shadow-sm border border-[#27272a] rounded-xl flex flex-col items-center justify-center p-6 gap-4 ${className}`}>
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
         <div className="relative">
           {error ? (
@@ -37,10 +37,10 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, 
           )}
         </div>
         <div className="text-center relative">
-          <p className="text-micro font-bold text-gray-600 uppercase tracking-widest">
+          <p className="text-micro font-bold text-[#a1a1aa]  ">
             {error ? 'فشل التحميض - صورة تالفة' : 'لا توجد صورة في الملف'}
           </p>
-          <p className="text-[8px] text-gray-700 mt-1 uppercase font-mono">
+          <p className="text-[8px] text-[#e5e3e0] mt-1  font-arabic">
             {error ? 'Error: Broken Negative' : 'Pending Development'}
           </p>
         </div>

@@ -9,11 +9,11 @@ interface NarrativeDNAEditorProps {
 
 export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorProps) {
   return (
-    <div className="flex flex-col gap-4 bg-white shadow-sm border border-gray-200 p-6 rounded-lg">
+    <div className="flex flex-col gap-4 bg-[#121214]  shadow-sm border border-[#27272a] p-6 rounded-lg">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
            <BookOpen className="w-4 h-4 text-muted-amber" />
-           <span className="text-[11px] font-mono text-gray-900/70 uppercase tracking-widest font-bold">
+           <span className="text-[11px] font-arabic text-[#fafafa]/70   font-bold">
              هيكل قصة الفيديو (Narrative Strategy)
            </span>
         </div>
@@ -22,10 +22,10 @@ export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorPro
       <div className="grid grid-cols-2 gap-2">
         <button 
           onClick={() => onChange("HCS")}
-          className={`px-4 py-4 rounded-md text-[11px] font-mono font-bold transition-all flex flex-col items-center gap-1 ${
+          className={`px-4 py-4 rounded-md text-[11px] font-arabic font-bold transition-all flex flex-col items-center gap-1 ${
             strategy === "HCS" 
               ? 'bg-muted-amber/20 text-muted-amber border border-muted-amber shadow-[0_0_15px_rgba(212,175,55,0.2)]' 
-              : 'bg-white border-gray-100 shadow-sm text-gray-600 border border-gray-200 active:scale-95'
+              : 'bg-[#121214]  border-[#27272a] shadow-sm text-[#a1a1aa] border border-[#27272a] active:scale-95'
           }`}
         >
           <Target className="w-4 h-4" />
@@ -33,10 +33,10 @@ export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorPro
         </button>
         <button 
           onClick={() => onChange("HAP")}
-          className={`px-4 py-4 rounded-md text-[11px] font-mono font-bold transition-all flex flex-col items-center gap-1 ${
+          className={`px-4 py-4 rounded-md text-[11px] font-arabic font-bold transition-all flex flex-col items-center gap-1 ${
             strategy === "HAP" 
               ? 'bg-muted-amber/20 text-muted-amber border border-muted-amber shadow-[0_0_15px_rgba(212,175,55,0.2)]' 
-              : 'bg-white border-gray-100 shadow-sm text-gray-600 border border-gray-200 active:scale-95'
+              : 'bg-[#121214]  border-[#27272a] shadow-sm text-[#a1a1aa] border border-[#27272a] active:scale-95'
           }`}
         >
           <ShieldAlert className="w-4 h-4" />
@@ -44,7 +44,7 @@ export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorPro
         </button>
       </div>
 
-      <div className="p-4 bg-white/30 border border-gray-200 rounded text-micro text-gray-600 font-arabic text-center leading-relaxed">
+      <div className="p-4 bg-[#121214] /30 border border-[#27272a] rounded-lg text-micro text-[#a1a1aa] font-arabic text-center leading-relaxed">
         {strategy === "HCS" 
           ? "الاستراتيجية: مقدمة جذابة ← شرح المشكلة أو السياق ← تقديم الحلول والخلاصة. مثالي للفيديوهات التعليمية والثقافية." 
           : "الاستراتيجية: مشهد صادم ← إثبات المصداقية ← كشف اللغز في النهاية. مثالي لقصص الجرائم، الغموض، والأحداث الغريبة."}

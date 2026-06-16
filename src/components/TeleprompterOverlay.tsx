@@ -16,7 +16,7 @@ const SOUNDS = [
 
 export function TeleprompterOverlay({ script, onClose }: Props) {
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [isRecording, setIsRecording] = useState(false);
+  const [isتسجيل, setIsتسجيل] = useState(false);
   const [isMirrored, setIsMirrored] = useState(false);
   const [activeSound, setActiveSound] = useState<string | null>(null);
   
@@ -89,7 +89,7 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
       const t = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(t);
     } else if (countdown === 0) {
-      setIsRecording(true);
+      setIsتسجيل(true);
       setCountdown(null);
       if (recognitionRef.current) {
         try { recognitionRef.current.start(); } catch (e) {}
@@ -116,35 +116,35 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[6000] bg-white text-gray-900 flex flex-col overflow-hidden"
+      className="fixed inset-0 z-[6000] bg-[#121214]  text-[#fafafa] flex flex-col overflow-hidden"
     >
       <audio ref={audioRef} />
 
       {/* TOP CONTROLS */}
-      <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-50 bg-white/80 backdrop-blur border-b border-gray-100">
+      <div className="absolute top-0 left-0 w-full p-6 flex justify-between items-center z-50 bg-[#121214] /80 backdrop-blur border-b border-[#27272a]">
         <div className="flex items-center gap-6">
            
            {/* Auto-scroll controls */}
-           <div className="flex items-center gap-2 bg-gray-100 p-1 rounded-full">
+           <div className="flex items-center gap-2 bg-[#121214] p-1 rounded-full">
              <button
                 onClick={() => setScrollSpeed(s => Math.max(0.5, s - 0.5))}
-                className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-900 active:scale-95 transition-all"
+                className="w-10 h-10 flex items-center justify-center text-[#71717a] hover:text-[#fafafa] active:scale-95 transition-all"
              >
                <Rewind size={16} />
              </button>
              <button
                 onClick={() => setIsPlaying(!isPlaying)}
-                className="w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center active:scale-95 transition-all shadow-md"
+                className="w-12 h-12 bg-[#4f46e5] text-white rounded-full flex items-center justify-center active:scale-95 transition-all shadow-medium"
              >
                {isPlaying ? <Pause size={20} /> : <Play size={20} className="ml-1" />}
              </button>
              <button
                 onClick={() => setScrollSpeed(s => Math.min(5, s + 0.5))}
-                className="w-10 h-10 flex items-center justify-center text-gray-500 hover:text-gray-900 active:scale-95 transition-all"
+                className="w-10 h-10 flex items-center justify-center text-[#71717a] hover:text-[#fafafa] active:scale-95 transition-all"
              >
                <FastForward size={16} />
              </button>
-             <div className="px-3 font-mono text-xs text-gray-500 font-bold border-l border-gray-300">
+             <div className="px-3 font-arabic text-xs text-[#71717a] font-bold border-l border-[#4f46e5]/30">
                {scrollSpeed.toFixed(1)}x
              </div>
            </div>
@@ -152,16 +152,16 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
            {/* Voice Sync */}
            {!isPlaying && (
              <React.Fragment>
-               {isRecording ? (
+               {isتسجيل ? (
                  <div className="flex items-center gap-3 ml-4">
                    <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse shadow-[0_0_15px_#ef4444]" />
-                   <span className="text-red-500 font-mono text-sm tracking-widest uppercase">Recording</span>
-                   <Activity className="w-5 h-5 text-gray-600 ml-2 animate-pulse" />
+                   <span className="text-[#ef4444] font-medium text-sm">تسجيل</span>
+                   <Activity className="w-5 h-5 text-[#a1a1aa] ml-2 animate-pulse" />
                  </div>
                ) : (
                  <button
                    onClick={handleStartVoiceSync}
-                   className="ml-4 bg-gray-100 active:scale-95 text-gray-900/80 px-6 py-3 rounded-full font-mono text-sm tracking-widest uppercase flex items-center gap-2 transition-all"
+                   className="ml-4 bg-[#121214] active:scale-95 text-[#fafafa]/80 px-6 py-3 rounded-full font-medium text-sm flex items-center gap-2 transition-all"
                  >
                    <Mic size={18} /> Start_Voice_Sync
                  </button>
@@ -170,13 +170,13 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
            )}
            
            {/* Soundboard */}
-           <div className="hidden lg:flex gap-2 border-l border-gray-300 pl-6 ml-2">
+           <div className="hidden lg:flex gap-2 border-l border-[#4f46e5]/30 pl-6 ml-2">
              {SOUNDS.map(s => (
                <button
                  key={s.id}
                  onClick={() => toggleSound(s)}
-                 className={`px-3 py-1 text-[10px] uppercase font-mono tracking-wider border rounded-full transition-colors ${
-                   activeSound === s.id ? 'bg-blue-600 text-white border-blue-500' : 'border-gray-300 text-gray-600 active:scale-95'
+                 className={`px-3 py-1 text-[10px]  font-arabic tracking-wider border rounded-full transition-colors ${
+                   activeSound === s.id ? 'bg-[#4f46e5] text-white border-[#4f46e5]' : 'border-[#4f46e5]/30 text-[#a1a1aa] active:scale-95'
                  }`}
                >
                  {s.label}
@@ -189,14 +189,14 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
            <button
              onClick={() => setIsMirrored(p => !p)}
              className={`flex items-center gap-2 px-4 py-2 border rounded-full transition-colors ${
-               isMirrored ? 'bg-cyan-500/20 border-cyan-500 text-cyan-500 font-bold' : 'border-gray-300 text-gray-600 active:scale-95'
+               isMirrored ? 'bg-cyan-500/20 border-cyan-500 text-cyan-500 font-bold' : 'border-[#4f46e5]/30 text-[#a1a1aa] active:scale-95'
              }`}
            >
              <FlipHorizontal size={16} /> <span className="hidden sm:inline">Mirror_Mode</span>
            </button>
            <button
              onClick={onClose}
-             className="w-10 h-10 bg-gray-100 active:scale-95 rounded-full flex items-center justify-center transition-colors hover:bg-gray-200"
+             className="w-10 h-10 bg-[#121214] active:scale-95 rounded-full flex items-center justify-center transition-colors hover:bg-[#27272a]"
            >
              <X size={20} />
            </button>
@@ -210,9 +210,9 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 1.5, opacity: 0 }}
-            className="absolute inset-0 flex items-center justify-center z-40 bg-white/80 backdrop-blur-sm"
+            className="absolute inset-0 flex items-center justify-center z-40 bg-[#121214] /80 backdrop-blur-sm"
           >
-            <div className="text-[20vw] font-black text-blue-600 font-mono leading-none">
+            <div className="text-[20vw] font-black text-[#4f46e5] font-arabic leading-none">
               {countdown}
             </div>
           </motion.div>
@@ -232,7 +232,7 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
            dir="rtl"
          >
            <div 
-              className="text-4xl sm:text-5xl lg:text-7xl font-arabic font-black leading-[1.8] text-gray-900/90 text-center mx-auto"
+              className="text-4xl sm:text-5xl lg:text-7xl font-arabic font-black leading-[1.8] text-[#fafafa]/90 text-center mx-auto"
               dangerouslySetInnerHTML={{ __html: script.replace(/\n/g, '<br><br>') }}
            />
            <div className="h-[60vh]" /> {/* Bottom padding */}

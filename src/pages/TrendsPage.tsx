@@ -13,12 +13,12 @@ export default function TrendsPage() {
     let active = true;
     const fetchRealTrends = async () => {
       try {
-        setMatrixText(["[SCANNING] Awaiting signal lock from public APIs..."]);
+        setMatrixText(["[بحث] جاري انتظار الإشارة من المصادر العامة..."]);
         const res = await apiFetch('/api/trends/public');
         if(res.ok && active) {
           const data = await res.json();
           if(data.success && data.items && data.items.length > 0) {
-              setMatrixText(prev => ["[AI_PROCESSING] Analyzing geopolitical impact...", ...prev].slice(0, 15));
+              setMatrixText(prev => ["[معالجة] جاري تحليل الأخبار والمشاعر...", ...prev].slice(0, 15));
               
               // Use the configured AI to analyze the RSS headlines
               const { generateAIContentRaw, Type } = await import("../lib/gemini");
@@ -69,7 +69,7 @@ Output JSON array of objects.`;
       
       // Fallback
       if (active) {
-         setMatrixText(prev => ["[LISTENING] External feed parsing in progress...", ...prev].slice(0, 15));
+         setMatrixText(prev => ["[استماع] جاري قراءة البيانات الخارجية...", ...prev].slice(0, 15));
       }
     };
 
@@ -79,109 +79,137 @@ Output JSON array of objects.`;
   }, []);
 
   const tabs = [
-    { id: "map", label: "الخريطة الحرارية (HEATMAP)", icon: Flame },
+    { id: "map", label: "الخريطة الحرارية ", icon: Flame },
     { id: "keywords", label: "الكلمات النشطة", icon: Activity },
   ];
 
   return (
-    <div className="min-h-full bg-gray-50 text-gray-900 p-8 space-y-6" dir="rtl">
+    <div className="min-h-full font-arabic text-[#fafafa] space-y-6" dir="rtl">
       {/* Header */}
-      <header className="flex flex-col gap-2 border-b border-gray-200 pb-6 relative z-10">
-        <div className="flex items-center gap-3 text-cyan-400">
-          <Radio className="w-5 h-5 animate-pulse" />
-          <h1 className="text-3xl font-arabic font-black tracking-tighter uppercase leading-none">[GLOBAL_RADAR] // الأحداث الساخنة</h1>
+      <header className="bg-[#121214]  rounded-lg border border-[#27272a] p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-5 bg-[radial-gradient(circle_at_100%_0%,_#4f46e5_1px,_transparent_1px)] bg-[size:40px_40px]" />
+        <div>
+          <h2 className="text-3xl font-black text-[#fafafa] font-arabic mb-2 tracking-wide flex items-center gap-3">
+             <Radio className="w-8 h-8 text-[#4f46e5] animate-pulse" />
+             الرادار والأحداث
+          </h2>
+          <p className="text-[#a1a1aa] font-arabic text-xs leading-relaxed max-w-2xl mt-2  ">
+            مسح الترددات النشطة في الشبكة العالمية. التقاط النبضات وإشارات الاستخبارات.
+          </p>
         </div>
-        <p className="text-gray-600 font-mono text-xs leading-relaxed max-w-2xl mt-2 uppercase tracking-widest">
-          مسح الترددات النشطة في الشبكة العالمية. التقاط النبضات وإشارات الاستخبارات.
-        </p>
       </header>
 
-      {/* Grid: Map + Matrix Sidebar */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           
-          {/* Main Heatmap Area */}
-          <div className="lg:col-span-3 space-y-4">
-               {/* Controls */}
-              <div className="flex justify-between items-center bg-white p-4 border border-gray-200">
-                <div className="flex gap-2">
-                    <div className="flex items-center gap-2 px-3 py-1 bg-[#eb2630]/10 border border-[#eb2630]/30 text-[#eb2630] font-mono text-[9px] tracking-widest uppercase">
-                        <div className="w-1.5 h-1.5 bg-[#eb2630] rounded-full animate-pulse" /> High_Priority
+          {/* Main Heatmap Area (Spans 8 cols) */}
+          <div className="lg:col-span-8 flex flex-col gap-6">
+               
+               {/* Map Container */}
+               <div className="bg-[#121214]  rounded-xl border border-[#27272a] p-6 shadow-sm relative overflow-hidden flex flex-col">
+                  
+                  {/* Controls Header inside Map Card */}
+                  <div className="flex justify-between items-center mb-6 z-10">
+                    <div className="flex gap-2">
+                        <div className="flex items-center gap-2 px-3 py-1 bg-[#ef4444]/10 border border-[#ef4444]/30 text-[#ef4444] font-arabic text-[9px]   rounded-lg">
+                            <div className="w-1.5 h-1.5 bg-[#ef4444] rounded-full animate-pulse" /> حرج_جدًا
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1 bg-[#10b981]/10 border border-[#10b981]/30 text-[#10b981] font-arabic text-[9px]   rounded-lg">
+                            <div className="w-1.5 h-1.5 bg-[#10b981] rounded-full" /> رصد_عادي
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 px-3 py-1 bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 font-mono text-[9px] tracking-widest uppercase">
-                        <div className="w-1.5 h-1.5 bg-cyan-400 rounded-full" /> Normal
+                    <div className="text-[10px] font-arabic text-[#a1a1aa]   flex items-center gap-2">
+                        <Activity size={12} className="text-[#4f46e5]" />
+                        معدل المزامنة: 2000ms
                     </div>
-                </div>
-                <div className="text-[10px] font-mono text-gray-600 uppercase tracking-widest">
-                    SYNC_RATE: 2000ms
-                </div>
-              </div>
+                  </div>
 
-               {/* The Map (Simulated via Canvas/CSS) */}
-               <div className="relative w-full h-[500px] bg-[#000] border border-gray-200 overflow-hidden flex items-center justify-center">
-                   {/* Dotted Grid Background */}
-                   <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMGgyMHYyMEgwemIiIGZpbGw9Im5vbmUiLz48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjUpIi8+PC9zdmc+')]"></div>
-                   
-                   {/* Scanning Line */}
-                   <motion.div 
-                     className="absolute inset-x-0 h-1 bg-cyan-500/50 shadow-[0_0_15px_rgba(0,240,255,0.8)] z-10"
-                     animate={{ top: ['0%', '100%', '0%'] }}
-                     transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
-                   />
-                   
-                   {/* World Map SVG Abstract Outline */}
-                   <div className="absolute inset-0 opacity-10 flex justify-center items-center pointer-events-none">
-                       {/* SVG path of map placeholder */}
-                       <svg viewBox="0 0 1000 500" className="w-full h-full fill-white stroke-none">
-                           <path d="M100,100 Q150,50 200,120 T300,150 T400,100 T500,200 T600,150 T700,220 T800,100 T900,180 V400 H100 Z" />
-                       </svg>
-                   </div>
+                  {/* The Map (Simulated via Canvas/CSS) */}
+                  <div className="relative w-full h-[400px] bg-[#09090b] border border-[#27272a] overflow-hidden flex items-center justify-center rounded-lg">
+                      {/* Dotted Grid Background */}
+                      <div className="absolute inset-0 opacity-20 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCI+PHBhdGggZD0iTTAgMGgyMHYyMEgwemIiIGZpbGw9Im5vbmUiLz48Y2lyY2xlIGN4PSIyIiBjeT0iMiIgcj0iMSIgZmlsbD0icmdiYSgyNTUsMjU1LDI1NSwwLjUpIi8+PC9zdmc+')]"></div>
+                      
+                      {/* Scanning Line */}
+                      <motion.div 
+                        className="absolute inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#4f46e5]/50 to-transparent shadow-[0_0_15px_rgba(212,165,116,0.6)] z-10"
+                        animate={{ top: ['0%', '100%', '0%'] }}
+                        transition={{ duration: 10, repeat: Infinity, ease: 'linear' }}
+                      />
+                      
+                      {/* World Map SVG Abstract Outline */}
+                      <div className="absolute inset-0 opacity-5 flex justify-center items-center pointer-events-none">
+                          <svg viewBox="0 0 1000 500" className="w-full h-full fill-[#4f46e5] stroke-none">
+                              <path d="M100,100 Q150,50 200,120 T300,150 T400,100 T500,200 T600,150 T700,220 T800,100 T900,180 V400 H100 Z" />
+                          </svg>
+                      </div>
 
-                   {/* Pulses */}
-                   <AnimatePresence>
-                       {pulses.map((pulse) => (
-                           <motion.div 
-                               key={pulse.id}
-                               initial={{ opacity: 1, scale: 0 }}
-                               animate={{ opacity: 0, scale: pulse.isHighPriority ? 5 : 3 }}
-                               exit={{ opacity: 0 }}
-                               transition={{ duration: 2, ease: "easeOut" }}
-                               className={`absolute rounded-full -translate-x-1/2 -translate-y-1/2 border-2 ${pulse.isHighPriority ? 'border-[#eb2630] bg-[#eb2630]/20' : 'border-cyan-400 bg-cyan-400/20'}`}
-                               style={{ left: `${pulse.x}%`, top: `${pulse.y}%`, width: pulse.isHighPriority ? '40px' : '20px', height: pulse.isHighPriority ? '40px' : '20px' }}
-                           />
-                       ))}
-                   </AnimatePresence>
+                      {/* Pulses */}
+                      <AnimatePresence>
+                          {pulses.map((pulse) => (
+                              <motion.div 
+                                  key={pulse.id}
+                                  initial={{ opacity: 1, scale: 0 }}
+                                  animate={{ opacity: 0, scale: pulse.isHighPriority ? 5 : 3 }}
+                                  exit={{ opacity: 0 }}
+                                  transition={{ duration: 2, ease: "easeOut" }}
+                                  className={`absolute rounded-full -translate-x-1/2 -translate-y-1/2 border-2 ${pulse.isHighPriority ? 'border-[#ef4444] bg-[#ef4444]/20' : 'border-[#10b981] bg-[#10b981]/20'}`}
+                                  style={{ left: `${pulse.x}%`, top: `${pulse.y}%`, width: pulse.isHighPriority ? '40px' : '20px', height: pulse.isHighPriority ? '40px' : '20px' }}
+                              />
+                          ))}
+                      </AnimatePresence>
 
-                   {/* Location Markers */}
-                   {pulses.map((pulse) => (
-                       <div key={`${pulse.id}-marker`} className="absolute" style={{ left: `${pulse.x}%`, top: `${pulse.y}%` }}>
-                           <div className={`w-1.5 h-1.5 ${pulse.isHighPriority ? 'bg-[#eb2630]' : 'bg-cyan-400'} rounded-full`}></div>
-                       </div>
-                   ))}
+                      {/* Location Markers */}
+                      {pulses.map((pulse) => (
+                          <div key={`${pulse.id}-marker`} className="absolute" style={{ left: `${pulse.x}%`, top: `${pulse.y}%` }}>
+                              <div className={`w-1.5 h-1.5 ${pulse.isHighPriority ? 'bg-[#ef4444]' : 'bg-[#10b981]'} rounded-full`}></div>
+                          </div>
+                      ))}
 
-                   <div className="absolute bottom-4 left-4 text-[9px] font-mono text-gray-500 uppercase tracking-[0.3em]">
-                       OP_RADAR // ACTIVE_SURVEILLANCE
-                   </div>
+                      <div className="absolute bottom-4 left-4 text-[9px] font-arabic text-[#71717a]  ">
+                          رادار التريندات والمؤشرات النشطة
+                      </div>
+                  </div>
+               </div>
+
+               {/* Optional Bento Card Row under Map */}
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-[#121214]  rounded-xl border border-[#27272a] p-6 shadow-sm group hover:border-[#10b981]/50 transition-colors">
+                     <div className="flex items-center gap-3 mb-2">
+                        <Flame className="w-5 h-5 text-[#10b981]" />
+                        <h4 className="text-lg font-bold text-[#fafafa] font-arabic">أكثر الكلمات تداولاً</h4>
+                     </div>
+                     <p className="text-[12px] text-[#a1a1aa] font-arabic">تحليل لتردد المصطلحات عبر المنصات خلال الـ 24 ساعة الماضية.</p>
+                  </div>
+                  <div className="bg-[#121214]  rounded-xl border border-[#27272a] p-6 shadow-sm group hover:border-[#4f46e5]/50 transition-colors">
+                     <div className="flex items-center gap-3 mb-2">
+                        <TrendingUp className="w-5 h-5 text-[#4f46e5]" />
+                        <h4 className="text-lg font-bold text-[#fafafa] font-arabic">التوقعات الفيروسية</h4>
+                     </div>
+                     <p className="text-[12px] text-[#a1a1aa] font-arabic">خوارزميات التنبؤ بصعود وسقوط التوجهات الحالية.</p>
+                  </div>
                </div>
           </div>
 
-          {/* Side Panel: Matrix Sentiment Analysis */}
-          <div className="lg:col-span-1 border border-gray-200 bg-white flex flex-col h-[500px] mt-[68px]">
-              <div className="p-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold text-green-500 uppercase tracking-widest flex items-center gap-2">
-                     <Database className="w-3 h-3" /> INTEL_STREAM
+          {/* Side Panel: Matrix Sentiment Analysis (Spans 4 cols) */}
+          <div className="lg:col-span-4 bg-[#121214]  rounded-xl border border-[#27272a] flex flex-col h-[650px] shadow-sm overflow-hidden relative">
+              <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-[#27272a] via-[#4f46e5] to-[#27272a]" />
+              <div className="p-5 border-b border-[#27272a] bg-[#121214] flex items-center justify-between">
+                  <span className="text-[10px] font-arabic font-bold text-[#4f46e5]   flex items-center gap-2">
+                     <Database className="w-4 h-4" /> تدفق البيانات الحية
                   </span>
-                  <div className="w-2 h-2 bg-green-500 animate-pulse" />
+                  <div className="w-2 h-2 bg-[#4f46e5] animate-pulse rounded-full" />
               </div>
-              <div className="flex-1 p-4 overflow-hidden relative font-mono text-[10px] uppercase leading-relaxed flex flex-col justify-start">
-                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent to-gray-50 z-10 h-full"></div>
+              
+              <div className="flex-1 p-5 overflow-hidden relative font-arabic text-[10px]  leading-relaxed flex flex-col justify-start bg-[#09090b]/50">
+                  <div className="absolute inset-0 pointer-events-none bg-gradient-to-b from-transparent via-transparent to-[#09090b]/90 z-10 h-full"></div>
                   
                   <AnimatePresence>
                       {matrixText.map((text, i) => (
                           <motion.div 
                               key={i + text}
-                              initial={{ opacity: 0, y: -10 }}
-                              animate={{ opacity: 1 - (i * 0.1), y: 0 }}
-                              className={`mb-2 font-mono ${text.includes('ALERT') ? 'text-[#eb2630]' : text.includes('GLOBAL_PULSE') ? 'text-green-400' : 'text-green-500/60'} line-clamp-2 leading-relaxed`}
+                              initial={{ opacity: 0, x: -10 }}
+                              animate={{ opacity: 1 - (i * 0.1), x: 0 }}
+                              className={`mb-3 p-3 rounded-lg border border-[#27272a]/50 bg-[#121214] font-arabic ${text.includes('ALERT') ? 'text-[#ef4444] border-[#ef4444]/20' : text.includes('GLOBAL_PULSE') ? 'text-[#10b981]' : 'text-[#a1a1aa]'} line-clamp-2 leading-relaxed shadow-sm`}
                           >
                               {'> '} {text}
                           </motion.div>
@@ -189,13 +217,13 @@ Output JSON array of objects.`;
                   </AnimatePresence>
               </div>
               
-              <div className="p-4 border-t border-gray-200 bg-white">
-                  <div className="flex justify-between items-center mb-2">
-                     <span className="text-[9px] font-mono text-gray-600 uppercase tracking-widest">Global_Threat_Level</span>
-                     <span className="text-[9px] font-mono text-blue-600 font-bold">ELEVATED</span>
+              <div className="p-5 border-t border-[#27272a] bg-[#121214]/80 mt-auto">
+                  <div className="flex justify-between items-center mb-3">
+                     <span className="text-[10px] font-arabic text-[#a1a1aa]  ">مستوى الخطر</span>
+                     <span className="text-[10px] font-arabic text-[#4f46e5] font-bold px-2 py-1 bg-[#27272a] rounded-lg border border-[#4f46e5]/30">اهتمام مرتفع</span>
                   </div>
-                  <div className="w-full h-1 bg-gray-100">
-                      <div className="h-full bg-blue-600 w-[65%]" />
+                  <div className="w-full h-1.5 bg-[#09090b] rounded-full overflow-hidden">
+                      <div className="h-full bg-gradient-to-r from-[#27272a] to-[#4f46e5] w-[65%]" />
                   </div>
               </div>
           </div>

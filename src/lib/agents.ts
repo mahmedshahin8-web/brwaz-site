@@ -1,6 +1,7 @@
-import { callWithRetry, generateAIContentRaw, safeJsonParse, getMoodContext, getSystemPrompt, MoodType } from './gemini';
+import { callWithRetry, generateAIContentRaw, safeJsonParse, getMoodContext, getSystemPrompt, MoodType, Type } from './gemini';
 import { PersonaType, EpisodeScene } from '../types';
 import { IdentityMiddleware } from '../core/middlewares/IdentityMiddleware';
+import { getChannelDNA } from '../config/channelDNA';
 
 import { MasterOutline } from '../types';
 
@@ -91,7 +92,7 @@ ${rollingContext ? rollingContext : "This is the very first chapter."}
 
 4. DIALECT & DELIVERY PROTOCOL:
    - Voice and personality MUST match the user's selected Persona.
-   - If Daheeh style is active, use highly energetic, relatable Egyptian pop-science slang.
+   - You MUST write the script entirely in 100% Egyptian slang (العامية المصرية الدارجة). NO Fusha (Modern Standard Arabic).
    - STRICT ANTI-CLICHE LINTER: NEVER use "يا عزيزي", "بص يا سيدي", "مقدمة", "عشان نوضح أكتر".
 
 5. RAG-CITATION RULE (STRICT):
@@ -132,84 +133,149 @@ Output strict JSON:
 
 export async function executeAgent2_Director(
   masterScript: string,
+  mood: MoodType,
   engine: string,
-  onChunk?: (text: string) => void
+  onChunk?: (text: string) => void,
+  onProgressUpdate?: (p: number, status: string) => void
 ) {
-  // Split master script into chunks of max 500 words to avoid JSON token limits
-  const words = masterScript.split(/\s+/);
-  const CHUNK_SIZE = 500;
-  const scriptChunks = [];
+  if (!masterScript || masterScript.trim().length === 0) {
+     throw new Error("Fox Error: MasterScript is empty. The director cannot work with a void.");
+  }
   
-  for (let i = 0; i < words.length; i += CHUNK_SIZE) {
-    scriptChunks.push((words || []).slice(i, i + CHUNK_SIZE).join(" "));
+  if (masterScript.length < 50 || masterScript.includes("لم تزودني") || masterScript.includes("الخانات فاضية") || masterScript.includes("لا يمكنني إتمام")) {
+     throw new Error("Fox Error: Input validation failed. MasterScript seems to be an AI hallucination or complaint rather than an actual script. Pipeline aborted.");
+  }
+
+  // Use a sentence-based split for strict boundaries to ensure we never cut a thought perfectly in half.
+  // Instead of word-count splits which break chunks, we split by paragraphs/double newlines.
+  // Split by anything that looks like a sentence boundary, falling back to lines
+  const rawSentences = masterScript.match(/[^.!?\n]+[.!?\n]*/g) || [masterScript];
+  const scriptChunks = [];
+  let currentChunkArr: string[] = [];
+
+  for (let i = 0; i < rawSentences.length; i++) {
+    const sentence = rawSentences[i].trim();
+    if (!sentence) continue;
+    
+    currentChunkArr.push(sentence);
+    const chunkWordCount = currentChunkArr.join(" ").split(/\s+/).length;
+    
+    // Strict chunking: limit by words to prevent JSON truncation
+    if (chunkWordCount > 100) {
+      scriptChunks.push(currentChunkArr.join(" "));
+      currentChunkArr = [];
+    }
+  }
+  if (currentChunkArr.length > 0) {
+     scriptChunks.push(currentChunkArr.join(" "));
   }
 
   let allScenes: any[] = [];
-  
-  for (let i = 0; i < scriptChunks.length; i++) {
-    const prompt = `[Agent: Director/Editor]
-Task: Receive a segment of the master script and divide it into logical, sequential scenes.
-Account for exact 'estimated_duration_seconds' for each scene (approx 2 words per second).
-Continue numbering scenes starting from index ${allScenes.length + 1}.
+  let previous_visual_context = "None. This is the very first scene."; // INITIAL STATE
+  let previous_image_prompt = "None";
 
-Master Script Segment (${i + 1}/${scriptChunks.length}):
+  for (let i = 0; i < scriptChunks.length; i++) {
+    if (onProgressUpdate) {
+        const progressVal = 50 + Math.floor((10 * i) / scriptChunks.length);
+        onProgressUpdate(progressVal, `[!] فوكس (المخرج): معالجة المشاهد المرئية جزء ${i + 1} من ${scriptChunks.length}...`);
+    }
+    const prompt = `[Agent: Fox - Master Visual Director]
+Task: You are the visual overlay director. You receive raw spoken script. You must map it into highly precise visual scenes.
+Crucial Zero-Drop Rule: You MUST map EVERY SINGLE WORD and SENTENCE from the script segment exactly into the scenes. DO NOT summarize, drop, or rewrite any text!
+
+[MOOD & FORMAT DIRECTIVES]
+${getMoodContext(mood).visualAudioStyle}
+
+Script Segment (${i + 1}/${scriptChunks.length}):
 """
 ${scriptChunks[i]}
 """
 
-Rules:
-1. Divide this script segment into scenes based on narrative beats.
-2. For each scene, estimate the duration in seconds.
+[VISUAL CONTEXT CONTINUITY GUARD]
+Previous Chunk's Ending Visual Concept: "${previous_visual_context}"
+Previous Image Prompt: "${previous_image_prompt}"
+Rule: Ensure the new scenes flow seamlessly. You MUST maintain exactly the same visual details from the 'Previous Image Prompt' (e.g., if a character was wearing a military uniform, they must STILL be wearing it. Maintain lighting, colors, and camera flow). If changing scenes, specify it clearly.
+
+[VISUAL-FIRST PROMPTING RULE]
+To ensure terrifyingly good audio-visual sync, you MUST reason about the visual FIRST.
+In your JSON, output "visual_concept" BEFORE the script lines. 
+You must output TWO versions of the script line:
+1. "clean_tts": An EXACT mapping from the text provided above, but STRIP OUT any [URL] links or source brackets. ZERO TAGS. Clean for TTS. (MUST INCLUDE ALL ORIGINAL TEXT)
+2. "voiceover_text": The EXACT SAME text, but intelligently inject performance pacing tags for a human voice actor. Use tags like [PAUSE] for dramatic pauses, [SPEED: FAST] for fast delivery, and [TONE: MYSTERIOUS] etc. DO NOT alter the actual words!
+3. "image_prompt": A highly detailed midjourney-style image generation prompt for the visual concept.
+4. "sound_design": Advanced sound design and Foley notes (e.g., 'Low cinematic sub bass drone with distant echoes').
+5. "b_roll_search_query": A clean 1-3 word english search query for stock video (e.g. 'cairo rain', 'vintage typewriter'). MUST BE IN ENGLISH.
+6. "montage_instructions": Editing instructions for this specific scene (e.g. 'Slow zoom in', 'Fast flashy cuts').
 
 Output strict JSON:
 {
   "scenes": [
     {
       "scene_id": "string (e.g. '[Scene ${String(allScenes.length + 1).padStart(2, "0")}]')",
-      "voiceover_text": "string (the exact segment from master script)",
-      "voiceover_notes": "string (notes for VO artist: tone, speed, emotion)",
-      "estimated_duration_seconds": number,
-      "loop_type": "O" | "C" | null,
-      "loop_id": "string | null",
-      "visual_treatment": "string (Directorial Metadata for editor: e.g. Smooth Slow-Mo, Speed Ramping)",
-      "stock_search_queries": [
-        { "platform": "pexels" | "mixkit" | "freesound", "query": "string + licensing tags" }
-      ],
-      "archival_quotes": [
-        {
-          "speaker": "string (Name of the public figure)",
-          "quote_text": "string (The exact historical quote or testimony found in the script)",
-          "source_context": "string (Where/when it was said, e.g. '1998 TV Interview')",
-          "is_audio_available": "boolean"
-        }
-      ]
+      "visual_concept": "string (Detailed visual imagination of what we see on screen during this exact line. 1950s/cinematic etc.)",
+      "clean_tts": "string (The clean TTS version, zero tags)",
+      "voiceover_text": "string (The text with pacing tags [PAUSE], [SPEED], [TONE] injected)",
+      "image_prompt": "string (A highly detailed text-to-image prompt (english) to generate this scene)",
+      "sound_design": "string (Detailed sound design layout)",
+      "b_roll_search_query": "string (1-3 English words for Pexels search)",
+      "montage_instructions": "string (Editing directions)",
+      "estimated_duration_seconds": number (approx 2.5 words per second)
     }
   ]
-}
-Note: 
-- For 'freesound', always append 'license:cc0' or 'license:attribution'.
-- For 'pexels/mixkit', append keywords like 'Free License' or 'High Quality'.
-- Map visual_treatment to Mood:
-  * Nabbash/Cold -> Smooth Slow-Mo + Depth of Field.
-  * Black Box -> Aggressive Speed Ramping.
-  * Architectural -> Grainy Textures + Static Wide Shots.
-- If a scene contains an [[O:id:...]] marker, set loop_type to 'O' and loop_id to 'id'. If it contains [[C:id]], set loop_type to 'C' and loop_id to 'id'.
-`;
+}`;
 
-    try {
-      const rawContent = await callWithRetry(async () => {
-        return await generateAIContentRaw(prompt, null, engine, onChunk);
-      });
+    const rawContent = await callWithRetry(async () => {
+      const delayMs = engine === "ollama" ? 8000 : 3500;
+      await new Promise(r => setTimeout(r, delayMs));
+      return await generateAIContentRaw(prompt, {
+        type: Type.OBJECT,
+        properties: {
+          scenes: {
+             type: Type.ARRAY,
+             items: {
+               type: Type.OBJECT,
+               properties: {
+                  scene_id: { type: Type.STRING },
+                  visual_concept: { type: Type.STRING },
+                  clean_tts: { type: Type.STRING },
+                  voiceover_text: { type: Type.STRING },
+                  image_prompt: { type: Type.STRING },
+                  sound_design: { type: Type.STRING },
+                  b_roll_search_query: { type: Type.STRING },
+                  montage_instructions: { type: Type.STRING },
+                  estimated_duration_seconds: { type: Type.INTEGER }
+               },
+               required: ["scene_id", "visual_concept", "clean_tts", "voiceover_text", "image_prompt", "estimated_duration_seconds"]
+             }
+          }
+        },
+        required: ["scenes"]
+      }, engine, onChunk, undefined, false, 0.5, true);
+    });
+
+    const parsed = safeJsonParse(rawContent, { scenes: [] });
+    if (parsed && Array.isArray(parsed.scenes)) {
+      // Direct backward compatibility mapping for Orchestrator bounds
+      const properlyMapped = parsed.scenes.map((s: any) => ({
+        scene_id: s.scene_id,
+        visual_cue: s.visual_concept,
+        clean_tts: s.clean_tts || s.script_line,
+        voice_over: s.voiceover_text || s.clean_tts || s.script_line, // Use voice_over!
+        image_prompt: s.image_prompt || "",
+        sound_design: s.sound_design || "",
+        b_roll_search_query: s.b_roll_search_query || "",
+        montage_instructions: s.montage_instructions || "",
+        estimated_duration_seconds: s.estimated_duration_seconds || 15
+      }));
+      allScenes.push(...properlyMapped);
       
-      const parsed = safeJsonParse(rawContent, { scenes: [] });
-      // Filter out invalid/truncated scenes
-      const validScenes = (parsed?.scenes || []).filter((s:any) => s && s.voiceover_text && String(s.voiceover_text).trim().length > 0);
-      allScenes = [...allScenes, ...validScenes];
-    } catch (err) {
-      console.warn("Failed to process script chunk", i, err);
+      if (properlyMapped.length > 0) {
+        previous_visual_context = properlyMapped[properlyMapped.length - 1].visual_cue || "None";
+        previous_image_prompt = properlyMapped[properlyMapped.length - 1].image_prompt || "None";
+      }
     }
   }
-  
+
   return allScenes;
 }
 
@@ -246,64 +312,111 @@ export async function executeAgent3_ArtDirector(
   const moodContext = getMoodContext(mood);
   const framingContext = getCreativeFraming(mood);
   
-  const basePrompt = `[Agent: "عين" (Art Director) - Hybrid Cinematic & Archival System]
+  const basePrompt = `[Agent: "عين" (Art Director) - Hybrid Illustration & Archival System]
 Task: Generate pristine, Culturally-Anchored visual directions for this specific scene.
-You are 'Ain', the master Art Director for a premium documentary channel.
+You are 'Ain', the master Art Director for a premium doc channel.
 
 Scene segment:
 ${JSON.stringify(sceneSegment, null, 2)}
 
 === GLOBAL VISUAL CONDITION (MANDATORY THEME) ===
-${globalVisualCondition ? globalVisualCondition : "Hybrid Style: Cinematic Realism mixed with Archival Charcoal/Ink aesthetics."}
+${globalVisualCondition ? globalVisualCondition : "cinematic dark thriller, neon accents, high contrast lighting, mysterious hacker aesthetic, shadowy atmosphere, glowing digital artifacts, sharp focus, hyper-realistic details."}
+
+=== CRITICAL RULE: CONTEXTUAL SYMBOLISM (الرمزية السياقية) ===
+CRITICAL RULE: NEVER use generic or cartoonish elements. The aesthetic is serious, tense, and investigative. If abstract elements are needed, they MUST be semantically related to the topic (e.g., floating redacted documents, glowing data nodes, fragmented glass, binary rain, subtle red string investigation boards). They must seamlessly blend with the dark cinematic setting.
+
+=== CRITICAL RULE: THE MAIN PERSONA (THE NARRATOR/AL NABBASH) ===
+When the script refers to the narrator, the investigator, or "النبّاش", you MUST use this exact persona description in the prompt:
+"A mysterious investigative figure wearing a dark hoodie, face hidden by a smooth, featureless white anonymous mask. One eye hole of the mask glows with a bright, cosmic blue energy resembling a galaxy or starry nebula."
+Ensure this figure is placed in dramatic lighting (e.g., sitting in a dark server room, standing under a flickering streetlamp, holding a glowing clue).
+
+=== CRITICAL RULE: NO TEXT OR CALLIGRAPHY IN IMAGES ===
+CRITICAL: NEVER use words like 'Calligraphy', 'Letters', or 'Text' in the positive image prompt to avoid generating garbled AI text. Replace them with 'glowing digital data streams' or 'classified redacted documents'.
 
 === CREATIVE FRAMING RECOMMENDER ===
 Instead of generating the frame inside the image, we now use Video Editing Green-Screen templates.
 Your task is to recommend one of the following Template IDs for this scene:
-- "old_tv": Best for retro tech, broadcasts, intense monitoring.
-- "archival_book": Best for history, myths, ancient stories.
-- "classified_folder": Best for investigations, crimes, secrets.
-- "hologram_projector": Best for sci-fi, modern tech, future analysis.
+- "old_tv": Best for retro tech, surveillance footage, intercepted broadcasts.
+- "classified_folder": Best for investigations, crimes, secrets, deep state files.
+- "hologram_projector": Best for cyber-analysis, data visualization, modern tech.
 - "FULLSCREEN": If no template is needed and the scene should just be a regular cinematic shot.
-Generate the actual 'image_prompt' as a clean, full-screen cinematic shot (without placing it inside a book/tv). The video editor will handle inserting it into the template.
+Generate the actual image prompts as clean, full-screen cinematic shots.
 
-=== THE VISUAL DILEMMA (ANTI-ORIENTALISM PROTOCOL) ===
-CRITICAL: To avoid "Western Bias" and Orientalist tropes (Aladdin style, stereotypical bazaars, generic middle-eastern slop), you MUST use cultural anchors.
-- Use explicit architectural anchors (e.g., Mamluk architecture, Fatimid motifs, Cairene alleyways "Hara").
-- Emphasize lighting: Chiaroscuro, 35mm film grain, moody shadows, olive-brown tones.
-- NEGATIVE PROMPTS (Always append to image ideas): Do NOT use European facial features, do not use Aladdin styles, no shiny golden domes unless historically accurate.
+=== THE VISUAL DILEMMA (CINEMATIC THRILLER PROTOCOL) ===
+CRITICAL: To maintain the high-end Netflix documentary feel, avoid flat lighting or generic stock photo tropes.
+- Use dramatic chiaroscuro lighting, deep shadows (ink black), and sharp, intentional highlights (e.g., neon blue, harsh amber).
+- Emphasize cinematic atmosphere: fog, depth of field, anamorphic lens flares, dust motes in light beams.
+- NEGATIVE PROMPTS (Always append to image ideas): Do NOT use cartoon, illustration, bright daylight, cheerful colors, flat vector, 3d render, low quality.
+
+=== CINEMATOGRAPHY & FRAMING RULES (ESSENTIAL FOR MONTAGE) ===
+CRITICAL: To ensure the generated images look like a high-budget thriller when edited together, you MUST vary the shot sizes and camera angles throughout the scenes. Do not use the same framing repeatedly.
+- Define Shot Size: (e.g., Extreme Close-Up (ECU), Close-Up (CU), Medium Shot (MS), Wide Establishing Shot (WS), Ultra-Wide).
+- Define Camera Angle: (e.g., Low Angle/Hero shot, High Angle/Vulnerability, God's Eye/Top-down, Dutch Angle/Unease, Over-The-Shoulder).
+- Continuity: Shot 1 and Shot 2 in the same scene MUST logically flow together (e.g., Shot 1: Wide Establishing Shot, Shot 2: Medium Close-Up on the subject's hands or the glowing eye of the mask).
 
 === THE MIDJOURNEY PROMPT FORMULA (MANDATORY) ===
-To prevent historical inaccuracies (anachronisms) and cultural misrepresentation, the "image_prompt" MUST follow this exact structure:
-<Main Subject> in <EXACT ERA/YEAR, e.g., 1960s, Ancient Egypt, 12th Century> <EXACT LOCATION, e.g., Cairo, Desert> -- Wardrobe: <Historically accurate clothing> -- Atmosphere: <Lighting & film stock, e.g., 35mm, chiaroscuro> --no modern tools, modern clothing, smartphones, European facial features, western architecture
+To ensure a highly compelling, dark cinematic aesthetic, the "first_frame_image_prompt" and "second_frame_image_prompt" MUST follow this exact structure:
+[Camera Angle & Shot Size] of <Exact Subject / The Masked Investigator> <Action> in <DARK, MOODY LOCATION> -- Surroundings: <Subtle contextual metaphors, scattered case files, glowing screens> -- Style: <cinematic dark thriller, neon accents, high contrast lighting, mysterious hacker aesthetic, shadowy atmosphere, glowing digital artifacts, sharp focus, anamorphic lens flare> --ar 16:9 --style raw --v 6.0 --no text, typography, letters, words, watermark, cartoon, bright daylight, flat colors, low quality
 
-Example 1 (Historical): An exhausted Abbasid caliph sitting in a royal tent in 8th Century Baghdad, smoking a traditional shisha -- Wardrobe: Authentic Abbasid robes and turban -- Atmosphere: Cinematic lighting, dimly lit with oil lamps --no modern furniture, modern clothes, european features
-Example 2 (1960s): Two Egyptian men whispering in a cafe in 1960s Cairo -- Wardrobe: 1960s vintage suits and tarboush -- Atmosphere: 35mm film grain, sepia tone --no modern cars, smartphones, modern fashion, european features
+=== CAMERA MOTION PROTOCOL (ENGRAVED IN OUTPUT) ===
+You MUST provide a clear English camera motion instruction for AI Video (Runway/Kling) that matches the image perspective:
+- For Emotional/Intimate ECU: "Slow subtle micro-movements, shallow depth of field shift"
+- For Grand Wide Shots: "Slow cinematic drone push-in, parallax effect on background elements"
+- For Action/Tension MS: "Dynamic handheld camera shake, fast tracking shot"
+- For Map/Strategic Top-Down: "Slow rotation, smooth overhead glide"
+
+CRITICAL RULE FOR PROFILES: If the script features a specific historical or real figure, explicitly write their name. If referring to the narrator, use the "Masked Investigator" description above.
+
+Example 1 (Investigative - Wide Establishing): [Wide Establishing Shot (WS), Low Angle] of a mysterious investigative figure wearing a dark hoodie and a smooth, featureless white anonymous mask. One eye hole of the mask glows with a bright cosmic blue energy. The figure is standing in a dark, abandoned warehouse lit by a single flickering neon light. -- Style: cinematic dark thriller, high contrast lighting, mysterious hacker aesthetic, shadowy atmosphere, sharp focus, anamorphic lens flare --ar 16:9 --style raw --v 6.0 --no text, typography, letters, words, watermark, cartoon, bright daylight, flat colors, low quality
+Example 2 (The Clue - Close Up): [Extreme Close-Up (ECU), Over-The-Shoulder] of a gloved hand holding a heavily redacted classified document under a harsh desk lamp in a dark room. -- Style: cinematic dark thriller, high contrast lighting, mysterious hacker aesthetic, shadowy atmosphere, sharp focus, anamorphic lens flare --ar 16:9 --style raw --v 6.0 --no text, typography, letters, words, watermark, cartoon, bright daylight, flat colors, low quality
 
 === OUTPUT PROTOCOL ===
-Generate a highly descriptive prompt for the visual engine.
+Generate highly descriptive prompts for the visual engine.
 1. "recommended_template": (e.g. "old_tv", "archival_book", "classified_folder", "hologram_projector", or "FULLSCREEN")
-2. "image_prompt": The precise english generative AI prompt (CLEAN SHOT, DO NOT MENTION TV/BOOK IN PROMPT).
-3. "multi_camera_angles": An array of 3 distinct directorial angles for the editor (e.g. Wide, Close-Up, Dutch Angle) with lens descriptors.
-4. "b_roll_search_query": Stock video search query (Pexels).
-5. "sfx": Arabic SFX description.
+2. "first_frame_image_prompt": The precise english generative AI prompt for Shot 1, starting with [Shot Size, Camera Angle]. (CLEAN SHOT, NO HUMAN FACES UNLESS HISTORICAL FIGURE NAME).
+3. "first_frame_motion_prompt": English motion prompt for Runway/Kling for Shot 1 matching the Shot Size.
+4. "second_frame_image_prompt": The precise english generative AI prompt for Shot 2 (seamlessly follow shot 1 with a new angle), starting with [Shot Size, Camera Angle].
+5. "second_frame_motion_prompt": English motion prompt for Runway/Kling for Shot 2 matching the Shot Size.
+6. "multi_camera_angles": An array of 3 distinct directorial angles.
+7. "b_roll_search_query": Stock video search query (Pexels).
+8. "sfx": Arabic SFX description.
 
 Output strict JSON:
 {
   "recommended_template": "string",
-  "image_prompt": "string",
+  "first_frame_image_prompt": "string",
+  "first_frame_motion_prompt": "string (ENGLISH ONLY, e.g. Slow zoom in, Cinematic fast tracking shot)",
+  "second_frame_image_prompt": "string",
+  "second_frame_motion_prompt": "string (ENGLISH ONLY, e.g. Slow pan right, Static shot, slow motion)",
   "multi_camera_angles": [
     { "type": "Wide Angle", "description": "Establishing shot of...", "lens": "24mm" },
     { "type": "Close-Up", "description": "Tight on the eyes...", "lens": "85mm macro" }
   ],
   "b_roll_search_query": "string (ENGLISH ONLY)",
-  "sfx": "string"
+  "sfx": "string",
+  "transition_to_next_scene": "string (Match Cut, Hard Cut, Same Scene, New Location)"
 }
 `;
 
   const prompt = IdentityMiddleware.injectPersona(basePrompt, 'viz-001');
 
   return callWithRetry(async () => {
-    const rawContent = await generateAIContentRaw(prompt, null, engine, onChunk);
+    const delayMs = engine === "ollama" ? 5000 : 2000;
+    await new Promise(r => setTimeout(r, delayMs));
+    const rawContent = await generateAIContentRaw(prompt, {
+      type: Type.OBJECT,
+      properties: {
+        recommended_template: { type: Type.STRING },
+        first_frame_image_prompt: { type: Type.STRING },
+        first_frame_motion_prompt: { type: Type.STRING },
+        second_frame_image_prompt: { type: Type.STRING },
+        second_frame_motion_prompt: { type: Type.STRING },
+        b_roll_search_query: { type: Type.STRING },
+        sfx: { type: Type.STRING },
+        transition_to_next_scene: { type: Type.STRING }
+      },
+      required: ["first_frame_image_prompt"]
+    }, engine, onChunk, undefined, false, 0.5, true);
     return safeJsonParse(rawContent, {});
   });
 }
@@ -342,7 +455,7 @@ Original Scene:
 ${JSON.stringify(scene, null, 2)}
 
 Requirements:
-1. Maintain the White Cairene (Analytical/Mysterious) tone.
+1. Maintain the 100% Egyptian Slang tone (العامية المصرية 100%).
 2. Adapt the phrasing to be more unique to this engine.
 3. Keep the approximate duration.
 
@@ -358,6 +471,8 @@ Output strict JSON:
   });
 }
 
+
+
 export async function executeAgent4_Reviewer(
   scriptContext: string,
   mood: MoodType,
@@ -369,7 +484,7 @@ export async function executeAgent4_Reviewer(
 Task: You are the terrifyingly strict Fact-Checker and Editor.
 Your job: Review the generated script.
 1. Hunt for historical hallucinations or dramatic exaggerations. Fix them instantly.
-2. Enforce the "White Cairene Arabic" (العامية القاهرية البيضاء) tone.
+2. Enforce the 100% Egyptian Arabic tone (العامية المصرية الصميمة). Remove any Modern Standard Arabic (Fusha) phrasing. Write it the way a real Egyptian content creator speaks.
 3. Remove ALL cheap cliches ("يا عزيزي", "هل تساءلت يوماً", "في هذا الفيديو", "بص يا سيدي").
 4. Ensure the pacing is rapid and dense. 
 Fix the script directly. Output ONLY the final, polished Arabic script. DO NOT add any introductions, json blocks, or pleasantries.
@@ -389,7 +504,7 @@ ${scriptContext}
 
 export async function executeAgent5_Publisher(
   videoTitle: string,
-  researchMapStr: string,
+  masterScript: string,
   mood: MoodType,
   persona: PersonaType,
   engine = "gemini",
@@ -404,29 +519,31 @@ export async function executeAgent5_Publisher(
   shorts?: any[]
 }> {
   const moodContext = getMoodContext(mood);
-  const basePrompt = `[Agent: "الناشر" Publisher & Omnichannel Manager]
-You are a master digital strategist and copywriter.
-Your task is to generate the final packaging metadata AND spin-off content (Shorts, Threads, Social Posts) from the research map.
+  const DNA = getChannelDNA('barwaz_classic');
+  const basePrompt = `SYSTEM ROLE: You are a Senior Edutainment Copywriter and YouTube Strategist. Your writing style is strictly 'Clean Cairene Egyptian Slang' (عامية قاهرية بيضاء). No formal Arabic (Fusha) is allowed.
+You are generating the final packaging metadata AND spin-off content (Shorts, Threads, Social Posts) from the Final Master Document/Script.
 
 Video Title Idea: "${videoTitle}"
-NARRATIVE MOOD (Mode Inheritance): ${moodContext.scriptingStyle}
+NARRATIVE MOOD: ${moodContext.scriptingStyle}
 
-Research Map:
-${researchMapStr}
+Final Text:
+${masterScript.substring(0, 5000)} ... [Truncated]
 
-RULES (CRITICAL):
-1. A/B Titles (youtube_titles): 3 highly mysterious, intellectual titles matching the Mood. No cheap clickbait.
-2. Description: A professional, dark description teasing the episode's knot.
-3. Chapters: 4-7 timestamps.
-4. Tags: 10-15 highly relevant SEO keywords.
-5. Thumbnail Prompt: Midjourney AI prompt (in English) for a cinematic thumbnail.
-   ${mood === 'تشريح الحكايات' ? `
-   - THUMBNAIL DNA: MUST be in (Hand-drawn Ink Sketch on Vintage Yellow Paper) style.
-   - COMPOSITION: Use "Double Exposure" technique.
-   ` : "- Describe a dark, intriguing, cinematic thumbnail."}
-6. Shorts (3 Scripts): Extract 3 mini-stories. Each needs a 'hook', 'body', and 'cta'. Follow the Mood.
-7. Twitter Thread: A 3-to-5 part threading summarizing the most mind-blowing fact.
-8. Social Posts: 1 Facebook/LinkedIn, 1 Instagram post.
+CRITICAL RULES FOR OUTPUT:
+1. TITLES (عناوين يوتيوب/فيسبوك): Must be click-magnets. Use paradoxes, shocking numbers, and curiosity gaps. NEVER use direct academic titles. Example: '٤ سنين قلبت التاريخ.. السر المرعب!' instead of 'عبقرية الحفظ'.
+2. DESCRIPTION (الوصف): Write it as a fast-paced 'Teaser' that hooks the reader. Do not summarize the video. Sell the mystery. MANDATORY: Start with 3-4 catchy sentences in Egyptian Slang.
+3. SHORTS HOOKS (الخطاف): NEVER start with clichés like 'عمرك سألت نفسك' or 'هل تعلم'. Start with a Pattern Interrupt, a bold claim, or a shocking scenario. Example: 'لو قلتلك إن في إنسان ذاكرته أقوى من هارد ديسك.. هتصدقني؟'.
+4. TONE: Clean Cairene Egyptian Slang (عامية قاهرية بيضاء). Fast-paced, suspenseful Edutainment style. No Fusha!
+5. Thumbnail Prompt: Midjourney AI prompt (in English) for an eye-catching illustration thumbnail.
+   - GLOBAL THEME: MUST strictly embrace the official channel's aesthetic style: ${DNA.visual_rules.global_style}
+   - ASPECT RATIO: MUST append --ar 16:9 to the positive prompt.
+   - STRICT NEGATIVE RULES (MANDATORY): --no text, font, letters, watermark, geometric shapes, 3d render.
+   - CRITICAL COMPOSITION SAFETY RULES: NEVER use words like 'Calligraphy', 'Letters', or 'Text' in the positive image prompt.
+6. Chapters: 4-7 timestamps.
+7. Tags: 10-15 highly relevant SEO keywords.
+8. Twitter Thread: A 3-to-5 part thread summarizing the most mind-blowing fact.
+9. Social Posts: 1 Facebook/LinkedIn, 1 Instagram post.
+10. VERTICAL PROMPTS: Any prompts for Shorts/TikTok MUST use --ar 9:16 and follow the channel visual style.
 
 Output STRICT JSON matching this schema exactly:
 {
@@ -472,9 +589,10 @@ Output STRICT JSON matching this schema exactly:
                 hook: { type: "STRING" },
                 body: { type: "STRING" },
                 cta: { type: "STRING" },
-                visual_instructions: { type: "STRING" }
+                visual_instructions: { type: "STRING" },
+                vertical_image_prompt: { type: "STRING", description: "Midjourney prompt with --ar 9:16" }
               },
-              required: ["title", "hook", "body", "cta", "visual_instructions"]
+              required: ["title", "hook", "body", "cta", "visual_instructions", "vertical_image_prompt"]
             }
           },
           omnichannel: {
@@ -693,5 +811,44 @@ Note: red_team_score is 0-100 (100 being bulletproof).
   return callWithRetry(async () => {
     const rawContent = await generateAIContentRaw(prompt, null, engine, onChunk);
     return safeJsonParse(rawContent, { fatal_flaws: [], narrative_gaps: [], verdict: "", red_team_score: 0 });
+  });
+}
+
+export async function executeAgent_TTSNormalizer(
+  script: string,
+  engine: string,
+  persona: string,
+  onChunk?: (text: string) => void
+): Promise<string> {
+  const isFastPaced = persona !== "الهرم الرابع" && persona !== "برواز التاريخ";
+
+  const prompt = `[Node: TTS Phonetic Normalizer / الفلترة الصوتية المتقدمة]
+Task: Process the provided Arabic script strictly for Advanced Text-to-Speech (TTS) normalization.
+DO NOT change the narrative, the tone, or the meaning. DO NOT add new sentences. DO NOT complain or output meta-text.
+
+You must perform essential normalizations:
+1. Number-to-Word Conversion: Convert ALL numerical digits into Arabic spoken words based on the context. 
+   Examples: "سنة 1919" -> "سنة ألف وتسعمية وتسعطاشر" | "11.5" -> "حداشر ونص" | "3 قرون" -> "تلات قرون".
+2. Acronym Phonetics: Convert any English letters/acronyms into Arabic phonetic spelling.
+   Examples: "AI" -> "إيه آي" | "PDF" -> "بي دي إف" | "DNA" -> "دي إن إيه".
+3. Smart Diacritics (التشكيل الذكي): Add Arabic diacritics (Tashkeel: Fatha, Damma, Kasra, Shadda) to complex or historical names, and crucial transitional words to ensure the TTS engine reads them correctly with the right phonetic weight.
+
+${isFastPaced ? `4. Dynamic Prosody (أسلوب الدحيح/الإيقاع السريع):
+   - Add punctuation cues to force the TTS to pause briefly or change rhythm.
+   - Use text markers like dashes (--) for sudden shifts in tone, or ellipsis (...) for suspenseful pauses.
+   - Use double spaces or commas where a real human presenter taking a quick breath would pause.
+   - ENSURE the final output reads like an energetic, fast-paced presenter.` : ''}
+
+Return ONLY the fully normalized script text. No pleasantries. No markdown code blocks. Just the raw text.
+
+=== ORIGINAL SCRIPT ===
+${script}
+`;
+
+  return callWithRetry(async () => {
+    const rawContent = await generateAIContentRaw(prompt, null, engine, onChunk, undefined, false, 0.1);
+    let cleanText = rawContent.trim();
+    cleanText = cleanText.replace(/^```[^\n]*\n/g, '').replace(/\n```$/g, '');
+    return cleanText.trim();
   });
 }

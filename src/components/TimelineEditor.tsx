@@ -51,21 +51,21 @@ function SortableSceneNode({ id, scene, index, onUpdate, copyToClipboard }: any)
   return (
     <div ref={setNodeRef} style={style} className="min-w-[400px] flex-shrink-0 flex flex-col gap-2">
       {/* Dramatic Curve Header */}
-      <div className="h-14 bg-white/20 border border-gray-200 relative flex items-end px-4 pb-2 overflow-hidden group rounded-t-2xl">
+      <div className="h-14 bg-[#121214] /20 border border-[#27272a] relative flex items-end px-4 pb-2 overflow-hidden group rounded-t-2xl">
         <div 
           className="absolute bottom-0 left-0 right-0 bg-accent-danger/20" 
           style={{ height: `${heightIntensity * 100}%`, transition: 'height 0.3s' }} 
         />
-        <div {...attributes} {...listeners} className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing text-text-muted active:text-gray-900 opacity-0 group-active:scale-95 transition-opacity z-20">
+        <div {...attributes} {...listeners} className="absolute inset-0 flex items-center justify-center cursor-grab active:cursor-grabbing text-text-muted active:text-[#fafafa] opacity-0 group-active:scale-95 transition-opacity z-20">
           <GripHorizontal className="w-6 h-6" />
         </div>
-        <span className="relative z-10 text-gray-900 font-['JetBrains_Mono'] tracking-tight text-xs shadow-black drop-shadow-md">
+        <span className="relative z-10 text-[#fafafa] font-['JetBrains_Mono'] tracking-tight text-xs shadow-black drop-shadow-medium">
           مشهد {index + 1} | الإيقاع: {bpm}
         </span>
       </div>
       
       {/* Card Content */}
-      <div className="h-[600px] overflow-y-auto custom-scrollbar border border-t-0 border-gray-200 rounded-b-2xl bg-white/10">
+      <div className="h-[600px] overflow-y-auto custom-scrollbar border border-t-0 border-[#27272a] rounded-b-2xl bg-[#121214] /10">
         <SceneCard 
           scene={scene} 
           onUpdate={(updated) => onUpdate(index, updated)} 

@@ -17,7 +17,7 @@ export const VaultPanel: React.FC<VaultPanelProps> = ({ isOpen, onClose, childre
       )}
     >
       <div className="flex justify-between items-center p-4 border-b border-zinc-900">
-        <h2 className="text-micro font-mono font-bold text-zinc-500 uppercase tracking-[0.3em]">
+        <h2 className="text-micro font-bold text-zinc-500 font-medium">
           الخزنة_الاستقصائية // VAULT_SYSTEM
         </h2>
         <button 

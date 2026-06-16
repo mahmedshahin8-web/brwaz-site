@@ -18,7 +18,7 @@ export const KnowledgeGraphPage: React.FC = () => {
   }, []);
 
   const graphData = useMemo(() => {
-    const nodes: any[] = [{ id: 'CORE', group: 0, name: 'T_NEXUS', val: 20 }];
+    const nodes: any[] = [{ id: 'CORE', group: 0, name: 'المركزية', val: 20 }];
     const links: any[] = [];
 
     if (rawDocs.length > 0) {
@@ -28,14 +28,14 @@ export const KnowledgeGraphPage: React.FC = () => {
         if (doc.scenes && doc.scenes.length > 0) {
            doc.scenes.slice(0, 3).forEach((scene: any, sIdx: number) => {
               const sId = `scene_${idx}_${sIdx}`;
-              nodes.push({ id: sId, group: 2, name: `EVIDENCE_${sIdx}`, val: 5 });
+              nodes.push({ id: sId, group: 2, name: `الأدلة_${sIdx}`, val: 5 });
               links.push({ source: `doc_${idx}`, target: sId, value: 1 });
            });
         }
       });
     } else {
       // Empty state node
-      nodes.push({ id: 'NO_DATA', group: 3, name: 'AWAITING_INGESTION', val: 8 });
+      nodes.push({ id: 'NO_DATA', group: 3, name: 'في انتظار البيانات', val: 8 });
       links.push({ source: 'CORE', target: 'NO_DATA', value: 1 });
     }
 
@@ -57,37 +57,62 @@ export const KnowledgeGraphPage: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-full bg-gray-50 text-gray-900 p-6 md:p-8 space-y-6 flex flex-col" dir="rtl">
+    <div className="min-h-full font-arabic text-[#fafafa] space-y-6" dir="rtl">
       
-      {/* Header */}
-      <header className="flex flex-col gap-2 border-b border-gray-200 pb-6 shrink-0 relative z-10">
-        <div className="flex items-center gap-3 text-blue-600">
-          <Zap size={24} className="animate-pulse" />
-          <h1 className="text-3xl font-mono font-black tracking-tighter uppercase leading-none">[ENTITY_RADAR] // رادار الكيانات</h1>
+      {/* Header Section */}
+      <header className="bg-[#121214]  rounded-lg border border-[#27272a] p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none opacity-5 bg-[radial-gradient(circle_at_100%_0%,_#4f46e5_1px,_transparent_1px)] bg-[size:40px_40px]" />
+        
+        <div className="relative z-10">
+          <h2 className="text-3xl font-black text-[#fafafa] font-arabic mb-2 tracking-wide flex items-center gap-3">
+             <Zap className="w-8 h-8 text-[#4f46e5] animate-pulse" />
+             رادار الكيانات
+          </h2>
+          <p className="text-[#a1a1aa] font-arabic text-xs leading-relaxed max-w-2xl mt-2  ">
+            خريطة الروابط الاستخباراتية وشبكة البيانات بين المشاريع والأدلة.
+          </p>
         </div>
-        <p className="text-gray-600 font-mono text-[10px] leading-relaxed mt-2 uppercase tracking-widest flex items-center gap-4">
-          <span><Activity className="inline w-3 h-3 text-cyan-400 mr-1"/> ACTIVE_NODES: {graphData.nodes.length}</span>
-          <span><Target className="inline w-3 h-3 text-[#eb2630] mr-1"/> LINKS: {graphData.links.length}</span>
-        </p>
+        
+        <div className="flex gap-4 relative z-10">
+           <div className="flex flex-col items-center justify-center px-4 py-2 bg-[#27272a]/50 rounded-lg border border-[#4f46e5]/20 backdrop-blur">
+              <span className="text-[9px] text-[#71717a] font-bold font-arabic   flex items-center gap-1"><Activity size={10} className="text-[#4f46e5]" /> نقاط التفاعل</span>
+              <span className="text-[#fafafa] font-bold font-arabic text-lg">{graphData.nodes.length}</span>
+           </div>
+           <div className="flex flex-col items-center justify-center px-4 py-2 bg-[#27272a]/50 rounded-lg border border-[#4f46e5]/20 backdrop-blur">
+              <span className="text-[9px] text-[#71717a] font-bold font-arabic   flex items-center gap-1"><Target size={10} className="text-[#10b981]" /> عدد الروابط</span>
+              <span className="text-[#fafafa] font-bold font-arabic text-lg">{graphData.links.length}</span>
+           </div>
+        </div>
       </header>
 
-      {/* Graph Container */}
-      <div className="flex-1 relative bg-white border border-gray-200 overflow-hidden" ref={containerRef}>
-         <div className="absolute top-4 left-4 z-10 flex gap-2">
-            <div className="text-[10px] font-mono border border-cyan-500/30 bg-cyan-500/10 text-cyan-400 px-3 py-1 flex items-center justify-center gap-2">T_NEXUS</div>
-            <div className="text-[10px] font-mono border border-blue-500/30 bg-blue-600/10 text-blue-600 px-3 py-1 flex items-center justify-center gap-2">DOSSIERS</div>
-            <div className="text-[10px] font-mono border border-[#eb2630]/30 bg-[#eb2630]/10 text-[#eb2630] px-3 py-1 flex items-center justify-center gap-2">EVIDENCE</div>
-         </div>
+      {/* Main Grid Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+
+        {/* Graph Container (Spans 12 cols in this case to be wide) */}
+        <div className="lg:col-span-12 relative bg-[#121214]  rounded-xl border border-[#27272a] shadow-sm overflow-hidden h-[600px] flex flex-col" ref={containerRef}>
+            
+           {/* Legend Area */}
+           <div className="absolute top-6 right-6 z-10 flex flex-col gap-2 pointer-events-none">
+              <div className="text-[10px] font-arabic border border-[#ef4444]/30 bg-[#ef4444]/10 text-[#ef4444] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse" /> المركزية
+              </div>
+              <div className="text-[10px] font-arabic border border-[#4f46e5]/30 bg-[#4f46e5]/10 text-[#4f46e5] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-[#4f46e5]" /> المشاريع
+              </div>
+              <div className="text-[10px] font-arabic border border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-[#10b981]" /> الأدلة
+              </div>
+           </div>
 
          {/* Grid Background Overlay */}
          <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PHBhdGggZD0iTTAgMGg0MHY0MEgweiIgZmlsbD0ibm9uZSIvPjxwYXRoIGQ9Ik0wIDM5LjVoNDBNMzkuNSAwdi00MCIgc3Ryb2tlPSJyZ2JhKDI1NSwyNTUsMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9zdmc+')] pointer-events-none opacity-50 mix-blend-screen z-0"></div>
 
          {/* Tooltip */}
          {hoverNode && (
-            <div className="absolute top-4 right-4 z-10 bg-white border border-blue-500/50 p-4 max-w-xs pointer-events-none">
-              <h3 className="font-mono text-xs text-blue-600 uppercase tracking-widest mb-1">{hoverNode.name}</h3>
-              <p className="font-mono text-[10px] text-gray-600 uppercase tracking-widest">ID: {hoverNode.id}</p>
-              <p className="font-mono text-[10px] text-gray-600 uppercase tracking-widest mt-2">{hoverNode.group === 0 ? 'CENTRAL_NEXUS' : hoverNode.group === 1 ? 'DOSSIER_NODE' : 'EVIDENCE_FRAGMENT'}</p>
+            <div className="absolute top-4 right-4 z-10 bg-[#121214]  border border-[#4f46e5]/50 p-4 max-w-xs pointer-events-none">
+              <h3 className="font-arabic text-xs text-[#4f46e5]   mb-1">{hoverNode.name}</h3>
+              <p className="font-arabic text-[10px] text-[#a1a1aa]  ">ID: {hoverNode.id}</p>
+              <p className="font-arabic text-[10px] text-[#a1a1aa]   mt-2">{hoverNode.group === 0 ? 'المركز الرئيسي' : hoverNode.group === 1 ? 'عقدة المشروع' : 'أجزاء الأدلة'}</p>
             </div>
          )}
          
@@ -98,12 +123,12 @@ export const KnowledgeGraphPage: React.FC = () => {
              height={dimensions.height}
              backgroundColor="transparent"
              nodeColor={node => {
-                if (node.group === 0) return '#22d3ee'; // cyan-400
-                if (node.group === 1) return '#3B82F6'; // yellow
-                if (node.group === 2) return '#eb2630'; // red
+                if (node.group === 0) return '#ef4444'; 
+                if (node.group === 1) return '#4f46e5'; 
+                if (node.group === 2) return '#10b981'; 
                 return '#444';
              }}
-             linkColor={() => 'rgba(255,255,255,0.1)'}
+             linkColor={() => 'rgba(212,165,116,0.15)'}
              nodeRelSize={4}
              onNodeHover={(node) => setHoverNode(node)}
              linkWidth={1}
@@ -111,11 +136,13 @@ export const KnowledgeGraphPage: React.FC = () => {
              linkDirectionalParticleWidth={1.5}
              linkDirectionalParticleSpeed={0.005}
              linkDirectionalParticleColor={(link) => {
-               if (link.source === 'CORE' || (link.source && (link.source as any).id === 'CORE')) return '#22d3ee';
-               return '#eb2630';
+               if (link.source === 'CORE' || (link.source && (link.source as any).id === 'CORE')) return '#ef4444';
+               return '#10b981';
              }}
            />
          </div>
+      </div>
+      
       </div>
     </div>
   );

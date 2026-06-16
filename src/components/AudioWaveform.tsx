@@ -78,32 +78,32 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
   }, [audioUrl]);
 
   return (
-    <div className="w-full bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 overflow-hidden animate-in fade-in duration-500 relative group">
+    <div className="w-full bg-[#121214]  border border-[#27272a] shadow-medium rounded-xl border-[#27272a] overflow-hidden animate-in fade-in duration-500 relative group">
       <div className="absolute inset-0  opacity-[0.02] pointer-events-none" />
       
       {/* DAW HEADER */}
-      <div className="px-6 py-4 flex items-center justify-between border-b border-gray-200 bg-white/[0.01]">
+      <div className="px-6 py-4 flex items-center justify-between border-b border-[#27272a] bg-[#121214] /[0.01]">
          <div className="flex items-center gap-4">
-            <div className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-xl border-glow-cyan flex items-center justify-center">
+            <div className="w-10 h-10 bg-[#121214]  border border-[#27272a] shadow-medium rounded-xl border-glow-cyan flex items-center justify-center">
                <Volume2 size={16} className="neon-cyan" />
             </div>
             <div className="text-right">
-               <h4 className="data-text text-gray-500">MASTER_BUS // CH_01</h4>
-               <div className="data-text text-gray-900/80 neon-cyan">SIGNAL_STABLE_0XFF</div>
+               <h4 className="data-text text-[#71717a]">MASTER_BUS // CH_01</h4>
+               <div className="data-text text-[#fafafa]/80 neon-cyan">SIGNAL_STABLE_0XFF</div>
             </div>
          </div>
          <div className="flex items-center gap-3">
-            <div className="px-4 py-2 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 data-text text-[10px] text-gray-600">
+            <div className="px-4 py-2 bg-[#121214]  border border-[#27272a] shadow-medium rounded-xl border-[#27272a] data-text text-[10px] text-[#a1a1aa]">
               {Math.floor(currentTime)}S / {Math.floor(duration)}S
             </div>
             <button 
               onClick={() => wavesurferRef.current?.playPause()}
-              className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 flex items-center justify-center active:scale-95 transition-all group/play"
+              className="w-10 h-10 bg-[#121214]  border border-[#27272a] shadow-medium rounded-xl border-[#27272a] flex items-center justify-center active:scale-95 transition-all group/play"
             >
-               {isPlaying ? <Square size={14} className="text-gray-900 fill-current" /> : <Play size={14} className="text-gray-900 fill-current group-active:scale-95 transition-colors" />}
+               {isPlaying ? <Square size={14} className="text-[#fafafa] fill-current" /> : <Play size={14} className="text-[#fafafa] fill-current group-active:scale-95 transition-colors" />}
             </button>
-            <button className="w-10 h-10 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 flex items-center justify-center active:scale-95 transition-all">
-               <Scissors size={14} className="text-gray-600" />
+            <button className="w-10 h-10 bg-[#121214]  border border-[#27272a] shadow-medium rounded-xl border-[#27272a] flex items-center justify-center active:scale-95 transition-all">
+               <Scissors size={14} className="text-[#a1a1aa]" />
             </button>
          </div>
       </div>
@@ -113,7 +113,7 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
         <div ref={containerRef} className="w-full" />
         
         {/* TIME MARKERS */}
-        <div className="absolute top-2 left-6 right-6 flex justify-between data-text text-gray-400 text-[9px] uppercase tracking-widest relative z-10">
+        <div className="absolute top-2 left-6 right-6 flex justify-between data-text text-[#71717a] text-[9px] font-medium relative z-10">
            <span>00:00:00</span>
            <span className="neon-cyan opacity-60">[{currentTime.toFixed(2)}s / {duration.toFixed(2)}s]</span>
            <span>MASTER_END</span>
@@ -124,11 +124,11 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
       </div>
 
       {/* FOOTER CONTROLS */}
-      <div className="px-6 py-5 bg-white border border-gray-200 shadow-md rounded-xl bg-white/[0.01] border-gray-200 border-t flex flex-col md:flex-row items-center justify-between gap-6 relative z-10 translate-y-0">
+      <div className="px-6 py-5 bg-[#121214]  border border-[#27272a] shadow-medium rounded-xl bg-[#121214] /[0.01] border-[#27272a] border-t flex flex-col md:flex-row items-center justify-between gap-6 relative z-10 translate-y-0">
          <div className="flex-1 flex flex-wrap items-center gap-10">
             <div className="space-y-1.5 flex flex-col items-center md:items-start text-right">
-               <div className="data-text text-gray-500">NOISE_GATE</div>
-               <div className="h-1 w-24 bg-white border-gray-100 shadow-sm rounded-full overflow-hidden">
+               <div className="data-text text-[#71717a]">NOISE_GATE</div>
+               <div className="h-1 w-24 bg-[#121214]  border-[#27272a] shadow-sm rounded-full overflow-hidden">
                   <motion.div 
                     initial={{ width: 0 }}
                     animate={{ width: '50%' }}
@@ -137,8 +137,8 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
                </div>
             </div>
             <div className="space-y-1.5 flex flex-col items-center md:items-start text-right">
-               <div className="data-text text-gray-500">COMPRESSION</div>
-               <div className="h-1 w-32 bg-white border-gray-100 shadow-sm rounded-full overflow-hidden">
+               <div className="data-text text-[#71717a]">COMPRESSION</div>
+               <div className="h-1 w-32 bg-[#121214]  border-[#27272a] shadow-sm rounded-full overflow-hidden">
                   <motion.div 
                     animate={{ width: ['40%', '65%', '45%'] }}
                     transition={{ duration: 1.2, repeat: Infinity }}
@@ -151,12 +151,12 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
          <div className="flex items-center gap-4">
             <button 
               onClick={onMaster}
-              className="px-6 py-2.5 bg-white border border-gray-200 shadow-md rounded-xl bg-amber-500/5 text-amber-500 data-text text-[10px] active:scale-95 transition-all flex items-center gap-2 group border-glow-amber"
+              className="px-6 py-2.5 bg-[#121214]  border border-[#27272a] shadow-medium rounded-xl bg-amber-500/5 text-amber-500 data-text text-[10px] active:scale-95 transition-all flex items-center gap-2 group border-glow-amber"
             >
                <Wand2 size={12} className="group-active:scale-95 transition-transform" />
                STUDIO_POLISH
             </button>
-            <button className="p-2.5 bg-white border border-gray-200 shadow-md rounded-xl border-gray-200 text-gray-500 active:scale-95 transition-all">
+            <button className="p-2.5 bg-[#121214]  border border-[#27272a] shadow-medium rounded-xl border-[#27272a] text-[#71717a] active:scale-95 transition-all">
                <Headphones size={14} />
             </button>
          </div>
@@ -173,9 +173,9 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
           >
              <div className="flex items-center gap-4 mb-4">
                 <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,1)]" />
-                <h2 className="text-2xl font-mono font-black text-red-500 tracking-[0.3em] uppercase">[SYSTEM_REQ: SECURE HEADPHONES]</h2>
+                <h2 className="text-2xl font-arabic font-black text-[#ef4444]  ">يرجى استخدام سماعات الرأس</h2>
              </div>
-             <p className="text-micro font-mono text-gray-600 uppercase tracking-widest text-center">Avoid feedback loop // High-fidelity capturing active</p>
+             <p className="text-micro font-medium text-[#a1a1aa] text-center">لالتقاط صوت واضح ونقي</p>
           </motion.div>
         )}
       </AnimatePresence>

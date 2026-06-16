@@ -35,34 +35,34 @@ export function BRollModal({ keyword, onClose }: Props) {
   }, [keyword]);
 
   return (
-    <div className="fixed inset-0 z-[7000] flex items-center justify-center p-4 md:p-10 bg-white/80 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[7000] flex items-center justify-center p-4 md:p-10 bg-[#121214] /80 backdrop-blur-sm">
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0.95, opacity: 0 }}
-        className="relative w-full max-w-5xl bg-white border border-gray-200 p-6 flex flex-col h-[80vh]"
+        className="relative w-full max-w-5xl bg-[#121214]  border border-[#27272a] p-6 flex flex-col h-[80vh]"
       >
         <div className="flex justify-between items-center mb-6">
-           <h3 className="text-blue-600 font-mono uppercase tracking-widest text-sm flex items-center gap-2">
-             <Search size={16} /> B-Roll Radar: <span className="text-gray-600">"{keyword}"</span>
+           <h3 className="text-[#4f46e5] font-medium text-sm flex items-center gap-2">
+             <Search size={16} /> B-Roll Radar: <span className="text-[#a1a1aa]">"{keyword}"</span>
            </h3>
-           <button onClick={onClose} className="text-gray-600 active:scale-95 transition-colors">
+           <button onClick={onClose} className="text-[#a1a1aa] active:scale-95 transition-colors">
              <X size={20} />
            </button>
         </div>
 
         <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
           {isLoading ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-600 gap-4">
+            <div className="h-full flex flex-col items-center justify-center text-[#a1a1aa] gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-              <div className="font-mono text-xs uppercase tracking-widest animate-pulse">Scanning Pexels Servers...</div>
+              <div className="font-medium text-xs animate-pulse">جاري جلب الوسائط...</div>
             </div>
           ) : error ? (
-            <div className="h-full flex items-center justify-center text-red-500 font-mono text-sm max-w-md mx-auto text-center border border-red-500/20 bg-red-500/5 p-4">
+            <div className="h-full flex items-center justify-center text-[#ef4444] font-arabic text-sm max-w-md mx-auto text-center border border-red-500/20 bg-red-500/5 p-4">
               Error fetching B-Roll: {error}
             </div>
           ) : results.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-gray-600 font-mono text-sm">
+            <div className="h-full flex items-center justify-center text-[#a1a1aa] font-arabic text-sm">
               No results found for this visual query.
             </div>
           ) : (
@@ -70,7 +70,7 @@ export function BRollModal({ keyword, onClose }: Props) {
               {results.map((video) => {
                 const bestFile = video.video_files.find(f => f.quality === 'hd') || video.video_files[0];
                 return (
-                  <div key={video.id} className="bg-white/50 border border-gray-200 group active:scale-95 transition-colors">
+                  <div key={video.id} className="bg-[#121214] /50 border border-[#27272a] group active:scale-95 transition-colors">
                      <div className="relative aspect-video overflow-hidden">
                        <video 
                          src={bestFile?.link} 
@@ -83,13 +83,13 @@ export function BRollModal({ keyword, onClose }: Props) {
                        />
                      </div>
                      <div className="p-3 flex justify-between items-center">
-                       <span className="text-[10px] font-mono text-gray-600">{video.width}x{video.height}</span>
+                       <span className="text-[10px] font-arabic text-[#a1a1aa]">{video.width}x{video.height}</span>
                        <a
                          href={bestFile?.link}
                          target="_blank"
                          rel="noopener noreferrer"
-                         title="Download"
-                         className="p-2 bg-white border-gray-100 shadow-sm active:scale-95 transition-colors rounded text-gray-900"
+                         title="تنزيل"
+                         className="p-2 bg-[#121214]  border-[#27272a] shadow-sm active:scale-95 transition-colors rounded-lg text-[#fafafa]"
                          download
                        >
                          <Download size={14} />

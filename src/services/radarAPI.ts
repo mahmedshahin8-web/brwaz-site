@@ -15,46 +15,40 @@ export interface LiveTrend {
 
 // Simulated Ollama Local Model Interface - "Scraping Filter Agent"
 // In a real local setup, this would fetch from http://localhost:11434/api/generate
-export async function sweepLiveTrends(): Promise<LiveTrend[]> {
+export async function sweepLiveTrends(mood: string, engine = "gemini"): Promise<LiveTrend[]> {
   try {
-    // ----------------------------------------------------------------------
-    // [LOCAL RESOURCE MANAGEMENT]: Chunking strategy to avoid Ollama Overload
-    // ----------------------------------------------------------------------
-    // Real implementation would buffer comments and send them in chunks of 500:
-    // const batches = chunkArray(scrapedComments, 500);
-    // for (const batch of batches) { await processLocalOllama(batch); }
-    // ----------------------------------------------------------------------
-
     const prompt = `
 [SYSTEM DIRECTIVE: SECURE SCRAPING FILTER AGENT]
-You are a local data extraction agent (Ollama node). You have just ingested a chunk of 500 recent Arabic comments (Chunk 1/10) and trending keywords.
-Identify 4 burning trends that the audience is currently demanding. Give me realistic parameters. 
-Respond ONLY with a valid JSON array of objects.
+You are a senior investigative journalist and local data extraction agent. You have just ingested a chunk of 500 recent Arabic comments and trending keywords.
+Identify 3 deeply analytical, highly professional, and compelling trends that fit the specific show format: "${mood}".
+The ideas must be deeply researched topics for a serious documentary, avoiding superficial topics. Use eloquent and intriguing Arabic phrasing.
+
+Respond ONLY with a valid JSON array of exactly 3 objects.
 
 JSON Format required:
 [{
   "id": "uuid",
-  "topic": "Full detailed topic",
-  "title": "Short catchy title",
+  "topic": "وصف دقيق واحترافي للموضوع الغامض أو المعقد",
+  "title": "عنوان جذاب غامض واحترافي (قصير)",
   "severity": "مرتفع" or "حرج" or "متوسط",
   "stats": "String like '+400% بحث'",
-  "time": "String like 'مباشر'",
+  "time": "String like 'حديثاً'",
   "velocity": 90,
   "source": "YouTube Comments" or "Google Trends"
 }]`;
 
-    // Using Gemini as a fallback for the Ollama local model in this web environment
-    const responseText = await generateAIContentRaw(prompt, undefined, "gemini");
+    // Using specified engine
+    const responseText = await generateAIContentRaw(prompt, undefined, engine);
     const jsonStr = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
     return JSON.parse(jsonStr) as LiveTrend[];
   } catch (error) {
     console.error("Local Model (Sweep) Failed:", error);
-    throw new Error("فشل الاتصال بالمحرك المحلي لمعالجة البيانات");
+    throw new Error("فشل الاتصال بالمحرك لمعالجة البيانات");
   }
 }
 
 // "Triage Agent" - Determines the deep, analytical mood based on the trend.
-export async function triageTrendMood(trend: string): Promise<{ mood: MoodType; reasoning: string; recommendedNote: string }> {
+export async function triageTrendMood(trend: string, engine = "gemini"): Promise<{ mood: MoodType; reasoning: string; recommendedNote: string }> {
   try {
     const prompt = `
 [SYSTEM DIRECTIVE: TRIAGE AGENT]
@@ -78,7 +72,7 @@ Return ONLY a valid JSON object:
 }
     `;
 
-    const responseText = await generateAIContentRaw(prompt, undefined, "gemini");
+    const responseText = await generateAIContentRaw(prompt, undefined, engine);
     const jsonStr = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
     return JSON.parse(jsonStr);
   } catch (error) {

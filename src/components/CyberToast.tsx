@@ -50,22 +50,22 @@ export const CyberToast: React.FC<CyberToastProps> = ({ message, level, onComple
       initial={{ x: 300, opacity: 0 }}
       animate={{ x: 0, opacity: 1 }}
       exit={{ x: 300, opacity: 0 }}
-      className="max-w-md w-full bg-white border-l-4 p-4 flex flex-col gap-2 shadow-[20px_0_40px_rgba(0,0,0,0.8)] pointer-events-auto"
+      className="max-w-md w-full bg-[#121214]  border-l-4 p-4 flex flex-col gap-2 shadow-[20px_0_40px_rgba(0,0,0,0.8)] pointer-events-auto"
       style={{ borderLeftColor: clearance.color }}
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2" style={{ color: clearance.color }}>
           {getIcon()}
-          <span className="text-[10px] font-mono font-bold tracking-[0.2em]">
+          <span className="text-[10px] font-arabic font-bold ">
             {clearance.label}
           </span>
         </div>
         <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: clearance.color }}></div>
       </div>
       
-      <div className="text-sm font-mono text-gray-900/90 leading-relaxed min-h-[1.5em]" dir="rtl">
+      <div className="text-sm font-arabic text-[#fafafa]/90 leading-relaxed min-h-[1.5em]" dir="rtl">
         {displayedText}
-        <span className="inline-block w-2 h-4 ml-1 bg-white animate-[blink_1s_infinite] align-middle"></span>
+        <span className="inline-block w-2 h-4 ml-1 bg-[#121214]  animate-[blink_1s_infinite] align-middle"></span>
       </div>
 
       <style dangerouslySetInnerHTML={{ __html: `

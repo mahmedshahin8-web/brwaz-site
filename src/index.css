@@ -1,17 +1,31 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&family=Instrument+Serif:ital@0;1&family=Aref+Ruqaa:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@200..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Space+Grotesk:wght@300..700&family=JetBrains+Mono:wght@300..700&display=swap');
 @import "tailwindcss";
 
 @theme {
-  --font-serif: "Instrument Serif", serif;
+  --color-primary-dark: #09090b;
+  --color-secondary-dark: #121214;
+  --color-tertiary-dark: #18181b;
+  
+  --color-accent-brand: #e4e4e7;
+  --color-accent-highlight: #4f46e5; /* Indigo/Violet accent */
+  
+  --color-text-primary: #fafafa;
+  --color-text-secondary: #a1a1aa;
+  --color-text-muted: #52525b;
+
   --font-sans: "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
   --font-arabic: "Cairo", sans-serif;
-  --font-arabic-hand: "Aref Ruqaa", serif;
+  --font-display: "Space Grotesk", sans-serif;
+
+  --shadow-subtle: 0 1px 2px rgba(0,0,0,0.1);
+  --shadow-medium: 0 4px 12px rgba(0,0,0,0.3);
+  --shadow-deep: 0 12px 32px rgba(0,0,0,0.5);
 }
 
 @layer base {
   body {
-    @apply bg-gray-50 text-gray-900 selection:bg-blue-100 selection:text-blue-900;
+    @apply bg-[#09090b] text-[#fafafa] selection:bg-[#4f46e5]/30 selection:text-white;
     font-family: var(--font-sans);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
@@ -19,18 +33,13 @@
 }
 
 @layer components {
-  /* Strict Mechanical Icons */
   svg.lucide {
     stroke-width: 1.5px !important;
   }
 
-  .vertical-text {
-    writing-mode: vertical-rl;
-    transform: rotate(180deg);
-  }
-
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
+    height: 6px;
   }
 
   .custom-scrollbar::-webkit-scrollbar-track {
@@ -38,10 +47,9 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-gray-200 hover:bg-gray-300 rounded-full transition-colors;
+    @apply bg-[#27272a] hover:bg-[#3f3f46] rounded-full transition-colors border-2 border-solid border-[#09090b];
   }
 
-  /* Zen Mode */
   html.zen-mode .zen-hidden {
     display: none !important;
   }
@@ -51,7 +59,6 @@
     background: transparent !important;
   }
 
-  /* TipTap Editor Styles */
   .ProseMirror {
     outline: none;
     height: 100%;
@@ -61,13 +68,12 @@
     margin-bottom: 1.5em;
   }
   .ProseMirror mark {
-    background-color: rgba(59, 130, 246, 0.2); /* Blue 500 at 20% */
+    background-color: rgba(79, 70, 229, 0.2); 
     border-radius: 4px;
     padding: 0 4px;
     color: inherit;
   }
 
-  /* Teleprompter Scroll Animation */
   @keyframes teleprompter-scroll {
     from { transform: translateY(50vh); }
     to { transform: translateY(-100%); }
