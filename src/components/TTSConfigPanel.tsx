@@ -46,7 +46,7 @@ export const TTSConfigPanel: React.FC = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="space-y-1">
-          <label className="text-[10px] text-zinc-500 font-medium">نوع المحرك</label>
+          <label className="text-[10px] uppercase text-zinc-500 font-mono">Engine Type</label>
           <select 
             value={config.engine}
             onChange={(e) => setConfig({ ...config, engine: e.target.value as TTSConfig['engine'] })}
@@ -60,13 +60,13 @@ export const TTSConfigPanel: React.FC = () => {
 
         {config.engine !== 'browser' && (
           <div className="space-y-1">
-            <label className="text-[10px] text-zinc-500 font-medium">رابط API</label>
+            <label className="text-[10px] uppercase text-zinc-500 font-mono">API URL Endpoint</label>
             <input 
               type="text"
               value={config.apiUrl}
               onChange={(e) => setConfig({ ...config, apiUrl: e.target.value })}
               placeholder={config.engine === 'openai' ? 'https://your-url.ngrok-free.app/v1/audio/speech' : 'https://your-url.ngrok-free.app/api/tts'}
-              className="w-full bg-black text-xs p-2 border border-zinc-800 focus:outline-none focus:border-amber-500 text-zinc-300 font-arabic"
+              className="w-full bg-black text-xs p-2 border border-zinc-800 focus:outline-none focus:border-amber-500 text-zinc-300 font-mono"
             />
           </div>
         )}
@@ -75,13 +75,13 @@ export const TTSConfigPanel: React.FC = () => {
        {config.engine !== 'browser' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1">
-            <label className="text-[10px] text-zinc-500 font-medium">معرف الصوت (اختياري)</label>
+            <label className="text-[10px] uppercase text-zinc-500 font-mono">Voice ID / Speaker (Optional)</label>
             <input 
               type="text"
               value={config.voiceId || ''}
               onChange={(e) => setConfig({ ...config, voiceId: e.target.value })}
               placeholder="e.g. alloy, or path_to_speaker.wav"
-              className="w-full bg-black text-xs p-2 border border-zinc-800 focus:outline-none focus:border-amber-500 text-zinc-300 font-arabic"
+              className="w-full bg-black text-xs p-2 border border-zinc-800 focus:outline-none focus:border-amber-500 text-zinc-300 font-mono"
             />
           </div>
         </div>

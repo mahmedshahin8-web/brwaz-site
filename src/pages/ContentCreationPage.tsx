@@ -19,6 +19,7 @@ import {
 } from "../services/radarAPI";
 import {
   generateTitle,
+  generateDiverseTopics,
   generateResearchMap,
   generateEpisode,
   executePipeline_Orchestrator,
@@ -127,8 +128,18 @@ import {
   Plus,
   FileBox,
   Mic2,
-  AudioLines
+  AudioLines,
+  Smartphone,
+  MonitorPlay,
+  Book,
+  Crown,
+  Moon,
+  LayoutTemplate,
+  Settings2,
+  Minimize2,
+  Maximize2
 } from "lucide-react";
+import { Tv, ArrowLeft } from "lucide-react";
 import { MOODS, SECTORS } from "../config/moods";
 import { PERSONAS, getPersonaCompatibility } from "../config/personas";
 import {
@@ -141,6 +152,7 @@ import { TtsScratchTrack } from "../components/TtsScratchTrack";
 import { NarrativeDNAEditor } from "../components/NarrativeDNAEditor";
 import { PublishingKitCard } from "../components/PublishingKitCard";
 import { TeleprompterOverlay } from "../components/TeleprompterOverlay";
+import { DeepResearchOverlay } from "../components/DeepResearchOverlay";
 import { calculateTension } from "../lib/analysis";
 import { TimelineEditor } from "../components/TimelineEditor";
 import { AudioWaveform } from "../components/AudioWaveform";
@@ -170,9 +182,11 @@ const IntelGraph = ({ research }: { research: MasterOutline }) => {
         <text
           x="200"
           y="205"
-          className="text-[10px] font-arabic fill-blue-600 text-center"
+          className="text-[10px] font-mono fill-blue-600 text-center"
           textAnchor="middle"
-        >أساسي</text>
+        >
+          Core
+        </text>
 
         {/* Connections & Chapters */}
         {research.chapters.map((ch, i) => {
@@ -209,31 +223,11 @@ const IntelGraph = ({ research }: { research: MasterOutline }) => {
           );
         })}
       </svg>
-      {/* AUTO-SAVE INDICATOR */}
-      {lastSaved && (
-        <div className="fixed bottom-6 left-6 z-[200] flex items-center justify-center p-3 px-4 rounded-full bg-[#121214] border border-[#27272a] shadow-lg transition-all duration-300 gap-2">
-          {isDraftSaving ? (
-            <>
-              <div className="w-2 h-2 rounded-full bg-[#4f46e5] animate-pulse"></div>
-              <span className="text-xs text-[#a1a1aa] font-arabic hidden md:inline">جاري الحفظ...</span>
-            </>
-          ) : (
-            <>
-              <span className="text-[#4f46e5]">✓</span>
-              <span className="text-xs text-[#a1a1aa] font-arabic hidden md:inline">تم حفظ المسودة {lastSaved.toLocaleTimeString('ar-EG', {hour: '2-digit', minute:'2-digit'})}</span>
-            </>
-          )}
-        </div>
-      )}
-      
     </div>
   );
 };
 
 export default function ContentCreationPage() {
-  const [isDraftSaving, setIsDraftSaving] = useState(false);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-  
   const { playClick, playHover, startFilmReel } = useTacticalSound();
   const {
     data, setData,
@@ -243,6 +237,7 @@ export default function ContentCreationPage() {
     finalVoiceScript, setFinalVoiceScript,
     fragmenterData, setFragmenterData,
     topic, setTopic,
+    creatorMode, setCreatorMode,
     isLongForm, setIsLongForm,
     useOllama, setUseOllama,
     activeMood, setActiveMood,
@@ -267,10 +262,16 @@ export default function ContentCreationPage() {
   const [note, setNote] = useState("");
   const [ragContext, setRagContext] = useState("");
   const [isUploadingPDF, setIsUploadingPDF] = useState(false);
+  
+  // Deep Research State
+  const [deepResearchInteractionId, setDeepResearchInteractionId] = useState("");
+  const [isDeepResearchOpen, setIsDeepResearchOpen] = useState(false);
+  const [suggestedResearchTopics, setSuggestedResearchTopics] = useState<string[]>([]);
+  const [isSuggestingResearch, setIsSuggestingResearch] = useState(false);
   const [mood, setMood] = useState<MoodType>("التحليل الاستقصائي");
   const [activeMoodCategory, setActiveMoodCategory] = useState("all");
   const [suspenseLevel, setSuspenseLevel] = useState(5);
-  const [persona, setPersona] = useState<PersonaType>("النبّاش");
+  const [persona, setPersona] = useState<PersonaType>("الدحيح");
 
   // Conflict state
   const [conflictOpen, setConflictOpen] = useState(false);
@@ -278,15 +279,62 @@ export default function ContentCreationPage() {
   const [conflictResolver, setConflictResolver] = useState<any>(null);
   const [isPersonaModalOpen, setIsPersonaModalOpen] = useState(false);
   const [isAutoPilot, setIsAutoPilot] = useState(true);
-  const [isExpertMode, setIsExpertMode] = useState(false);
   const [liveTrends, setLiveTrends] = useState<LiveTrend[]>([]);
+  
+  // NEW FEATURES:
+  const [isZenMode, setIsZenMode] = useState(false);
+  const [viewMode, setViewMode] = useState<'cards' | 'timeline'>('cards');
+  const [floatingToolbar, setFloatingToolbar] = useState<{show: boolean, top: number, left: number, id: string, field: string} | null>(null);
+
   const [isSweeping, setIsSweeping] = useState(false);
   const [isTriaging, setIsTriaging] = useState(false);
-  const moodContext = getMoodContext(mood);
-  const ragVaults = moodContext.ragVaults || [];
+  const creativeGeneratingSteps = [
+    "جلسة عصف ذهني في غرفة الكتابة...",
+    "بندور على المدخل عشان نشد الانتباه...",
+    "بنحضر المصادر عشان الجودة...",
+    "بنضيف حبة حبشتكنات وصوص الدحيح...",
+    "بنظبط الإيفيه وسط السيناريو...",
+    "بنربط الخيوط وبنعقد الحبكة...",
+    "جاري إحكام الخطة السردية النهائية..."
+  ];
 
   const [suggestedTitles, setSuggestedTitles] = useState<RadarSuggestion[]>([]);
   const [isGeneratingTitle, setIsGeneratingTitle] = useState(false);
+  const [generatingStepIndex, setGeneratingStepIndex] = useState(0);
+  
+  const [diverseTopics, setDiverseTopics] = useState<any[]>([]);
+  const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
+  
+  const handleGenerateDiverseTopics = async () => {
+    setIsGeneratingTopics(true);
+    setDiverseTopics([]);
+    try {
+      const { generateDiverseTopics } = await import("../lib/gemini");
+      const res = await generateDiverseTopics(mood, useOllama ? "ollama" : "gemini");
+      setDiverseTopics(res);
+    } catch (e) {
+      console.error(e);
+      notify.breach("فشل استخراج الأفكار المقترحة.");
+    } finally {
+      setIsGeneratingTopics(false);
+    }
+  };
+
+  useEffect(() => {
+    let interval: any;
+    if (isGeneratingTitle) {
+      interval = setInterval(() => {
+        setGeneratingStepIndex(prev => (prev + 1) % creativeGeneratingSteps.length);
+      }, 2500);
+    } else {
+      setGeneratingStepIndex(0);
+    }
+    return () => clearInterval(interval);
+  }, [isGeneratingTitle]);
+
+  const moodContext = getMoodContext(mood);
+  const ragVaults = moodContext.ragVaults || [];
+
   const [activeTab, setActiveTab] = useState<"script" | "kit" | "assets" | "shorts" | "audit" | "echo" | "planner">(
     "script",
   );
@@ -390,7 +438,6 @@ export default function ContentCreationPage() {
   // AUTO-SAVE: Work-in-Progress Data
   useEffect(() => {
     if (data && data.video_title) {
-      setIsDraftSaving(true);
       const draft = {
         topic,
         data,
@@ -398,13 +445,8 @@ export default function ContentCreationPage() {
         timestamp: Date.now()
       };
       localStorage.setItem("barwaz_autosave_draft", JSON.stringify(draft));
-      setLastSaved(new Date());
-      setTimeout(() => setIsDraftSaving(false), 800);
     }
   }, [data, topic, finalVoiceScript]);
-
-  
-  
 
   const loadDraft = () => {
     try {
@@ -472,9 +514,9 @@ export default function ContentCreationPage() {
         if (data?.sources && data.sources[index]) {
           const s = data.sources[index];
           const srcTitle = s.title || `المصدر ${id}`;
-          return `<a href="${s.url}" target="_blank" class="citation-hover-link text-[#6366f1] underline font-arabic font-bold mx-1 text-xs" title="${srcTitle}">[المصدر ${id}: ${srcTitle.substring(0, 20)}...]</a>`;
+          return `<a href="${s.url}" target="_blank" class="citation-hover-link text-[#6366f1] underline font-mono font-bold mx-1 text-xs" title="${srcTitle}">[المصدر ${id}: ${srcTitle.substring(0, 20)}...]</a>`;
         }
-        return `<span class="text-[#6366f1]/60 font-arabic text-xs cursor-help" title="مرجع أرشيفي مفترض">[المصدر ${id}]</span>`;
+        return `<span class="text-[#6366f1]/60 font-mono text-xs cursor-help" title="مرجع أرشيفي مفترض">[المصدر ${id}]</span>`;
       });
       
       return `<p>${parsedLine}</p>`;
@@ -532,7 +574,7 @@ export default function ContentCreationPage() {
           <div
             key={i}
             className={`flex-1 ${score > 7 ? "bg-red-500" : score > 4 ? "bg-[#4f46e5]" : "bg-[#121214]"}`}
-            title={`مستوى التوتر: ${score.toFixed(1)}`}
+            title={`Tension: ${score.toFixed(1)}`}
           />
         )) : <div className="text-[10px] text-gray-500">جراف التوتر معلق للحفاظ على الذاكرة، اضغط تحديث</div>}
       </div>
@@ -553,7 +595,7 @@ export default function ContentCreationPage() {
       const titles = await generateTitle(
         mergedTopic,
         "صراع العروش العربي",
-        "ادمج هذه المنظورات في فكرة سيناريو واحدة مثيرة للجدل والمخاطر عالية.",
+        "Merge these specific perspectives into one high-stakes controversial script idea.",
         "",
         useOllama ? "ollama" : "gemini",
         undefined,
@@ -752,7 +794,7 @@ export default function ContentCreationPage() {
     if (isAuditing) return (
       <div className="p-20 text-center space-y-4">
         <Loader2 className="animate-spin mx-auto text-[#4f46e5]" size={40} />
-        <p className="font-arabic text-xs  text-[#a1a1aa]  animate-pulse">جاري مراجعة المحتوى والتدقيق الشامل...</p>
+        <p className="font-mono text-xs uppercase text-[#a1a1aa] tracking-widest animate-pulse">Running_Global_Intel_Audit...</p>
       </div>
     );
 
@@ -765,9 +807,9 @@ export default function ContentCreationPage() {
          </div>
          <button 
           onClick={handleRunAudit}
-          className="px-8 py-3 bg-[#4f46e5]/10 border border-[#4f46e5]/40 text-[#4f46e5] font-arabic text-[10px] font-medium active:scale-95 transition-all"
+          className="px-8 py-3 bg-[#4f46e5]/10 border border-[#4f46e5]/40 text-[#4f46e5] font-mono text-[10px] uppercase tracking-widest active:scale-95 transition-all"
          >
-           بدء التدقيق
+           Start_Audit_Scan
          </button>
       </div>
     );
@@ -777,13 +819,13 @@ export default function ContentCreationPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
            {/* ACCURACY SECTION */}
            <div className="space-y-4">
-              <h4 className="text-[10px] font-arabic text-cyan-400 font-medium">فحص الحقائق التاريخية</h4>
+              <h4 className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest">Historical_Truth_Check</h4>
               <div className="space-y-3">
                  {auditResult.historical_accuracy.map((acc, i) => (
                     <div key={i} className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-2">
                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-arabic text-[#a1a1aa] ">إفادة</span>
-                          <span className={`text-[8px] font-arabic px-2 py-0.5 rounded-full ${acc.status === 'verified' ? 'bg-green-500/20 text-green-500' : acc.status === 'contested' ? 'bg-red-500/20 text-[#ef4444]' : 'bg-yellow-500/20 text-yellow-500'}`}>{acc.status}</span>
+                          <span className="text-[9px] font-mono text-[#a1a1aa] uppercase">Statement</span>
+                          <span className={`text-[8px] font-mono px-2 py-0.5 rounded-full ${acc.status === 'verified' ? 'bg-green-500/20 text-green-500' : acc.status === 'contested' ? 'bg-red-500/20 text-[#ef4444]' : 'bg-yellow-500/20 text-yellow-500'}`}>{acc.status}</span>
                        </div>
                        <p className="text-xs text-[#fafafa]/80">{acc.statement}</p>
                        <p className="text-[10px] text-[#71717a] italic">{acc.notes}</p>
@@ -794,17 +836,17 @@ export default function ContentCreationPage() {
 
            {/* POLICY SECTION */}
            <div className="space-y-4">
-              <h4 className="text-[10px] font-arabic text-[#ef4444] font-medium">سياسات النشر والمخاطر</h4>
+              <h4 className="text-[10px] font-mono text-[#ef4444] uppercase tracking-widest">Policy_&_Compliance</h4>
               <div className="space-y-3">
                  {auditResult.risks.map((risk, i) => (
                     <div key={i} className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-2">
                        <div className="flex justify-between items-center">
-                          <span className="text-[9px] font-arabic text-[#a1a1aa] ">ملاحظة</span>
-                          <span className={`text-[8px] font-arabic px-2 py-0.5 rounded-full bg-red-500/20 text-[#ef4444] `}>{risk.severity}</span>
+                          <span className="text-[9px] font-mono text-[#a1a1aa] uppercase">Finding</span>
+                          <span className={`text-[8px] font-mono px-2 py-0.5 rounded-full bg-red-500/20 text-[#ef4444] uppercase`}>{risk.severity}</span>
                        </div>
                        <p className="text-xs text-[#fafafa]/80">{risk.finding}</p>
                        <div className="p-2 bg-[#121214]  shadow-sm border-l-2 border-[#4f46e5]">
-                          <span className="text-[8px] font-arabic text-[#4f46e5]  block mb-1">تصحيح مقترح</span>
+                          <span className="text-[8px] font-mono text-[#4f46e5] uppercase block mb-1">Recommended_Patch</span>
                           <p className="text-[10px] text-[#a1a1aa]">{risk.fix}</p>
                        </div>
                     </div>
@@ -815,8 +857,8 @@ export default function ContentCreationPage() {
 
         {/* ARCHIVES SECTION */}
         <div className="space-y-6 pt-6 border-t border-[#27272a]">
-           <h4 className="text-sm font-arabic text-[#4f46e5] font-medium flex items-center gap-3">
-             <FileSearch size={16} /> تجميع الأرشيف العالمي
+           <h4 className="text-sm font-mono text-[#4f46e5] uppercase tracking-[0.5em] flex items-center gap-3">
+             <FileSearch size={16} /> Global_Archive_Sourcing
            </h4>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {auditResult.archives.map((arc, i) => (
@@ -827,7 +869,7 @@ export default function ContentCreationPage() {
                        </div>
                        <ArrowRight size={14} className="text-[#71717a] group-hover:-rotate-45 transition-all" />
                     </div>
-                    <h5 className="text-[11px] font-arabic text-[#fafafa] mb-2 line-clamp-1">{arc.title}</h5>
+                    <h5 className="text-[11px] font-mono text-[#fafafa] mb-2 line-clamp-1">{arc.title}</h5>
                     <p className="text-[10px] text-[#71717a] line-clamp-2 leading-relaxed">{arc.description}</p>
                  </a>
               ))}
@@ -835,24 +877,24 @@ export default function ContentCreationPage() {
 
            {auditResult.notable_quotes && auditResult.notable_quotes.length > 0 && (
               <div className="mt-8 pt-6 border-t border-[#27272a]">
-                 <h4 className="text-sm font-arabic text-amber-600 font-medium flex items-center gap-3 mb-6">
-                   <Archive size={16} /> شهادات موثوقة
+                 <h4 className="text-sm font-mono text-amber-600 uppercase tracking-[0.5em] flex items-center gap-3 mb-6">
+                   <Archive size={16} /> Notable_Testimonies
                  </h4>
                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     {auditResult.notable_quotes.map((quote, i) => (
                        <div key={i} className="p-5 bg-amber-50/50 border border-amber-100 rounded-xl relative group/quote hover:shadow-medium transition-shadow">
-                          <div className="flex justify-between items-center mb-3 text-amber-900 font-bold  text-xs tracking-wider">
+                          <div className="flex justify-between items-center mb-3 text-amber-900 font-bold uppercase text-xs tracking-wider">
                              {quote.speaker}
                           </div>
                           <blockquote className="text-base font-arabic text-amber-800 italic pr-3 border-r-2 border-amber-300">
                              "{quote.quote}"
                           </blockquote>
                           <div className="mt-4 pt-3 border-t border-amber-200/50 space-y-2 opacity-0 group-hover/quote:opacity-100 transition-opacity duration-300">
-                             <p className="text-[10px] font-arabic text-amber-700/80 ">
+                             <p className="text-[10px] font-mono text-amber-700/80 uppercase">
                                 <strong className="text-amber-900/60 mr-1">Source:</strong> {quote.source}
                              </p>
                              {quote.fallback_strategy && (
-                                <p className="text-[10px] font-arabic text-[#4f46e5]/80 ">
+                                <p className="text-[10px] font-mono text-[#4f46e5]/80 uppercase">
                                    <strong className="text-blue-900/60 mr-1">Fallback:</strong> {quote.fallback_strategy}
                                 </p>
                              )}
@@ -871,7 +913,7 @@ export default function ContentCreationPage() {
     if (isEchoing) return (
       <div className="p-20 text-center space-y-4">
         <Loader2 className="animate-spin mx-auto text-purple-500" size={40} />
-        <p className="font-arabic text-xs  text-[#a1a1aa]  animate-pulse">جاري محاكاة تفاعل الجمهور المستهدف...</p>
+        <p className="font-mono text-xs uppercase text-[#a1a1aa] tracking-widest animate-pulse">Simulating_Audience_Sentiment...</p>
       </div>
     );
 
@@ -884,9 +926,9 @@ export default function ContentCreationPage() {
          </div>
          <button 
           onClick={handleRunAudit}
-          className="px-8 py-3 bg-purple-500/10 border border-purple-500/40 text-purple-500 font-arabic text-[10px] font-medium active:scale-95 transition-all"
+          className="px-8 py-3 bg-purple-500/10 border border-purple-500/40 text-purple-500 font-mono text-[10px] uppercase tracking-widest active:scale-95 transition-all"
          >
-           دخول غرفة التقييم
+           Enter_The_Chamber
          </button>
       </div>
     );
@@ -896,16 +938,16 @@ export default function ContentCreationPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
            {/* SKEPTICS */}
            <div className="space-y-4">
-              <h4 className="text-[10px] font-arabic text-yellow-500 font-medium flex items-center gap-2">
+              <h4 className="text-[10px] font-mono text-yellow-500 uppercase tracking-widest flex items-center gap-2">
                 <ShieldAlert size={14} /> Persona: Skeptics
               </h4>
               <div className="space-y-3">
                  {echoResult.skeptics.map((s, i) => (
                     <div key={i} className="p-4 bg-yellow-500/5 border border-yellow-500/10 space-y-3">
-                       <span className="text-[10px] font-arabic text-yellow-500/60 block">{s.user}</span>
+                       <span className="text-[10px] font-mono text-yellow-500/60 block">{s.user}</span>
                        <p className="text-sm font-arabic text-[#fafafa]/80 italic">"{s.comment}"</p>
                        <div className="p-2 bg-[#121214]  shadow-sm border-r-2 border-yellow-500 text-right">
-                          <span className="text-[8px] font-arabic text-yellow-500  block mb-1">طريقة الرد المقترحة</span>
+                          <span className="text-[8px] font-mono text-yellow-500 uppercase block mb-1">REBUTTAL_IQ</span>
                           <p className="text-[10px] text-[#a1a1aa]">{s.rebuttal_tip}</p>
                        </div>
                     </div>
@@ -915,16 +957,16 @@ export default function ContentCreationPage() {
 
            {/* HYPE MEN */}
            <div className="space-y-4">
-              <h4 className="text-[10px] font-arabic text-green-500 font-medium flex items-center gap-2">
+              <h4 className="text-[10px] font-mono text-green-500 uppercase tracking-widest flex items-center gap-2">
                 <Flame size={14} /> Persona: Hype_Men
               </h4>
               <div className="space-y-3">
                  {echoResult.hype_men.map((s, i) => (
                     <div key={i} className="p-4 bg-green-500/5 border border-green-500/10 space-y-3">
-                       <span className="text-[10px] font-arabic text-green-500/60 block">{s.user}</span>
+                       <span className="text-[10px] font-mono text-green-500/60 block">{s.user}</span>
                        <p className="text-sm font-arabic text-[#fafafa]/80 italic">"{s.comment}"</p>
                        <div className="p-2 bg-[#121214]  shadow-sm border-r-2 border-green-500 text-right">
-                          <span className="text-[8px] font-arabic text-green-500  block mb-1">نقطة تفاعل قوية</span>
+                          <span className="text-[8px] font-mono text-green-500 uppercase block mb-1">VIRAL_HOOK</span>
                           <p className="text-[10px] text-[#a1a1aa]">{s.viral_hook}</p>
                        </div>
                     </div>
@@ -934,16 +976,16 @@ export default function ContentCreationPage() {
 
            {/* CRITICS */}
            <div className="space-y-4">
-              <h4 className="text-[10px] font-arabic text-[#ef4444] font-medium flex items-center gap-2">
+              <h4 className="text-[10px] font-mono text-[#ef4444] uppercase tracking-widest flex items-center gap-2">
                 <AlertTriangle size={14} /> Persona: Critics
               </h4>
               <div className="space-y-3">
                  {echoResult.critics.map((s, i) => (
                     <div key={i} className="p-4 bg-red-500/5 border border-red-500/10 space-y-3">
-                       <span className="text-[10px] font-arabic text-[#ef4444]/60 block">{s.user}</span>
+                       <span className="text-[10px] font-mono text-[#ef4444]/60 block">{s.user}</span>
                        <p className="text-sm font-arabic text-[#fafafa]/80 italic">"{s.comment}"</p>
                        <div className="p-2 bg-[#121214]  shadow-sm border-r-2 border-red-500 text-right">
-                          <span className="text-[8px] font-arabic text-[#ef4444]  block mb-1">مخاطر جدلية</span>
+                          <span className="text-[8px] font-mono text-[#ef4444] uppercase block mb-1">CONFLICT_RISK</span>
                           <p className="text-[10px] text-[#a1a1aa]">{s.risk_factor}</p>
                        </div>
                     </div>
@@ -954,8 +996,8 @@ export default function ContentCreationPage() {
 
         {/* KNOWLEDGE LOOPS */}
         <div className="pt-10 border-t border-[#27272a] space-y-6">
-           <h4 className="text-sm font-arabic text-[#4f46e5] font-medium flex items-center gap-3">
-             <LinkLink size={16} /> حلقة المشاهدة المعرفية
+           <h4 className="text-sm font-mono text-[#4f46e5] uppercase tracking-[0.5em] flex items-center gap-3">
+             <LinkLink size={16} /> Knowledge_Viewership_Loop
            </h4>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               {echoResult.suggested_links.map((link, i) => (
@@ -963,7 +1005,7 @@ export default function ContentCreationPage() {
                     <h5 className="text-sm font-arabic font-bold text-[#fafafa] group-active:scale-95 transition-colors">{link.title}</h5>
                     <p className="text-[11px] text-[#a1a1aa] leading-relaxed">{link.connection_logic}</p>
                     <div className="bg-[#27272a]/50 p-3 border-l-2 border-[#4f46e5]">
-                       <span className="text-[8px] font-arabic text-[#4f46e5]  block mb-2">تنفيذ حلقة المشاهدة</span>
+                       <span className="text-[8px] font-mono text-[#4f46e5] uppercase block mb-2">LOOP_EXECUTION</span>
                        <p className="text-[11px] font-arabic text-[#fafafa]/80 italic">"{link.loop_strategy}"</p>
                     </div>
                  </div>
@@ -1008,7 +1050,7 @@ export default function ContentCreationPage() {
             <div className="flex items-center justify-between p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a]">
               <div className="space-y-1">
                 <span className="text-sm font-arabic text-[#fafafa]">استخدام Ollama محلياً</span>
-                <p className="text-[10px] text-[#71717a] font-arabic">الاتصال بمحرك الذكاء الاصطناعي</p>
+                <p className="text-[10px] text-[#71717a] font-mono">CONNECT_TO_LOCAL_AI_ENGINE</p>
               </div>
               <button 
                 onClick={() => setUseOllama(!useOllama)}
@@ -1025,22 +1067,22 @@ export default function ContentCreationPage() {
                 className="space-y-4 pt-4 border-t border-[#27272a]"
               >
                 <div className="space-y-2">
-                  <label className="text-[10px] font-arabic text-[#a1a1aa] font-medium">Ollama_Endpoint_URL</label>
+                  <label className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">Ollama_Endpoint_URL</label>
                   <input 
                     type="text" 
                     value={ollamaUrl} 
                     onChange={(e) => setOllamaUrl(e.target.value)}
-                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-arabic text-xs focus:border-[#4f46e5] outline-none transition-all"
+                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-mono text-xs focus:border-[#4f46e5] outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-arabic text-[#a1a1aa] font-medium">AI_Model_Target</label>
+                  <label className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">AI_Model_Target</label>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {["gemma4:31b-cloud", "gemma2:9b-instruct-q4_0", "llama3:8b", "mistral"].map(m => (
                       <button 
                          key={m} 
                          onClick={() => setOllamaModel(m)}
-                         className={`px-2 py-1 text-[9px] font-arabic border transition-all ${ollamaModel === m ? 'bg-[#4f46e5] border-[#4f46e5] text-black' : 'bg-[#121214]  border-[#27272a] shadow-sm border-[#27272a] text-[#a1a1aa] active:scale-95'}`}
+                         className={`px-2 py-1 text-[9px] font-mono border transition-all ${ollamaModel === m ? 'bg-[#4f46e5] border-[#4f46e5] text-black' : 'bg-[#121214]  border-[#27272a] shadow-sm border-[#27272a] text-[#a1a1aa] active:scale-95'}`}
                       >
                          {m.includes('cloud') ? '🌩️ ' + m.split(':')[0] : m.split(':')[0]}
                       </button>
@@ -1050,7 +1092,7 @@ export default function ContentCreationPage() {
                     type="text" 
                     value={ollamaModel} 
                     onChange={(e) => setOllamaModel(e.target.value)}
-                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-arabic text-xs focus:border-[#4f46e5] outline-none transition-all"
+                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-mono text-xs focus:border-[#4f46e5] outline-none transition-all"
                     placeholder="e.g. gemma2:9b-instruct-q4_0"
                   />
                   <p className="text-[9px] text-[#4f46e5]/50 italic">Recommended: gemma4:31b-cloud</p>
@@ -1059,12 +1101,12 @@ export default function ContentCreationPage() {
             )}
 
             <div className="space-y-6 pt-6 border-t border-[#27272a]">
-              <h4 className="text-[10px] font-arabic text-[#a1a1aa] font-medium">Multi-Engine Protocols</h4>
+              <h4 className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">Multi-Engine Protocols</h4>
               <div className="space-y-4">
                 <div className="flex items-center justify-between p-3 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a]">
                   <div className="space-y-1">
                     <span className="text-[11px] font-arabic text-[#fafafa]">نظام التوزيع الذكي (Tag-Team)</span>
-                    <p className="text-[9px] text-[#71717a] font-arabic">GEMINI_RESEARCH + OLLAMA_DRAFTING</p>
+                    <p className="text-[9px] text-[#71717a] font-mono">GEMINI_RESEARCH + OLLAMA_DRAFTING</p>
                   </div>
                   <button 
                     onClick={() => setIsTagTeam(!isTagTeam)}
@@ -1077,7 +1119,7 @@ export default function ContentCreationPage() {
                 <div className="flex items-center justify-between p-3 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a]">
                   <div className="space-y-1">
                     <span className="text-[11px] font-arabic text-[#fafafa]">درع الرصيد (Quota Shield)</span>
-                    <p className="text-[9px] text-[#71717a] font-arabic">AUTO_FAILOVER_TO_OLLAMA_ON_GEMINI_LIMIT</p>
+                    <p className="text-[9px] text-[#71717a] font-mono">AUTO_FAILOVER_TO_OLLAMA_ON_GEMINI_LIMIT</p>
                   </div>
                   <button 
                     onClick={() => setIsQuotaShield(!isQuotaShield)}
@@ -1090,25 +1132,25 @@ export default function ContentCreationPage() {
             </div>
 
             <div className="space-y-4 pt-6 border-t border-[#27272a]">
-              <h4 className="text-[10px] font-arabic text-[#a1a1aa] font-medium">External_Voice_Engines</h4>
+              <h4 className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">External_Voice_Engines</h4>
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <label className="text-[10px] font-arabic text-[#a1a1aa] font-medium">ElevenLabs_API_Key</label>
+                  <label className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">ElevenLabs_API_Key</label>
                   <input 
                     type="password" 
                     value={elevenLabsKey} 
                     onChange={(e) => setElevenLabsKey(e.target.value)}
-                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-arabic text-xs focus:border-[#4f46e5] outline-none transition-all"
+                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-mono text-xs focus:border-[#4f46e5] outline-none transition-all"
                     placeholder="sk_..."
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-arabic text-[#a1a1aa] font-medium">ElevenLabs_Voice_ID</label>
+                  <label className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">ElevenLabs_Voice_ID</label>
                   <input 
                     type="text" 
                     value={elevenLabsVoiceId} 
                     onChange={(e) => setElevenLabsVoiceId(e.target.value)}
-                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-arabic text-xs focus:border-[#4f46e5] outline-none transition-all"
+                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-mono text-xs focus:border-[#4f46e5] outline-none transition-all"
                   />
                 </div>
               </div>
@@ -1310,10 +1352,62 @@ export default function ContentCreationPage() {
     });
   }, []);
 
+  const handleGenerateVariations = async (sceneId: string) => {
+    const sceneToVary = data?.scenes?.find(s => s.asset_id === sceneId) || (data?.opening_sketch?.asset_id === sceneId ? data.opening_sketch : null);
+    if (!sceneToVary) return;
+    
+    notify.systemVoice("جاري توليد بدائل للمشهد...");
+    try {
+        const { generateSceneVariations } = await import("../lib/gemini");
+        const variations = await generateSceneVariations(sceneToVary, useOllama ? "ollama" : "gemini", ollamaModel);
+        if (variations && variations.length > 0) {
+            const newScene = { ...sceneToVary, ...variations[0] };
+            if (data?.opening_sketch?.asset_id === sceneId) {
+                handleOpeningSketchUpdate(newScene);
+            } else {
+                handleSceneUpdate(sceneId, newScene);
+            }
+            notify.systemVoice(`تم توليد بدائل وتطبيق البديل الأول.`);
+        }
+    } catch (e) {
+        notify.breach("فشل في توليد بدائل.");
+    }
+  };
+
+  const handleSwapScenes = (fromIndex: number, toIndex: number) => {
+    setData((prev) => {
+      if (!prev || !prev.scenes) return prev;
+      const newScenes = [...prev.scenes];
+      const temp = newScenes[fromIndex];
+      newScenes[fromIndex] = newScenes[toIndex];
+      newScenes[toIndex] = temp;
+      return { ...prev, scenes: newScenes };
+    });
+  };
+
   const renderSceneCards = React.useMemo(() => {
     if (!data) return null;
     return (
       <div className="space-y-6">
+        {viewMode === 'timeline' && (
+           <div className="flex gap-2 overflow-x-auto pb-4 no-scrollbar border-b border-[#27272a] mb-6">
+               <div className="flex-shrink-0 w-24 h-16 bg-[#27272a]/50 rounded-lg flex flex-col items-center justify-center text-[#71717a] font-mono text-[10px] border border-[#27272a] shadow-sm relative group">
+                  <span className="text-white">Opening</span>
+                  <span>{data.opening_sketch?.estimated_duration_seconds || 15}s</span>
+               </div>
+               {data.scenes?.map((scene, i) => (
+                  <div key={scene.asset_id} className="flex-shrink-0 w-24 h-16 bg-[#121214] rounded-lg flex flex-col items-center justify-center text-[#71717a] font-mono text-[10px] border border-[#27272a] shadow-sm relative group hover:border-[#4f46e5]/50 transition-colors cursor-grab active:cursor-grabbing">
+                     <span className="text-[#fafafa]/80">N_{scene.asset_id.replace(/\D/g, "")}</span>
+                     <span>{scene.estimated_duration_seconds || Math.ceil((scene.voice_over?.length || 100) / 15)}s</span>
+                     <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
+                        <button onClick={() => i > 0 && handleSwapScenes(i, i - 1)} className="p-1 hover:text-white">&larr;</button>
+                        <button onClick={() => i < data.scenes!.length - 1 && handleSwapScenes(i, i + 1)} className="p-1 hover:text-white">&rarr;</button>
+                     </div>
+                  </div>
+               ))}
+           </div>
+        )}
+        
         {data.opening_sketch && (
           <SceneCard
             scene={data.opening_sketch}
@@ -1329,6 +1423,7 @@ export default function ContentCreationPage() {
             onMaster={() => handleMasterAudio(data.opening_sketch?.asset_id || "0")}
             copyToClipboard={(text) => copyToClipboard(text)}
             isProcessingAudio={isProcessingAudio}
+            onGenerateVariations={() => handleGenerateVariations(data.opening_sketch?.asset_id || "0")}
           />
         )}
         {data.scenes?.map((scene, i) => scene ? (
@@ -1349,6 +1444,7 @@ export default function ContentCreationPage() {
                notify.classified("تم نسخ النص");
             }}
             isProcessingAudio={isProcessingAudio}
+            onGenerateVariations={() => handleGenerateVariations(scene.asset_id)}
           />
         ) : null)}
       </div>
@@ -1378,8 +1474,10 @@ export default function ContentCreationPage() {
             textAnchor="middle"
             dy=".3em"
             fontSize="10"
-            className="fill-blue-500 font-arabic font-black "
-          >أساسي</text>
+            className="fill-blue-500 font-mono font-black uppercase"
+          >
+            Core
+          </text>
 
           {/* Connections & Chapters */}
           {research.chapters.map((ch, i) => {
@@ -1408,12 +1506,12 @@ export default function ContentCreationPage() {
                   textAnchor="middle"
                   dy=".3em"
                   fontSize="8"
-                  className="fill-white/40 font-arabic"
+                  className="fill-white/40 font-mono"
                 >
                   0{i + 1}
                 </text>
                 <foreignObject x={x + 35} y={y - 20} width="100" height="40">
-                  <div className="text-[8px] font-arabic text-[#71717a] whitespace-nowrap overflow-hidden text-ellipsis">
+                  <div className="text-[8px] font-mono text-[#71717a] whitespace-nowrap overflow-hidden text-ellipsis">
                     {ch.chapter_title}
                   </div>
                 </foreignObject>
@@ -1450,7 +1548,7 @@ export default function ContentCreationPage() {
           <div className="text-center space-y-3 z-10 relative">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-cyan-950/50 border border-cyan-500/30 rounded-lg text-xs">
               <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-              <span className="text-cyan-400 font-arabic  ">Fragmentation Core Active</span>
+              <span className="text-cyan-400 font-mono tracking-widest uppercase">Fragmentation Core Active</span>
             </div>
             <h3 className="text-xl font-arabic font-bold text-gray-200 mt-2">يتم تفكيك النص لسوشيال ميديا...</h3>
             <p className="text-sm font-arabic text-gray-500">جاري استخلاص الفيديوهات القصيرة (Shorts) وأربطة تويتر (Threads).</p>
@@ -1463,21 +1561,21 @@ export default function ContentCreationPage() {
       <div className="space-y-6">
         {fragmenterData.shorts && fragmenterData.shorts.length > 0 && (
           <div className="space-y-4">
-             <label className="text-[9px] font-arabic text-cyan-500 font-medium flex items-center gap-2">
+             <label className="text-[9px] font-mono text-cyan-500 uppercase tracking-widest flex items-center gap-2">
                  <Zap className="w-3 h-3" /> Short_Form_Clips (Vertical 9:16)
              </label>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                {fragmenterData.shorts.map((short, idx) => (
                  <div key={idx} className="bg-[#121214]  border text-right font-arabic border-[#27272a] p-4 relative group shadow-sm hover:shadow-medium transition-shadow">
-                    <div className="absolute left-2 top-2 px-2 py-1 bg-black text-white text-[8px] font-arabic">REEL_{idx+1}</div>
+                    <div className="absolute left-2 top-2 px-2 py-1 bg-black text-white text-[8px] font-mono">REEL_{idx+1}</div>
                     <h5 className="font-bold text-sm text-[#fafafa] mb-2 mt-4">{short.title}</h5>
                     <p className="text-xs text-[#ef4444] font-bold mb-1">Hook: {short.hook}</p>
                     <p className="text-xs text-[#e5e3e0] leading-relaxed mb-3">{short.body}</p>
                     <p className="text-xs text-[#4f46e5] mb-3 block border-t pt-2 border-dashed border-[#27272a]">CTA: {short.cta}</p>
                     {short.image_prompt_vertical_nano && (
                       <div className="mt-3 p-3 bg-[#27272a]/50 border border-[#27272a] text-left relative">
-                        <label className="text-[8px] font-arabic text-[#71717a] mb-1 flex items-center gap-1 group-hover:text-amber-500 transition-colors"><ImagePlus className="w-3 h-3" /> Image Prompt [9:16]</label>
-                        <p className="text-[10px] font-arabic text-[#71717a] break-words leading-relaxed">{short.image_prompt_vertical_nano}</p>
+                        <label className="text-[8px] font-mono text-[#71717a] mb-1 flex items-center gap-1 group-hover:text-amber-500 transition-colors"><ImagePlus className="w-3 h-3" /> Image Prompt [9:16]</label>
+                        <p className="text-[10px] font-mono text-[#71717a] break-words leading-relaxed">{short.image_prompt_vertical_nano}</p>
                       </div>
                     )}
                  </div>
@@ -1488,7 +1586,7 @@ export default function ContentCreationPage() {
 
         {fragmenterData.x_thread && fragmenterData.x_thread.length > 0 && (
             <div className="space-y-3">
-              <label className="text-[9px] font-arabic text-cyan-400/50 font-medium flex items-center gap-2 border-t border-[#27272a] pt-6">
+              <label className="text-[9px] font-mono text-cyan-400/50 uppercase tracking-widest flex items-center gap-2 border-t border-[#27272a] pt-6">
                 <Share2 className="w-3 h-3" /> X_Thread_Structure
               </label>
               <div className="space-y-2">
@@ -1497,7 +1595,7 @@ export default function ContentCreationPage() {
                     key={i}
                     className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] text-micro text-[#a1a1aa] leading-relaxed font-arabic relative"
                   >
-                    <span className="absolute top-2 right-2 text-[8px] font-arabic text-[#71717a]">
+                    <span className="absolute top-2 right-2 text-[8px] font-mono text-[#71717a]">
                       {i + 1}/{fragmenterData.x_thread!.length}
                     </span>
                     {post}
@@ -1508,7 +1606,7 @@ export default function ContentCreationPage() {
         )}
         {fragmenterData.tiktok_hook && (
             <div className="p-4 bg-cyan-400/5 border border-cyan-400/20">
-              <label className="text-[9px] font-arabic text-cyan-400 font-medium block mb-2 font-bold">
+              <label className="text-[9px] font-mono text-cyan-400 uppercase tracking-widest block mb-2 font-bold">
                 TikTok_Hook (Legacy)
               </label>
               <p className="text-sm font-arabic text-[#fafafa]/90 ">
@@ -1519,20 +1617,20 @@ export default function ContentCreationPage() {
 
         {fragmenterData.social_posts && fragmenterData.social_posts.length > 0 && (
           <div className="space-y-4">
-             <label className="text-[9px] font-arabic text-cyan-500 font-medium flex items-center gap-2 border-t border-[#27272a] pt-6">
+             <label className="text-[9px] font-mono text-cyan-500 uppercase tracking-widest flex items-center gap-2 border-t border-[#27272a] pt-6">
                  <Share2 className="w-3 h-3" /> Social Network Posts (Facebook/Insta/LinkedIn)
              </label>
              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                {fragmenterData.social_posts.map((post, idx) => (
                  <div key={idx} className="bg-[#121214]  border text-right font-arabic border-[#27272a] p-4 relative group shadow-sm hover:shadow-medium transition-shadow">
-                    <div className="absolute left-2 top-2 px-2 py-1 bg-black text-white text-[8px] font-arabic">{post.platform}</div>
+                    <div className="absolute left-2 top-2 px-2 py-1 bg-black text-white text-[8px] font-mono">{post.platform}</div>
                     <div className="mt-8">
                        <p className="text-xs text-[#fafafa] leading-relaxed whitespace-pre-wrap">{post.content}</p>
                     </div>
                     {post.image_prompt_square && (
                       <div className="mt-3 p-3 bg-[#27272a]/50 border border-[#27272a] text-left relative">
-                        <label className="text-[8px] font-arabic text-[#71717a] mb-1 flex items-center gap-1 group-hover:text-cyan-600 transition-colors"><ImagePlus className="w-3 h-3" /> Image Prompt [1:1]</label>
-                        <p className="text-[10px] font-arabic text-[#71717a] break-words leading-relaxed">{post.image_prompt_square}</p>
+                        <label className="text-[8px] font-mono text-[#71717a] mb-1 flex items-center gap-1 group-hover:text-cyan-600 transition-colors"><ImagePlus className="w-3 h-3" /> Image Prompt [1:1]</label>
+                        <p className="text-[10px] font-mono text-[#71717a] break-words leading-relaxed">{post.image_prompt_square}</p>
                       </div>
                     )}
                  </div>
@@ -1543,30 +1641,46 @@ export default function ContentCreationPage() {
       </div>
     );
   };
+  const [isSaving, setIsSaving] = useState(false);
+  const [isحفظd, setIsحفظd] = useState(false);
 
-
+  // Track total generation time
+  const [generationTook, setGenerationTook] = useState<number | null>(null);
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
     if (isLoading) {
+      setGenerationTook(null); // Reset when starting
       timer = setInterval(() => {
         setElapsedTime((prev) => prev + 1);
       }, 1000);
     } else {
-      setElapsedTime(0);
+      // Keep the time so we can show "took X seconds"
+      if (elapsedTime > 0) {
+        setGenerationTook(elapsedTime);
+      }
     }
     return () => clearInterval(timer);
-  }, [isLoading]);
+  }, [isLoading, elapsedTime]);
 
   const dynamicRemaining = useMemo(() => {
-    if (elapsedTime < 3 || progress < 2) return duration * 10; // Start with rough but stable estimate
+    // Smoother ETA that leans heavily on the duration estimate 
+    // and doesn't jump wildly with random progress increments.
     if (progress >= 100) return 0;
     
-    const timePerPercent = elapsedTime / progress;
-    const rawRemaining = Math.max(0, Math.ceil(timePerPercent * (100 - progress)));
+    // Base estimate based on selected duration (e.g. 1 minute script takes ~15s to generate)
+    const baseExpectedTime = duration * 10; 
     
-    // Cap at a reasonable maximum to avoid wild spikes if progress briefly stalls
-    return Math.min(rawRemaining, duration * 15);
+    if (elapsedTime < 3 || progress < 5) return baseExpectedTime;
+    
+    // Blend the calculated time with the base expected time to prevent crazy spikes
+    const timePerPercent = elapsedTime / progress;
+    const calculatedRemaining = Math.max(0, Math.ceil(timePerPercent * (100 - progress)));
+    
+    // Interpolate between base and calculated to keep it stable
+    const blended = Math.floor((calculatedRemaining * 0.4) + (baseExpectedTime * 0.6 * ((100 - progress) / 100)));
+    
+    return Math.min(blended, duration * 20); // Cap
   }, [elapsedTime, progress, duration]);
 
   const formattedRemaining = useMemo(() => {
@@ -1690,7 +1804,7 @@ export default function ContentCreationPage() {
     }
   };
 
-  const handleSpinRadar = async () => {
+  const handleSpinRadar = async (overrideTopic?: string) => {
     console.log(
       "DEBUG: handleSpinRadar clicked, isGeneratingTitle:",
       isGeneratingTitle,
@@ -1698,7 +1812,8 @@ export default function ContentCreationPage() {
     if (isGeneratingTitle || isSpinningRef.current) return;
     isSpinningRef.current = true;
 
-    const cacheKey = topic.trim() ? `${topic.trim()}_${mood}` : null;
+    const actualTopic = overrideTopic ?? topic;
+    const cacheKey = actualTopic.trim() ? `${actualTopic.trim()}_${mood}` : null;
     if (cacheKey && titleCache[cacheKey]) {
       const cached = titleCache[cacheKey];
       if (Array.isArray(cached)) {
@@ -1716,7 +1831,7 @@ export default function ContentCreationPage() {
     abortControllerRef.current = new AbortController();
     try {
       const titles = await generateTitle(
-        topic.trim(),
+        actualTopic.trim(),
         mood,
         persona,
         note,
@@ -1784,6 +1899,20 @@ export default function ContentCreationPage() {
       setIsGeneratingTitle(false);
       isSpinningRef.current = false;
     }
+  };
+
+  const startDeepResearch = async (researchTopic: string) => {
+    setTopic(researchTopic);
+    setIsDeepResearchOpen(true);
+  };
+
+  const handleDeepResearchComplete = (reportText: string) => {
+    setTopic(reportText.substring(0, 8000)); 
+    setNote((prev) => prev + "\n[استخدم نتائج البحث العميق كمرجع أساسي للمحتوى]");
+    setTimeout(() => {
+       setIsDeepResearchOpen(false);
+       handleSpinRadar(); // Optionally start building titles automatically
+    }, 5000);
   };
 
   const handleSweepNow = async () => {
@@ -1936,12 +2065,21 @@ export default function ContentCreationPage() {
           clearInterval(progressInterval);
           setProgress(100);
           setStatus("تم بناء الخريطة بنجاح! راجعها الآن..");
-          setTimeout(() => setIsLoading(false), 500);
-          if (phase1 && phase1.design) {
-            setResearchMap(phase1.design);
-          } else {
-            throw new Error("لم نتمكن من بناء الخريطة بنجاح. حاول مرة أخرى.");
-          }
+          setTimeout(() => {
+            setIsLoading(false);
+            if (phase1 && phase1.design) {
+              setResearchMap(phase1.design);
+              // [AUTO-PILOT] Auto advance to next phase if enabled
+              if (isAutoPilot) {
+                notify.systemVoice("الوضع التلقائي مفعل، جاري البدء في المعالجة الدرامية...");
+                setTimeout(() => {
+                  handleApproveResearchMapAuto(phase1.design);
+                }, 2000);
+              }
+            } else {
+              setError("لم نتمكن من بناء الخريطة بنجاح. حاول مرة أخرى.");
+            }
+          }, 500);
         } catch (err: any) {
           clearInterval(progressInterval);
           throw err;
@@ -1995,6 +2133,176 @@ export default function ContentCreationPage() {
       if (duration !== 60 || hasError) {
         setProgress(0);
         setStatus("");
+      }
+    }
+  };
+
+  const handleApproveResearchMapAuto = async (passedMap: any) => {
+    if (!passedMap) return;
+    setIsLoading(true);
+    setError("");
+    let targetProgress = 10;
+    setProgress(targetProgress);
+    abortControllerRef.current = new AbortController();
+
+    const smoothProgressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= targetProgress) return prev;
+        if (abortControllerRef.current?.signal.aborted) {
+           clearInterval(smoothProgressInterval);
+           return prev;
+        }
+        return prev + Math.floor(Math.random() * 2) + 1;
+      });
+    }, 1000);
+
+    let hasErrorInApprove = false;
+
+    try {
+      const hookInstructionContext = (selectedAngle?.hook && selectedAngle?.title) 
+        ? `\n\n[USER SELECTED HOOK VARIANT]: ${selectedAngle.hook}\n[ASSOCIATED ANGLE]: ${selectedAngle.title}\nCRITICAL INSTRUCTION: Utilize this exact hook as the primary rhythm driver, and shape the scenes and pacing around this angle.` 
+        : "";
+        
+      const tuningContext = `\n[CALIBRATION]: Suspense Level = ${suspenseLevel}/10. Narrative Strategy = ${narrativeStrategy} (${narrativeStrategy === "HCS" ? "Phase 01: Document Analysis & Information Density" : "Phase 02: Dramatic Suspense & Fast Pacing"}). You MUST enforce this pacing and logic rigidly throughout the script.`;
+      
+      const effectiveNote = note + (ragContext ? `\n\n[ACADEMIC_RAG_CONTEXT]:\n${ragContext}` : "") + hookInstructionContext + tuningContext;
+
+      // Clean global state to prevent data leakage from previous episode
+      setFragmenterData(null);
+      setFinalVoiceScript("");
+      
+      // Initialize data state early
+      setData({
+        video_title: passedMap.video_title || topic,
+        thumbnail: { image_prompt: "", text_on_image: "" },
+        opening_sketch: {
+          asset_id: "", voice_over: "", visual_cue: "", montage_instructions: "", sound_design: "", image_prompt: "", ai_video_prompt: "",
+        },
+        scenes: [], sources: [],
+        publishing_kit: { youtube_titles: [], thumbnail_prompt: "", description: "", tags: [] },
+        shorts: [], audit_report: { status: "verified", executive_summary: "", issues: [] },
+      });
+
+      const activeMoodToPass = activeMoodCategory !== "all" ? activeMoodCategory : mood;
+
+      const result = await executePipeline_Orchestrator(
+        topic,
+        duration,
+        effectiveNote,
+        activeMoodToPass as any,
+        persona,
+        (p, s) => {
+          targetProgress = Math.max(targetProgress, p);
+          setStatus(s);
+        },
+        (scene) => {
+          setData((prev) => {
+            if (!prev) return prev;
+            return { ...prev, scenes: [...(prev.scenes || []), scene] };
+          });
+        },
+        (chunk) => {
+          if (terminalRef.current) {
+            terminalRef.current.innerHTML += chunk.replace(/\n/g, '<br/>');
+            terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+          }
+        }, // onChunk
+        useOllama ? "ollama" : "gemini",
+        useOllama ? "ollama" : "gemini",
+        useOllama ? "ollama" : "gemini",
+        "HCS",
+        5,
+        async (correction) => {
+           return new Promise((resolve) => {
+              setConflictCorrection(correction);
+              setConflictResolver(() => resolve);
+              setConflictOpen(true);
+           });
+        },
+        passedMap // Passes the Map -> instantly jumps to Phase 2 (Ramzy & Fox)
+      );
+
+      clearInterval(smoothProgressInterval);
+      setProgress(100);
+      setData(result);
+      useStudioStore.getState().setFinalProductionSnapshot(result);
+
+      // Auto-generate fragments
+      setIsGeneratingFragments(true);
+      try {
+        const fullScript = [
+          result.opening_sketch.voice_over,
+          ...result.scenes.map((s) => s.voice_over),
+        ].join(" ");
+        const { generateFragmenterContent } = await import("../lib/gemini");
+        const fragments = await generateFragmenterContent(
+          topic,
+          mood,
+          fullScript,
+          useOllama ? "ollama" : "gemini",
+          useOllama ? ollamaModel : undefined
+        );
+        setFragmenterData(fragments);
+      } catch (err) {
+        console.warn("Fragmenter failed:", err);
+      } finally {
+        setIsGeneratingFragments(false);
+      }
+
+      const allVoiceovers = [result.opening_sketch, ...result.scenes]
+        .map((s) => s.voice_over || s.clean_tts)
+        .join("\n\n");
+      setRawScriptText(allVoiceovers);
+      
+      try {
+          const extracted = await extractAndCleanScript(allVoiceovers);
+          let optimized = extracted;
+          if (persona !== "الهرم الرابع" && activeMoodToPass !== "قصص الأنبياء والتاريخ الإسلامي" && activeMoodToPass !== "عصر الفتوحات والدول الإسلامية") {
+              optimized = await convertToEgyptian(extracted);
+          }
+          
+          setStatus("[!] يتم الآن المعالجة الصوتية النهائية والتشكيل الذكي (TTS Normalization)...");
+          const ttsNormalized = await executeAgent_TTSNormalizer(
+            optimized,
+            useOllama ? "ollama" : "gemini",
+            persona,
+            (chunk) => {
+              if (terminalRef.current) {
+                terminalRef.current.innerHTML += chunk.replace(/\n/g, '<br/>');
+                terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+              }
+            },
+            ollamaModel
+          );
+          setFinalVoiceScript(ttsNormalized);
+      } catch (e) {
+          console.warn("TTS normalization / Dialect failed:", e);
+          setFinalVoiceScript(allVoiceovers);
+      }
+      
+      // Prefetching removed here
+
+
+      setPipelineStep(3);
+      setActiveTab("script");
+    } catch (err: any) {
+      hasErrorInApprove = true;
+      const errorMsg = err.message || "";
+      if (errorMsg === "MANUAL_EDIT_ABORT") {
+          notify.systemVoice("تمت العودة للتحرير اليدوي.");
+          setError("");
+      } else {
+          setError(errorMsg || "حدث خطأ أثناء الاتصال بالخادم");
+          notify.breach(errorMsg || "حدث خطأ أثناء الاتصال بالخادم");
+      }
+    } finally {
+      clearInterval(smoothProgressInterval);
+      setTimeout(() => setIsLoading(false), 500);
+      if (hasErrorInApprove) {
+        setProgress(0);
+        setStatus("");
+      } else {
+        setStatus("تم بناء الحلقة بالكامل بصيغة Barwaz XML Format بنجاح.");
       }
     }
   };
@@ -2155,7 +2463,7 @@ export default function ContentCreationPage() {
       hasErrorInApprove = true;
       setError(
         err.message ||
-          "حدث خطأ أثناء التصنيع المرحلي. يرجى التحقق من الشبكة وإعادة المحاولة.",
+          "حدث خطأ أثناء التصنيع المرحلي. يرجى التحقق من الشبكة وإعادة المحاولة."
       );
     } finally {
       setIsLoading(false);
@@ -2166,656 +2474,381 @@ export default function ContentCreationPage() {
     }
   };
 
-
-  // Export handles have been moved to ExportCenterModule
-
   return (
     <div
-      className="min-h-full flex flex-col font-arabic relative overflow-hidden bg-transparent"
+      className="min-h-full flex flex-col font-arabic relative bg-transparent"
       dir="rtl"
       onClick={playClick}
     >
-      {/* SYSTEM PULSE (Kill Switch Visuals active/Background active) */}
+      {/* SYSTEM PULSE */}
       {isLoading && (
         <div className="fixed bottom-6 left-6 z-[200] pointer-events-none flex items-center gap-3 opacity-60">
           <div className="w-1.5 h-1.5 rounded-full bg-[#4f46e5] animate-pulse" />
-          <span className="text-[10px] font-arabic text-[#71717a] font-medium">
+          <span className="text-[10px] font-mono text-[#71717a] uppercase tracking-widest">
             راصد يحلل الآن...
           </span>
         </div>
       )}
 
-      <div className="absolute inset-0 pointer-events-none z-50 mix-blend-overlay opacity-10 bg-[url('https://www.transparenttextures.com/patterns/clean-textile.png')]" />
-
-      {/* MAIN HEADER - STYLED TO MATCH OTHER PAGES */}
-      <header className="relative z-10 bg-[#121214]  rounded-lg border border-[#27272a] p-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 shadow-sm overflow-hidden max-w-7xl mx-auto mt-[76px] w-[calc(100%-2rem)]">
-        <div className="absolute inset-0 pointer-events-none opacity-5 bg-[radial-gradient(circle_at_100%_0%,_#4f46e5_1px,_transparent_1px)] bg-[size:40px_40px]" />
-        
-        <div className="relative z-10 flex gap-4">
-           <div>
-              <h2 className="text-3xl font-black  text-[#fafafa] leading-none font-arabic mb-2  flex items-center gap-3">
-                 <TerminalSquare className="w-8 h-8 text-[#4f46e5]" />
-                 [STUDIO] // أستوديو صناعة المحتوى
-              </h2>
-              <p className="text-[#a1a1aa] font-arabic text-xs leading-relaxed max-w-2xl mt-2 font-medium">
+      {/* DASHBOARD HEADER */}
+      <header className="relative z-10 w-full mb-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-[#000000] p-6 lg:p-8 rounded-2xl border border-white/5 shadow-sm">
+           <div className="flex flex-col gap-2">
+              <div className="flex items-center gap-3 border-b border-white/5 pb-4 mb-2">
+                 <div className="w-10 h-10 bg-white/[0.03] border border-white/10 rounded-xl flex items-center justify-center text-white">
+                   <TerminalSquare className="w-5 h-5 text-white" />
+                 </div>
+                 <div>
+                    <h1 className="text-2xl font-bold tracking-tight text-white mb-0 flex items-center gap-3">
+                       ستوديو برواز
+                       <span className="px-2 py-0.5 bg-white/10 text-white text-[10px] font-sans tracking-widest uppercase rounded">STUDIO.OS</span>
+                    </h1>
+                 </div>
+              </div>
+              <p className="text-[#a1a1aa] text-sm leading-relaxed max-w-2xl font-medium">
                  خط إنتاج الإبداع: من استخلاص الفكرة إلى التدقيق والمونتاج.
               </p>
+           </div>
+           
+           <div className="flex items-center gap-3">
+             <button 
+               onClick={() => setShowArchive(true)}
+               className="flex items-center gap-2 px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white transition-colors text-sm font-bold"
+             >
+               <Archive size={16} />
+               <span>الأرشيف</span>
+             </button>
            </div>
         </div>
       </header>
 
-      {/* PIPELINE PROGRESS TRACKER */}
-      <div className="relative z-[100] px-4 py-4 pointer-events-none transition-all duration-300 w-[calc(100%-2rem)] max-w-7xl mx-auto -mt-6">
-        <div className="max-w-4xl mx-auto flex items-center justify-between pointer-events-auto bg-[#121214]/80  border border-[#27272a] p-3 rounded-lg shadow-mamluk">
-          <div className="flex items-center gap-6">
-            {[1, 2, 3].map((step) => (
-              <div key={step} className="flex items-center gap-3">
-                <div 
-                  className={`w-8 h-8 rounded-lg border flex items-center justify-center font-arabic text-xs font-bold transition-all duration-500 ${
-                    pipelineStep === step 
-                      ? "bg-gradient-to-br from-[#4f46e5] to-[#4f46e5] border-[#6366f1] text-[#09090b] shadow-sm scale-110" 
-                      : pipelineStep > step 
-                        ? "bg-[#27272a] border-[#4f46e5]/30 text-[#4f46e5]" 
-                        : "bg-[#09090b] border-[#27272a] text-[#71717a]"
-                  }`}
-                >
-                  {step === 1 ? <Search size={14} /> : step === 2 ? <PenLine size={14} /> : <ImageIcon size={14} />}
-                </div>
-                <span className={`text-[10px] font-arabic font-bold  tracking-wider transition-opacity ${pipelineStep === step ? "opacity-100 text-[#4f46e5]" : "opacity-50 text-[#71717a]"}`}>
-                  {step === 1 ? "رصد وبحث" : step === 2 ? "تأليف وسرد" : "إنتاج ووسائط"}
-                </span>
-                {step < 3 && <div className="w-10 h-[2px] bg-[#27272a] mx-2" />}
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-4 border-r border-[#27272a] pr-4 mr-2">
-             <button 
-               onClick={() => setShowArchive(true)}
-               className="p-2 text-[#a1a1aa] hover:text-[#4f46e5] active:scale-95 rounded-lg transition-colors relative group"
-             >
-                <Archive size={18} />
-                <div className="absolute top-full right-0 mt-2 p-2 bg-[#121214] border border-[#27272a] rounded-lg text-[10px] font-arabic text-[#4f46e5] whitespace-nowrap opacity-0 group-active:scale-95 pointer-events-none transition-opacity shadow-mamluk z-[50]">
-                   الأرشيف والسجلات
-                </div>
-             </button>
-             <button 
-               onClick={() => setShowSettings(true)}
-               className="p-2 text-[#a1a1aa] hover:text-[#4f46e5] active:scale-95 rounded-lg transition-colors relative group"
-             >
-                <Settings size={18} />
-                <div className="absolute top-full right-0 mt-2 p-2 bg-[#121214] border border-[#27272a] rounded-lg text-[10px] font-arabic text-[#4f46e5] whitespace-nowrap opacity-0 group-active:scale-95 pointer-events-none transition-opacity shadow-mamluk z-[50]">
-                   إعدادات المحرك
-                </div>
-             </button>
-          </div>
-        </div>
-      </div>
-
-      {/* MAIN CONTENT AREA - PIPELINE ORIENTED */}
-      <main className="flex-1 relative z-10 px-10 pt-12 pb-40 min-h-screen max-w-7xl mx-auto w-full">
+      {/* PIPELINE CONTAINER */}
+      <div className="relative z-10 w-full flex-grow flex flex-col">
         <AnimatePresence mode="wait">
-          {/* STEP 1: GATHERING (الرصد) */}
           {pipelineStep === 1 && (
-            <motion.div 
-              key="step1"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-12"
-            >
-              {error && (
-                <div className="flex flex-col items-center justify-center animate-in fade-in duration-500 mb-8 mt-4">
-                  <div className="text-center space-y-4 max-w-2xl bg-red-950/30 p-10 border border-red-500/30 relative rounded-xl w-full">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-red-950 border border-red-500/30 text-[10px] font-arabic text-red-400  ">SYSTEM_ERROR</div>
-                    <p className="text-red-300/80 font-arabic text-lg leading-relaxed">{error}</p>
-                  </div>
-                </div>
-              )}
-              <div className="text-center space-y-4 mb-8">
-                <motion.h1 
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="text-5xl lg:text-7xl font-arabic font-extrabold tracking-tight text-[#fafafa] mb-2"
-                >
-                  ماذا تريد أن تصنع اليوم؟
-                </motion.h1>
-                <p className="text-[#71717a] font-arabic text-sm max-w-2xl mx-auto font-medium font-semibold flex items-center justify-center gap-2">
-                  <Database size={16} className="text-[#6366f1]" /> Gathering Data for Archive
-                </p>
-              </div>
+             <motion.div
+               key="step1-command-center"
+               initial={{ opacity: 0, y: 10 }}
+               animate={{ opacity: 1, y: 0 }}
+               exit={{ opacity: 0, scale: 0.98 }}
+               className="grid grid-cols-1 lg:grid-cols-12 gap-8 max-w-[1500px] w-full mx-auto py-2"
+             >
+                {/* Center Column: Huge Input Area */}
+                <div className="lg:col-span-8 flex flex-col gap-6 order-2 lg:order-1 relative">
+                    <div className="absolute -inset-4 bg-gradient-to-b from-white/[0.02] to-transparent rounded-[2rem] -z-10 pointer-events-none" />
+                    
+                    <div className="flex flex-col gap-1 mb-2">
+                       <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/[0.03] border border-white/5 rounded-md w-fit mb-3">
+                           <div className="w-1.5 h-1.5 rounded-full bg-[#4f46e5] animate-pulse" />
+                           <span className="text-[10px] text-[#a1a1aa] font-mono tracking-[0.2em] uppercase">Studio.OS Core Active</span>
+                       </div>
+                       <h2 className="text-3xl lg:text-5xl font-bold font-arabic text-white tracking-tight leading-tight drop-shadow-sm">
+                         مساحة العمل الإبداعية
+                       </h2>
+                       <p className="text-white/40 text-sm font-medium mt-2 max-w-xl leading-relaxed">
+                         حدد الشكل الفني من القائمة، ثم اسرد فكرتك أو قم برفع مصادر البحث. سيقوم المحرك ببناء الرؤية الدرامية كاملة.
+                       </p>
+                    </div>
 
-              {/* SMART DASHBOARD WIDGETS */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-                  <div className="bg-[#121214]  border border-[#27272a] p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-[#4f46e5] opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
-                      <div className="relative z-10 flex items-center justify-between mb-4 text-[#4f46e5]">
-                          <div className="flex items-center gap-3">
-                              <Activity size={20} />
-                              <h3 className="font-arabic text-[10px] font-bold font-medium">Active Engine</h3>
-                          </div>
-                      </div>
-                      <div className="relative z-10 flex justify-between items-end">
-                          <div>
-                              <p className="text-2xl font-black text-[#fafafa]  tracking-wider">{useOllama ? "Ollama Local" : "Gemini Cloud"}</p>
-                              <p className="text-[10px] text-[#71717a] font-arabic  mt-1 ">Ready for operations</p>
-                          </div>
-                          <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)] animate-pulse mb-1" />
-                      </div>
-                  </div>
+                    <div className="relative group mt-4">
+                        <div className="absolute -inset-1 bg-gradient-to-r from-[#4f46e5]/10 to-transparent blur-xl opacity-0 group-focus-within:opacity-100 transition-opacity duration-700 rounded-[2rem]" />
+                        <div className="p-1 rounded-[2rem] bg-black/40 backdrop-blur-3xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] relative flex flex-col">
+                          <textarea
+                            placeholder="عزيزي المشاهد، عن ماذا سنتحدث اليوم؟ اكتب الفكرة هنا أو ارفع ملف وورد لنبدأ الملحمة..."
+                            className="w-full min-h-[200px] lg:min-h-[250px] bg-transparent border-0 rounded-t-3xl p-8 pb-4 text-2xl lg:text-3xl font-arabic font-medium leading-relaxed text-white placeholder:text-white/20 transition-all outline-none resize-none custom-scrollbar"
+                            value={topic}
+                            onChange={(e) => setTopic(e.target.value)}
+                          />
+                          
+                          <div className="flex flex-wrap items-center justify-between gap-4 p-4 mt-2 bg-gradient-to-b from-transparent to-black/40 rounded-b-3xl">
+                             <div className="flex flex-wrap items-center gap-2">
+                               <label className="group/btn flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl cursor-pointer transition-all active:scale-95">
+                                 <FileText className="w-4 h-4 text-white/50 group-hover/btn:text-[#4f46e5] transition-colors" />
+                                 <span className="text-xs font-arabic uppercase tracking-wider text-white/70 font-bold">ورق الاسكربت (DOCX)</span>
+                                 <input 
+                                   type="file" accept=".docx" className="hidden"
+                                   onChange={async (e) => {
+                                     const file = e.target.files?.[0];
+                                     if (!file) return;
+                                     try {
+                                       const buffer = await file.arrayBuffer();
+                                       const mammoth = await import("mammoth");
+                                       const result = await mammoth.extractRawText({ arrayBuffer: buffer });
+                                       if (result.value) {
+                                          setTopic(prev => prev + (prev ? '\n\n' : '') + result.value);
+                                       } else {
+                                          alert("لم يتم العثور على نص في هذا الملف.");
+                                       }
+                                     } catch (err) {
+                                       console.error('Docx parsing error:', err);
+                                       alert("خطأ في قراءة ملف الوورد.");
+                                     }
+                                     e.target.value = '';
+                                   }}
+                                 />
+                               </label>
+                               <label className="group/btn flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl cursor-pointer transition-all active:scale-95">
+                                 {isUploadingPDF ? <Loader2 className="w-4 h-4 animate-spin text-[#4f46e5]" /> : <FileBox className="w-4 h-4 text-white/50 group-hover/btn:text-[#4f46e5] transition-colors" />}
+                                 <span className="text-xs font-arabic uppercase tracking-wider text-white/70 font-bold">المصادر والمراجع (PDF)</span>
+                                 <input 
+                                   type="file" accept=".pdf" className="hidden" disabled={isUploadingPDF}
+                                   onChange={async (e) => {
+                                     const file = e.target.files?.[0];
+                                     if (!file) return;
+                                     setIsUploadingPDF(true);
+                                     try {
+                                       const formData = new FormData();
+                                       formData.append('file', file);
+                                       const res = await fetch((process.env.VITE_API_URL || 'http://localhost:3000') + '/api/rag-upload', {
+                                         method: 'POST',
+                                         body: formData
+                                       });
+                                       if (!res.ok) throw new Error('فشل الرفع');
+                                       const data = await res.json();
+                                       alert('تم المعالجة وتم استخراج: ' + data.chunks + ' فقرة.');
+                                     } catch (err) {
+                                       alert('خطأ أثناء المعالجة.');
+                                     } finally {
+                                       setIsUploadingPDF(false);
+                                     }
+                                     e.target.value = '';
+                                   }}
+                                 />
+                               </label>
+                             </div>
 
-                  <div className="bg-[#121214]  border border-[#27272a] p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-[#6366f1] opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
-                      <div className="relative z-10 flex items-center justify-between mb-4 text-[#6366f1]">
-                          <div className="flex items-center gap-3">
-                              <Archive size={20} />
-                              <h3 className="font-arabic text-[10px] font-bold font-medium">Local Records</h3>
-                          </div>
-                      </div>
-                      <div className="relative z-10">
-                          <p className="text-2xl font-black text-[#fafafa]  tracking-wider font-arabic">11 <span className="text-sm text-[#71717a]">cases</span></p>
-                          <p className="text-[10px] text-[#71717a] font-arabic  mt-1  text-right">Resolved</p>
-                      </div>
-                  </div>
-
-                  <div className="bg-[#121214]  border border-[#27272a] p-6 rounded-3xl shadow-sm flex flex-col justify-between relative overflow-hidden group">
-                      <div className="absolute top-0 right-0 w-24 h-24 bg-[#2b5797] opacity-5 blur-3xl group-hover:opacity-10 transition-opacity" />
-                      <div className="relative z-10 flex items-center justify-between mb-4 text-[#a1a1aa]">
-                          <div className="flex items-center gap-3">
-                              <TrendingUp size={20} />
-                              <h3 className="font-arabic text-[10px] font-bold font-medium">Market Intel</h3>
-                          </div>
-                      </div>
-                      <div className="relative z-10 bg-[#27272a]/50 border border-[#27272a] rounded-xl p-3 flex justify-between items-center cursor-pointer hover:border-[#4f46e5] transition-colors">
-                          <div className="text-right">
-                              <p className="text-sm font-bold text-[#fafafa] leading-tight font-arabic w-full truncate">اغتيال في ظروف غامضة</p>
-                              <p className="text-[9px] text-[#4f46e5] font-arabic  mt-1  text-right flex items-center gap-1 justify-end">
-                                 <Plus size={10} /> Add to brief
-                              </p>
-                          </div>
-                          <div className="px-2 py-1 bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-arabic rounded-lg">HOT</div>
-                      </div>
-                  </div>
-              </div>
-
-              {/* INPUT AREA */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-                <div className="space-y-8">
-                  {/* EDIT AREA */}
-                  <div className="bg-[#121214]  border border-[#27272a] rounded-3xl p-8 relative overflow-hidden shadow-sm">
-                    <div className="relative z-10 space-y-6">
-                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-arabic text-[#71717a] font-medium font-bold">Concept Input</label>
-                        <div className="flex gap-2">
-                           <button 
-                             onClick={loadDraft}
-                             className="px-3 py-1 bg-[#27272a]/50 active:scale-95 border border-[#27272a] rounded-lg transition-colors group text-[#a1a1aa]"
-                             title="استرجاع آخر مسودة"
-                           >
-                             <span className="text-[10px] font-arabic group-hover:text-[#4f46e5]">استرجاع مسودة</span>
-                           </button>
-                           <button 
-                             onClick={handleSweepNow}
-                             disabled={isSweeping}
-                             className="p-2 active:scale-95 border border-[#27272a] rounded-lg transition-colors group/sweep"
-                             title="تحديث المؤشرات الحيّة"
-                           >
-                             <TrendingUp className={`w-4 h-4 transition-colors ${isSweeping ? "animate-pulse text-[#6366f1]" : "text-[#71717a] group-hover/sweep:text-[#4f46e5]"}`} />
-                           </button>
-                        </div>
-                      </div>
-
-                      <div className="relative group">
-                        <div className="absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-[#4f46e5]/40 to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                        <div className="absolute inset-y-0 -left-px w-px bg-gradient-to-b from-transparent via-[#4f46e5]/20 to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity" />
-                        
-                        <textarea
-                          placeholder="أدخل فكرتك هنا (أو ارفع ملف .docx ليتم استخراج النص تلقائياً...)"
-                          className="w-full h-40 bg-[#09090b]/80  border border-[#27272a] rounded-2xl p-6 text-xl lg:text-2xl font-arabic leading-relaxed text-[#fafafa] placeholder:text-[#71717a]/50 focus:ring-1 focus:ring-[#4f46e5]/50 focus:border-[#4f46e5]/40 transition-all outline-none resize-none custom-scrollbar shadow-[inset_0_2px_20px_rgba(0,0,0,0.5)]"
-                          value={topic}
-                          onChange={(e) => setTopic(e.target.value)}
-                        />
-                        
-                        {/* Corner decorative bracket */}
-                        <div className="absolute top-4 left-4 w-4 h-4 border-t border-l border-[#4f46e5]/30 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-                        <div className="absolute top-4 right-4 w-4 h-4 border-t border-r border-[#4f46e5]/30 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-                        <div className="absolute bottom-4 left-4 w-4 h-4 border-b border-l border-[#4f46e5]/30 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-                        <div className="absolute bottom-4 right-4 w-4 h-4 border-b border-r border-[#4f46e5]/30 pointer-events-none opacity-0 group-focus-within:opacity-100 transition-opacity duration-500" />
-                        
-                        <Search className="absolute bottom-6 left-6 w-5 h-5 text-[#71717a] group-focus-within:text-[#4f46e5]/60 transition-colors" />
-                        <label className="absolute bottom-6 right-6 p-2 bg-[#121214]  rounded-lg border border-[#27272a] cursor-pointer shadow-sm hover:bg-[#4f46e5]/10 hover:border-[#4f46e5]/30 active:scale-95 transition-all text-[#71717a] hover:text-[#4f46e5]" title="رفع ملف وورد (.docx)">
-                          <FileText className="w-5 h-5" />
-                          <input 
-                              type="file"
-                              accept=".docx"
-                              className="hidden"
-                              onChange={async (e) => {
-                                 const file = e.target.files?.[0];
-                                 if (!file) return;
-                                 try {
-                                   const buffer = await file.arrayBuffer();
-                                   const mammoth = await import("mammoth");
-                                   const result = await mammoth.extractRawText({ arrayBuffer: buffer });
-                                   if (result.value) {
-                                      setTopic(prev => prev + (prev ? '\n\n' : '') + result.value);
-                                   } else {
-                                      alert("لم يتم العثور على نص في هذا الملف.");
+                             <div className="flex flex-wrap items-center gap-3">
+                               <button
+                                 onClick={handleGenerateDiverseTopics}
+                                 disabled={isGeneratingTopics}
+                                 className="px-5 py-3 bg-white/5 border border-white/5 hover:bg-white/10 text-white rounded-xl font-bold font-arabic transition-all flex items-center gap-2 hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50"
+                                 title="اقتراح أفكار متنوعة وتريندنج"
+                               >
+                                 {isGeneratingTopics ? <Loader2 className="w-4 h-4 animate-spin text-[#4f46e5]" /> : <Radar className="w-4 h-4 text-[#4f46e5]" />}
+                                 <span className="text-sm">اسأل فريق الإعداد (أفكار)</span>
+                               </button>
+                               <button
+                                 onClick={() => {
+                                   if (!creatorMode) {
+                                       setCreatorMode("documentary");
+                                       setIsLongForm(true);
+                                       setDuration(12);
                                    }
-                                 } catch (err) {
-                                   console.error("Docx parsing error:", err);
-                                   alert("خطأ في قراءة ملف الوورد. يرجى التأكد من أنه بصيغة .docx صحيحة.");
-                                 }
-                                 // Reset the input
-                                 e.target.value = '';
-                              }}
-                          />
-                        </label>
-
-                        {/* PDF RAG Upload Button */}
-                        <label className="absolute bottom-6 right-16 p-2 bg-[#121214]  rounded-lg border border-[#27272a] cursor-pointer shadow-sm active:scale-95 transition-colors" title="رفع ملف PDF الأكاديمي للبحث العضوي (RAG)">
-                          {isUploadingPDF ? <Loader2 className="w-5 h-5 text-[#4f46e5] animate-spin" /> : <FileBox className="w-5 h-5 text-[#4f46e5] active:scale-95" />}
-                          <input 
-                              type="file"
-                              accept=".pdf"
-                              disabled={isUploadingPDF}
-                              className="hidden"
-                              onChange={async (e) => {
-                                 const file = e.target.files?.[0];
-                                 if (!file) return;
-                                 setIsUploadingPDF(true);
-                                 try {
-                                    const formData = new FormData();
-                                    formData.append("file", file);
-                                    
-                                    const res = await fetch("/api/documents/upload", {
-                                      method: "POST",
-                                      body: formData
-                                    });
-                                    if (!res.ok) throw new Error(await res.text());
-                                    const data = await res.json();
-                                    
-                                    if (data.text) {
-                                      setRagContext(data.text);
-                                      setNote(prev => prev + (prev ? " " : "") + `مرفق سياق بحثي أكاديمي محلي (RAG) بعنوان ${file.name}.`);
-                                      alert(`تم رفع الملف بنجاح واستخراج ${data.text.length} حرف كـ (RAG Context).`);
-                                    }
-                                 } catch (err: any) {
-                                   console.error("PDF upload error:", err);
-                                   alert("خطأ في قراءة ملف الـ PDF: " + err.message);
-                                 } finally {
-                                   setIsUploadingPDF(false);
-                                   e.target.value = '';
-                                 }
-                              }}
-                          />
-                        </label>
-                      </div>
-
-                      <div className="flex flex-wrap gap-4 items-center">
-                         <div className="flex-1">
-                           <label className="text-[10px] font-arabic text-[#71717a]  block mb-2  font-bold">Tactical Instruction</label>
-                           <input 
-                              type="text"
-                              placeholder="إضافة ملاحظة للمحرك..."
-                              value={note}
-                              onChange={(e) => setNote(e.target.value)}
-                              className="w-full bg-[#27272a]/50 border border-[#27272a] rounded-xl p-3 text-sm font-arabic text-[#e5e3e0] outline-none focus:ring-2 focus:ring-blue-100 focus:border-[#4f46e5] transition-all"
-                           />
-                         </div>
-                      </div>
-
-                      <button
-                        onClick={handleSpinRadar}
-                        disabled={isGeneratingTitle}
-                        className="w-full h-16 bg-[#4f46e5] hover:bg-[#6366f1] active:scale-95 disabled:opacity-50 text-[#0b0f17] font-arabic font-bold text-xl rounded-xl flex items-center justify-center gap-3 transition-all relative overflow-hidden group/radar shadow-sm"
-                      >
-                         {isGeneratingTitle ? (
-                           <>
-                             <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent_50%,rgba(11,15,23,0.1)_50%)] bg-[length:100%_4px] pointer-events-none" />
-                             <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#0b0f17]/50 to-transparent animate-scan z-10" />
-                             <Loader2 className="w-6 h-6 animate-spin relative z-20" />
-                             <span className="relative z-20 text-[#0b0f17]">جاري بناء الخيارات السردية...</span>
-                           </>
-                         ) : (
-                           <>
-                             <Radar className="w-6 h-6 group-hover/radar:animate-spin" />
-                             <span>بناء القصة المتوقعة</span>
-                           </>
-                         )}
-                      </button>
+                                   handleSpinRadar();
+                                 }}
+                                 disabled={!topic.trim() || isGeneratingTitle}
+                                 className="px-8 py-3 bg-gradient-to-r from-[#4f46e5] to-[#3b82f6] text-white rounded-xl font-bold font-arabic shadow-[0_0_20px_rgba(79,70,229,0.3)] hover:shadow-[0_0_30px_rgba(79,70,229,0.6)] disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center gap-3 hover:-translate-y-0.5 active:translate-y-0"
+                               >
+                                 {isGeneratingTitle ? (
+                                    <>
+                                       <Loader2 className="w-5 h-5 animate-spin" />
+                                       <span>بيسخن المكنة...</span>
+                                    </>
+                                 ) : (
+                                    <>
+                                       <Zap fill="currentColor" strokeWidth={0} className="w-4 h-4" />
+                                       <span>دور المكنة يا ابني</span>
+                                    </>
+                                 )}
+                               </button>
+                             </div>
+                          </div>
+                        </div>
                     </div>
-                  </div>
-                </div>
-
-                <div className="space-y-6">
-                  {/* QUICK FORMATS OR EXPERT MODE */}
-                  {!isExpertMode ? (
-                    <div className="space-y-6">
-                      <div className="flex justify-between items-center px-2">
-                          <label className="text-[10px] font-arabic text-[#71717a] font-medium font-bold">القوالب الجاهزة (Quick Formats)</label>
-                          <button 
-                            onClick={(_) => { setIsExpertMode(true); playClick(); }}
-                            className="text-[10px] font-arabic text-[#4f46e5] hover:underline font-medium font-bold active:scale-95 transition-transform"
+                    
+                    {/* Diverse Topics Selector */}
+                    <AnimatePresence>
+                      {diverseTopics.length > 0 && (
+                          <motion.div 
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className="mt-4 flex flex-col gap-8"
                           >
-                            عرض كل القوالب (Show All Formats)
-                          </button>
-                      </div>
-                      <div className="grid grid-cols-1 gap-4">
-                          <button 
-                            onClick={() => { setMood("خرافات شعبية"); setPersona("النبّاش"); playClick(); }}
-                            className={`p-6 border text-right transition-all group relative rounded-2xl flex items-center justify-between ${
-                              mood === "خرافات شعبية" 
-                                ? "bg-[#121214]/80  border-[#4f46e5] shadow-sm" 
-                                : "bg-[#27272a]/50 border-[#27272a] active:scale-95 hover:bg-[#121214]  opacity-70 hover:opacity-100"
-                            }`}
-                          >
-                            <div className="text-right">
-                              <h4 className={`text-lg font-arabic font-bold transition-colors ${mood === "خرافات شعبية" ? "text-[#4f46e5]" : "text-[#fafafa]"}`}>قصة سريعة (Shorts / Reels)</h4>
-                              <p className="text-xs font-arabic text-[#a1a1aa] mt-1">سرد سريع وخلاصة جذابة للجمهور السريع</p>
-                            </div>
-                            <span className="text-2xl font-arabic text-[#71717a] font-black opacity-30">Short</span>
-                          </button>
-
-                          <button 
-                            onClick={() => { setMood("طريقة الدحيح"); setPersona("النبّاش"); playClick(); }}
-                            className={`p-6 border text-right transition-all group relative rounded-2xl flex items-center justify-between ${
-                              mood === "طريقة الدحيح"
-                                ? "bg-[#121214]/80  border-[#4f46e5] shadow-sm" 
-                                : "bg-[#27272a]/50 border-[#27272a] active:scale-95 hover:bg-[#121214]  opacity-70 hover:opacity-100"
-                            }`}
-                          >
-                            <div className="text-right">
-                              <h4 className={`text-lg font-arabic font-bold transition-colors ${mood === "طريقة الدحيح" ? "text-[#4f46e5]" : "text-[#fafafa]"}`}>حلقة يوتيوب قياسية (Standard)</h4>
-                              <p className="text-xs font-arabic text-[#a1a1aa] mt-1">سرد مكثف ومرن مع إيقاع سريع وجرعة من الترفيه</p>
-                            </div>
-                            <span className="text-2xl font-arabic text-[#71717a] font-black opacity-30">Standard</span>
-                          </button>
-
-                          <button 
-                            onClick={() => { setMood("أرشيف الضلمة"); setPersona("برواز التاريخ"); playClick(); }}
-                            className={`p-6 border text-right transition-all group relative rounded-2xl flex items-center justify-between ${
-                              mood === "أرشيف الضلمة"
-                                ? "bg-[#121214]/80  border-[#4f46e5] shadow-sm" 
-                                : "bg-[#27272a]/50 border-[#27272a] active:scale-95 hover:bg-[#121214]  opacity-70 hover:opacity-100"
-                            }`}
-                          >
-                            <div className="text-right">
-                              <h4 className={`text-lg font-arabic font-bold transition-colors ${mood === "أرشيف الضلمة" ? "text-[#4f46e5]" : "text-[#fafafa]"}`}>وثائقي عميق (Deep Dive)</h4>
-                              <p className="text-xs font-arabic text-[#a1a1aa] mt-1">تحليل تاريخي معمق وسرد ملحمي بأسلوب وثائقي غامض</p>
-                            </div>
-                            <span className="text-2xl font-arabic text-[#71717a] font-black opacity-30">Deep</span>
-                          </button>
-
-                          <button 
-                            onClick={() => { setMood("قصص الأنبياء والتاريخ الإسلامي"); setPersona("الهرم الرابع"); playClick(); }}
-                            className={`p-6 border text-right transition-all group relative rounded-2xl flex items-center justify-between ${
-                              mood === "قصص الأنبياء والتاريخ الإسلامي"
-                                ? "bg-[#121214]/80  border-[#4f46e5] shadow-sm" 
-                                : "bg-[#27272a]/50 border-[#27272a] active:scale-95 hover:bg-[#121214]  opacity-70 hover:opacity-100"
-                            }`}
-                          >
-                            <div className="text-right">
-                              <h4 className={`text-lg font-arabic font-bold transition-colors ${mood === "قصص الأنبياء والتاريخ الإسلامي" ? "text-[#4f46e5]" : "text-[#fafafa]"}`}>قصص الأنبياء (الهرم الرابع)</h4>
-                              <p className="text-xs font-arabic text-[#a1a1aa] mt-1">سرد وثائقي ديني وتاريخي ملحمي وموثق</p>
-                            </div>
-                            <span className="text-2xl font-arabic text-[#71717a] font-black opacity-30">Epic</span>
-                          </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      {/* MOOD GRID (القالب البرامجي) */}
-                      <div className="space-y-4">
-                        <div className="flex justify-between items-center px-2">
-                           <label className="text-[10px] font-arabic text-[#71717a] font-medium font-bold">القالب البرامجي (Show Format)</label>
-                           <button 
-                              onClick={() => { setIsExpertMode(false); playClick(); }}
-                              className="text-[10px] font-arabic text-[#4f46e5] hover:underline font-medium font-bold active:scale-95 transition-transform"
-                            >
-                              تبسيط الخيارات (Quick Formats)
-                            </button>
-                        </div>
-                        {/* CATEGORY TABS */}
-                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide px-2">
-                           {SECTORS.map(cat => (
-                             <button
-                               key={cat.id}
-                               onClick={() => { setActiveMoodCategory(cat.id); playClick(); }}
-                               className={`px-4 py-2 text-xs font-arabic font-bold rounded-full whitespace-nowrap transition-all ${
-                                 activeMoodCategory === cat.id 
-                                  ? "bg-[#4f46e5] text-white shadow-medium cursor-default pointer-events-none" 
-                                  : "bg-[#121214] text-[#a1a1aa] hover:bg-[#27272a] active:scale-95"
-                               }`}
-                             >
-                               {cat.label}
-                             </button>
-                           ))}
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                          {MOODS.filter(m => activeMoodCategory === "all" || m.sector === activeMoodCategory).map((m) => {
-                            
-                            // Compatibility logic
-                            const compRes = getPersonaCompatibility(persona, m.type);
-                            let compatibility = compRes.score;
-                            let isRecommended = compRes.isRecommended;
-
-                            if (!isRecommended) {
-                               compatibility = Math.floor(Math.random() * 20) + 40; // baseline if not strictly clustered
-                            }
-
-                            return { ...m, isRecommended, compatibility };
-                          })
-                          .sort((a, b) => b.compatibility - a.compatibility)
-                          .map((m) => (
-                            <button
-                              key={m.type}
-                              onClick={() => {
-                                const newMood = m.type as MoodType;
-                                setMood(newMood);
-                                const currentScore = getPersonaCompatibility(persona, newMood).score;
-                                if (currentScore < 50) {
-                                  const newPersona = [...PERSONAS].map(p => ({...p, score: getPersonaCompatibility(p.id, newMood).score})).sort((a,b) => b.score - a.score)[0];
-                                  if (newPersona) setPersona(newPersona.id as PersonaType);
-                                }
-                                playClick();
-                              }}
-                              onPointerOver={() => playHover()}
-                              className={`p-4 border text-right transition-all group relative rounded-2xl flex items-start gap-4 ${
-                                mood === m.type 
-                                  ? "bg-[#121214]/80  border-[#4f46e5] shadow-sm" 
-                                  : m.isRecommended 
-                                    ? "bg-[#121214]/40 border-[#10b981]/50 hover:bg-[#121214] hover:border-[#10b981] active:scale-95"
-                                    : "bg-[#27272a]/50 border-[#27272a] active:scale-95 hover:bg-[#121214]  opacity-70 hover:opacity-100"
-                              }`}
-                            >
-                               <div className={`p-3 rounded-xl border shrink-0 transition-colors ${mood === m.type ? "bg-[#27272a] border-[#4f46e5]/30" : "bg-[#121214] border-[#27272a]"}`}>
-                                 <m.icon className={`w-6 h-6 transition-colors ${mood === m.type ? "text-[#4f46e5]" : m.isRecommended ? "text-[#10b981]" : "text-[#71717a] group-hover:text-[#6366f1]"}`} />
-                               </div>
-                               <div className="flex-1">
-                               <div className="flex justify-between items-start mb-1">
-                                    <h4 className={`text-sm font-arabic font-bold transition-colors ${mood === m.type ? "text-[#4f46e5]" : "text-[#fafafa]"}`}>{m.type}</h4>
-                                    {m.isRecommended && (
-                                      <span className="text-[8px] font-arabic bg-[#10b981]/20 text-[#10b981] px-2 py-0.5 rounded-lg border border-[#10b981]/30 font-medium">
-                                        Professional Fit {m.compatibility}%
-                                      </span>
-                                    )}
+                             {diverseTopics.map((categoryGroup, idx) => (
+                               <div key={idx} className="flex flex-col gap-3">
+                                  <div className="flex items-center gap-2 px-2 text-[#4f46e5] font-bold text-sm">
+                                    <Radar className="w-4 h-4" />
+                                    <span>{categoryGroup.category} (اضغط على أية فكرة وهاتبدأ المكنة تدور لوحدها)</span>
                                   </div>
-                                 <p className="text-[10px] font-arabic text-[#a1a1aa] leading-relaxed line-clamp-2 mb-2">{m.description}</p>
-                                 
-                                 {/* DNA Tags */}
-                                 <div className="flex flex-wrap gap-1 mt-auto">
-                                    <span className="text-[8px] font-arabic bg-[#121214] text-[#71717a] px-1.5 py-0.5 rounded-lg border border-[#27272a]">{m.dna?.localization || 'Global'}</span>
-                                 </div>
-                               </div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* PERSONA SELECTOR (أسلوب الراوي) */}
-                      <div className="space-y-4 pt-4 border-t border-[#27272a] mt-6 relative">
-                        <div className="flex justify-between items-center px-2">
-                           <label className="text-[10px] flex items-center gap-2 font-arabic text-[#71717a] font-medium font-bold">
-                              <Mic2 className="w-3 h-3 text-[#4f46e5]" />
-                              هوية الراوي (Narrator Voice / Persona)
-                           </label>
-                           <span className="text-[9px] font-arabic text-[#a1a1aa] border border-[#27272a] px-2 py-0.5 rounded-full bg-[#121214]">
-                               SYNC: {mood}
-                           </span>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                          {PERSONAS.map((p) => {
-                            const { score: compatibility, isRecommended } = getPersonaCompatibility(p.id, mood);
-
-                            return { ...p, isRecommended, compatibility };
-                          })
-                          .filter(p => p.compatibility >= 40)
-                          .sort((a, b) => b.compatibility - a.compatibility)
-                          .map((p) => (
-                             <button
-                               key={p.id}
-                               onClick={() => {
-                                 setPersona(p.id as PersonaType);
-                                 playClick();
-                               }}
-                               className={`p-4 text-right transition-all group relative overflow-hidden rounded-2xl border flex flex-col gap-3 ${
-                                 persona === p.id 
-                                   ? "bg-[#121214]/90  border-[#4f46e5] shadow-sm" 
-                                   : p.isRecommended
-                                     ? "bg-[#121214]/40 border-[#10b981]/50 hover:bg-[#121214]/80 hover:border-[#10b981] active:scale-95"
-                                     : "bg-[#121214]  border-[#27272a] hover:bg-[#27272a]/50 active:scale-95 opacity-70 hover:opacity-100"
-                               }`}
-                             >
-                                <div className="absolute top-0 right-0 w-full h-full pointer-events-none overflow-hidden opacity-5">
-                                    <AudioLines className={`absolute -right-4 -top-4 w-24 h-24 ${persona === p.id ? "text-[#4f46e5]" : "text-white"}`} />
-                                </div>
-                               
-                               <div className="flex justify-between items-start w-full relative z-10">
-                                  <div className="flex flex-col items-start">
-                                      <h3 className={`text-sm font-arabic font-bold block transition-colors ${persona === p.id ? "text-[#4f46e5]" : "text-[#fafafa]"}`}>{p.label}</h3>
-                                      {p.quote && (
-                                        <p className="text-[9px] text-[#a1a1aa] font-arabic mt-1 italic opacity-80 group-hover:opacity-100 transition-opacity">
-                                            {p.quote}
-                                        </p>
-                                      )}
+                                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                    {categoryGroup.ideas && categoryGroup.ideas.map((t: any, i: number) => (
+                                      <button
+                                        key={i}
+                                        onClick={() => {
+                                          const newTopic = t.title + "\n\nHook: " + t.hook + "\n\nالمحور: " + t.description;
+                                          setTopic(newTopic);
+                                          setDiverseTopics([]);
+                                          if (!creatorMode) {
+                                              setCreatorMode("documentary");
+                                              setIsLongForm(true);
+                                              setDuration(12);
+                                          }
+                                          handleSpinRadar(newTopic);
+                                        }}
+                                        className="text-right p-4 bg-black/40 backdrop-blur-xl border border-white/5 rounded-2xl hover:border-[#4f46e5]/40 hover:bg-[#4f46e5]/5 transition-all group flex flex-col gap-2 w-full active:scale-[0.98]"
+                                      >
+                                         <h5 className="text-[16px] font-arabic font-extrabold text-[#f0c722] mb-1">{t.title}</h5>
+                                         <div className="px-3 py-2 bg-[#f0c722]/10 rounded border border-[#f0c722]/20 text-[13px] text-white font-bold mb-2">
+                                           {t.hook}
+                                         </div>
+                                         <p className="text-[13px] font-arabic text-[#a1a1aa] leading-relaxed line-clamp-3">
+                                           {t.angle || t.description}
+                                         </p>
+                                      </button>
+                                    ))}
                                   </div>
-                                  {p.isRecommended && (
-                                     <div className="flex flex-col items-end gap-1">
-                                         <span className={`text-[8px] font-arabic px-2 py-0.5 rounded-lg border font-medium shrink-0 ${persona === p.id ? "bg-[#4f46e5]/20 text-[#4f46e5] border-[#4f46e5]/40" : "bg-[#10b981]/20 text-[#10b981] border-[#10b981]/30"}`}>
-                                           Match {p.compatibility}%
-                                         </span>
+                               </div>
+                             ))}
+                          </motion.div>
+                      )}
+                    </AnimatePresence>
+                    
+                    {/* Angles Selector (if brainstorming done) */}
+                    <AnimatePresence>
+                      {suggestedTitles.length > 0 && (
+                          <motion.div 
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              className="mt-4 flex flex-col gap-4"
+                          >
+                             <div className="flex items-center gap-2 px-2 text-[#4f46e5] text-sm font-bold">
+                               <Tv className="w-4 h-4" />
+                               <span>اكتمل التحليل. اختر الزاوية الملائمة لبدء الإنتاج:</span>
+                             </div>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                               {suggestedTitles.map((st, i) => (
+                                 <div key={i} className="flex flex-col gap-1">
+                                   <button
+                                     onClick={() => {
+                                        const hookVal = st.hook || st.hook_instruction || "";
+                                        setSelectedAngle({ title: st.title, hook: hookVal });
+                                        setSuggestedTitles([]);
+                                        setIsTransitioning(true);
+                                        playClick();
+                                        window.scrollTo({ top: 0, behavior: "smooth" });
+                                        setTimeout(() => {
+                                          setIsTransitioning(false);
+                                          setPipelineStep(3);
+                                          handleGenerateEpisode(st.title, hookVal, st.title);
+                                        }, 2000);
+                                     }}
+                                     className="text-right p-5 bg-black/40 backdrop-blur-xl border border-white/5 rounded-2xl hover:border-[#4f46e5]/40 hover:bg-[#4f46e5]/5 transition-all group shadow-sm hover:shadow-[0_4px_20px_rgba(79,70,229,0.1)] flex flex-col gap-3 w-full"
+                                   >
+                                     <div className="flex justify-between items-start w-full">
+                                        <h5 className="text-base font-arabic font-bold text-white group-active:scale-95 transition-transform">{st.title}</h5>
+                                        <span className="text-xl font-mono text-white/10 group-hover:text-[#4f46e5]/40 font-bold -mt-1 transition-colors">0{i+1}</span>
                                      </div>
-                                  )}
-                               </div>
-                               <p className={`text-[10px] font-arabic leading-relaxed relative z-10 line-clamp-2 ${persona === p.id ? "text-[#4f46e5]" : "text-[#8c867e]"}`}>{p.desc}</p>
-                               
-                               {/* DNA tags for Persona */}
-                               {p.dna && (
-                                  <div className="flex flex-wrap gap-1 mt-auto relative z-10 pt-2 border-t border-[#27272a]/50 w-full">
-                                      {p.dna.map(tag => (
-                                          <span key={tag} className="text-[8px] font-arabic bg-[#0b0f17] text-[#71717a] px-1.5 py-0.5 rounded-lg border border-[#27272a] shadow-sm">{tag}</span>
-                                      ))}
-                                  </div>
-                               )}
-                             </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Visual DNA DNA Informant */}
-                      <motion.div 
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="bg-[#121214]/50 border-l-2 border-[#4f46e5] p-6 space-y-4 relative overflow-hidden rounded-xl mt-6"
-                      >
-                          <div className="absolute top-0 right-0 p-2 opacity-5">
-                             <Fingerprint className="w-12 h-12 text-blue-900" />
-                          </div>
-                          <div className="flex items-center gap-2 text-[#4f46e5]">
-                            <Activity className="w-4 h-4" />
-                            <span className="text-[10px] font-arabic   font-bold">Visual DNA Report</span>
-                          </div>
-                          <div className="grid grid-cols-3 gap-6">
-                            <div className="space-y-1">
-                              <span className="text-[9px] font-arabic text-[#71717a]  block mb-1 font-bold">Style</span>
-                              <span className="text-xs font-arabic text-[#e5e3e0] block font-semibold">{MOODS.find(m => m.type === mood)?.dna?.style || "Ink Sketch / Etching"}</span>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[9px] font-arabic text-[#71717a]  block mb-1 font-bold">Canvas</span>
-                              <span className="text-xs font-arabic text-[#e5e3e0] block font-semibold">{MOODS.find(m => m.type === mood)?.dna?.paper || "Aged Yellow Paper"}</span>
-                            </div>
-                            <div className="space-y-1">
-                              <span className="text-[9px] font-arabic text-[#71717a]  block mb-1 font-bold">Localization IQ</span>
-                              <span className="text-xs font-arabic text-[#4f46e5] block font-bold">نشط (Active)</span>
-                            </div>
-                          </div>
-                          <p className="text-[10px] font-arabic text-[#71717a] leading-relaxed border-t border-blue-100/50 pt-4">
-                            [!] يتم دمج "البصمة المصرية" أوتوماتيكياً في كل الصور. النظام يحلل العصر ويعدل الملامح والخلفيات لتناسب الهوية العربية دون تدخل يدوي.
-                          </p>
-                        </motion.div>
-                    </>
-                  )}
-
-                  {/* RADAR SUGGESTIONS - RESULTS FOR STEP 1 */}
-                  {suggestedTitles.length > 0 && (
-                    <motion.div 
-                      key="suggestions"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="space-y-6 pt-6 border-t border-[#27272a]"
-                    >
-                      <div className="flex justify-between items-center px-2">
-                        <label className="text-[10px] font-arabic text-[#4f46e5] font-medium font-bold flex items-center gap-2">
-                          <Activity className="w-4 h-4" /> Radar Targets Found
-                        </label>
-                        {suggestedTitles.length > 1 && (
-                          <button 
-                            onClick={handleMergeTitles}
-                            className="text-[9px] font-arabic text-[#71717a] active:scale-95  flex items-center gap-2 transition-colors font-bold bg-[#121214]  px-3 py-1 rounded-full border border-[#27272a] active:scale-95"
-                          >
-                            <Swords className="w-3 h-3" /> Merge Logic
-                          </button>
-                        )}
-                      </div>
-                      <div className="space-y-3">
-                        {suggestedTitles.map((st, i) => (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              const hookVal = st.hook || st.hook_instruction || "";
-                              setSelectedAngle({ title: st.title, hook: hookVal });
-                              setSuspenseLevel(st.suspense_level || 5);
-                              setNarrativeStrategy((st.narrative_strategy === "HAP" || st.narrative_strategy === "HCS") ? st.narrative_strategy as any : "HCS");
-                              setIsTransitioning(true);
-                              playClick();
-                              window.scrollTo({ top: 0, behavior: "smooth" });
-                              setTimeout(() => {
-                                setIsTransitioning(false);
-                                setPipelineStep(3);
-                                handleGenerateEpisode(st.title, hookVal, st.title);
-                              }, 2000);
-                            }}
-                            className="w-full text-right p-6 bg-[#121214]  border border-[#27272a] rounded-2xl active:scale-95 transition-all group relative overflow-hidden"
-                          >
-                            <div className="flex gap-4 items-center flex-row-reverse">
-                              <span className="text-xl font-arabic text-gray-200 group-active:scale-95 transition-colors font-bold">0{i+1}</span>
-                              <div className="flex-1 space-y-1">
-                                <h5 className="text-lg font-arabic font-bold text-[#fafafa] group-active:scale-95 transition-colors">{st.title}</h5>
-                                <p className="text-xs font-arabic text-[#71717a] leading-relaxed max-w-xl">"{st.hook || st.hook_instruction}"</p>
-                              </div>
-                              <ArrowRight className="w-5 h-5 text-[#71717a]/50 group-active:scale-95 transition-colors -rotate-180" />
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </motion.div>
-                  )}
+                                     <p className="text-xs font-arabic text-[#a1a1aa] leading-relaxed line-clamp-2 uppercase">"{st.hook || st.hook_instruction}"</p>
+                                     <div className="mt-auto pt-2 border-t border-white/5 flex items-center justify-between">
+                                        <span className="text-[10px] text-white/30 font-mono tracking-widest uppercase">دوس المكنة وهات الاسكربت</span>
+                                        <ArrowRight className="w-4 h-4 text-[#4f46e5] opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all -rotate-180" />
+                                     </div>
+                                   </button>
+                                   <button
+                                     onClick={() => {
+                                       const hookVal = st.hook || st.hook_instruction || "";
+                                       startDeepResearch(`${st.title} - ${hookVal}`);
+                                     }}
+                                     className="w-full flex items-center justify-center gap-2 p-3 bg-black/60 border border-white/5 rounded-xl hover:border-[#4f46e5]/50 hover:text-[#4f46e5] text-[#a1a1aa] transition-colors"
+                                   >
+                                       <Search className="w-4 h-4" />
+                                       <span className="text-[10px] font-mono leading-tight">بحث المخابرات (Deep Research)</span>
+                                   </button>
+                                 </div>
+                               ))}
+                             </div>
+                          </motion.div>
+                      )}
+                    </AnimatePresence>
                 </div>
-              </div>
-            </motion.div>
+
+                {/* Right Column: Format Config */}
+                <div className="lg:col-span-4 flex flex-col gap-6 order-1 lg:order-2">
+                    <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.04] rounded-3xl p-6 flex flex-col gap-6 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+                        <div className="flex items-center gap-3 pb-2 border-b border-white/5">
+                           <LayoutTemplate className="w-5 h-5 text-white/40" />
+                           <h3 className="text-white text-lg font-bold tracking-wide">قالب الإخراج <span className="text-white/30 font-sans tracking-widest text-[10px] uppercase ml-2 block">Format</span></h3>
+                        </div>
+                        
+                        <div className="flex flex-col gap-3">
+                           <button
+                             onClick={() => { setCreatorMode("documentary"); setIsLongForm(true); setDuration(12); playClick(); }}
+                             className={`flex items-start gap-4 p-5 rounded-2xl border transition-all text-right ${creatorMode === 'documentary' ? 'bg-[#4f46e5]/5 border-[#4f46e5]/40 shadow-[inner_0_0_20px_rgba(79,70,229,0.1)]' : 'bg-transparent border-white/5 hover:border-white/20 hover:bg-white/5'}`}
+                           >
+                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${creatorMode === 'documentary' ? 'bg-[#4f46e5]/20 border-[#4f46e5]/40 text-[#4f46e5]' : 'bg-white/5 border-white/10 text-white/40'}`}>
+                                <MonitorPlay size={24} strokeWidth={1.5} />
+                             </div>
+                             <div className="flex flex-col mt-0.5">
+                                <span className={`font-bold ${creatorMode === 'documentary' ? 'text-white' : 'text-white/70'}`}>الأبعاد الوثائقية</span>
+                                <span className="text-xs text-[#a1a1aa] mt-1.5 leading-relaxed">سرد بحثي مكثف. غوص في الأرشيف ومصادر موثقة لإنشاء عمق معلوماتي.</span>
+                             </div>
+                             {creatorMode === 'documentary' && <div className="mr-auto w-2 h-2 rounded-full bg-[#4f46e5] shadow-[0_0_8px_rgba(79,70,229,0.8)] self-center" />}
+                           </button>
+
+                           <button
+                             onClick={() => { setCreatorMode("reels"); setIsLongForm(false); setDuration(1); playClick(); }}
+                             className={`flex items-start gap-4 p-5 rounded-2xl border transition-all text-right ${creatorMode === 'reels' ? 'bg-[#4f46e5]/5 border-[#4f46e5]/40 shadow-[inner_0_0_20px_rgba(79,70,229,0.1)]' : 'bg-transparent border-white/5 hover:border-white/20 hover:bg-white/5'}`}
+                           >
+                             <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${creatorMode === 'reels' ? 'bg-[#4f46e5]/20 border-[#4f46e5]/40 text-[#4f46e5]' : 'bg-white/5 border-white/10 text-white/40'}`}>
+                                <Smartphone size={24} strokeWidth={1.5} />
+                             </div>
+                             <div className="flex flex-col mt-0.5">
+                                <span className={`font-bold ${creatorMode === 'reels' ? 'text-white' : 'text-white/70'}`}>الريلز والشورتس</span>
+                                <span className="text-xs text-[#a1a1aa] mt-1.5 leading-relaxed">محتوى يخطف العين. إيقاع سريع، تأثيرات بصرية قوية ومعلومة تكسر مسار التمرير.</span>
+                             </div>
+                             {creatorMode === 'reels' && <div className="mr-auto w-2 h-2 rounded-full bg-[#4f46e5] shadow-[0_0_8px_rgba(79,70,229,0.8)] self-center" />}
+                           </button>
+                        </div>
+                    </div>
+
+                    <div className="bg-black/40 backdrop-blur-3xl border border-white/[0.04] rounded-3xl p-6 flex flex-col gap-6 shadow-[0_4px_20px_rgba(0,0,0,0.5)]">
+                        <div className="flex items-center gap-3 pb-2 border-b border-white/5">
+                           <Settings2 className="w-5 h-5 text-white/40" />
+                           <h3 className="text-white text-lg font-bold tracking-wide">التحكم التقني <span className="text-white/30 font-sans tracking-widest text-[10px] uppercase ml-2 block">Settings</span></h3>
+                        </div>
+                        
+                        <div className="flex items-center justify-between p-4 rounded-xl resize-none bg-white/[0.01] border border-white/5 hover:border-white/10 transition-colors">
+                           <div className="flex flex-col">
+                              <span className="text-sm font-bold text-white/80">Ollama (محلي)</span>
+                              <span className="text-[10px] text-white/40 font-mono tracking-widest mt-0.5">LOCAL PROCESSING</span>
+                           </div>
+                           <label className="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" className="sr-only peer" checked={useOllama} onChange={(e) => setUseOllama(e.target.checked)} />
+                             <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-white/10 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4f46e5]"></div>
+                           </label>
+                        </div>
+                        
+                        {useOllama && (
+                            <div className="flex flex-col gap-2">
+                                <span className="text-xs text-white/50 px-1">المودل المستخدم:</span>
+                                <input
+                                  type="text"
+                                  className="w-full bg-black/60 border border-white/5 rounded-xl p-3 text-sm text-white focus:border-[#4f46e5]/50 focus:outline-none font-mono transition-colors"
+                                  value={ollamaModel}
+                                  onChange={(e) => setOllamaModel(e.target.value)}
+                                  placeholder="مثال: llama3.1"
+                                />
+                            </div>
+                        )}
+                        
+                        <div className="flex items-center justify-between p-4 rounded-xl resize-none bg-white/[0.01] border border-white/5 hover:border-white/10 transition-colors">
+                           <div className="flex flex-col">
+                              <span className="text-sm font-bold text-white/80">وضع التركيز (Zen Mode)</span>
+                              <span className="text-[10px] text-white/40 font-mono tracking-widest mt-0.5">DISTRACTION FREE</span>
+                           </div>
+                           <label className="relative inline-flex items-center cursor-pointer">
+                             <input type="checkbox" className="sr-only peer" checked={isZenMode} onChange={(e) => setIsZenMode(e.target.checked)} />
+                             <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:right-[2px] after:bg-white after:border-white/10 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#4f46e5]"></div>
+                           </label>
+                        </div>
+                        
+                        {/* Visual DNA removed */}
+                    </div>
+                </div>
+             </motion.div>
           )}
 
-          {/* MICRO ANIMATION BEFORE PRODUCTION */}
+{/* MICRO ANIMATION BEFORE PRODUCTION */}
           {isTransitioning && selectedAngle && (
             <motion.div 
               key="transition"
@@ -2840,7 +2873,7 @@ export default function ContentCreationPage() {
                
                <div className="text-center space-y-3">
                  <h3 className="text-2xl font-arabic font-bold text-[#fafafa] tracking-tight">يتم معايرة بوصلة السرد...</h3>
-                 <p className="text-[10px] font-arabic text-[#71717a] font-medium font-bold">Initializing Narrative Core</p>
+                 <p className="text-[10px] font-mono text-[#71717a] uppercase tracking-widest font-bold">Initializing Narrative Core</p>
                </div>
             </motion.div>
           )}
@@ -2865,7 +2898,7 @@ export default function ContentCreationPage() {
                       </div>
                       
                       <div className="text-center space-y-4 max-w-2xl bg-red-950/30 p-10 border border-red-500/30 relative">
-                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-red-950 border border-red-500/30 text-[10px] font-arabic text-red-400  ">SYSTEM_ERROR</div>
+                        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-red-950 border border-red-500/30 text-[10px] font-mono text-red-400 uppercase tracking-[0.4em]">SYSTEM_ERROR</div>
                         <h3 className="text-3xl font-arabic font-black text-[#fafafa] leading-tight">عطل في غرفة العمليات</h3>
                         <p className="text-red-300/80 font-arabic text-lg leading-relaxed">{error}</p>
                       </div>
@@ -2880,7 +2913,7 @@ export default function ContentCreationPage() {
                               handleGenerateEpisode(selectedAngle.title, selectedAngle.hook, selectedAngle.title);
                             }
                           }}
-                          className="px-12 py-5 bg-red-600/10 border border-red-500/50 text-[#fafafa] active:scale-95 font-arabic font-bold text-xl font-medium group transition-all duration-300 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
+                          className="px-12 py-5 bg-red-600/10 border border-red-500/50 text-[#fafafa] active:scale-95 font-arabic font-bold text-xl uppercase tracking-widest group transition-all duration-300 shadow-[0_0_20px_rgba(239,68,68,0.2)]"
                         >
                           <RefreshCcw className="w-6 h-6 inline ml-3 transition-transform group-active:scale-95" />
                           إعادة المحاولة
@@ -2900,7 +2933,7 @@ export default function ContentCreationPage() {
                                 }
                               }, 100);
                             }}
-                            className="px-12 py-5 bg-blue-600/10 border border-blue-500/50 text-[#fafafa] active:scale-95 font-arabic font-bold text-xl font-medium group transition-all duration-300 shadow-[0_0_20px_rgba(37,99,235,0.2)]"
+                            className="px-12 py-5 bg-blue-600/10 border border-blue-500/50 text-[#fafafa] active:scale-95 font-arabic font-bold text-xl uppercase tracking-widest group transition-all duration-300 shadow-[0_0_20px_rgba(37,99,235,0.2)]"
                           >
                             <Cloud className="w-6 h-6 inline ml-3" />
                             التحويل للمحرك السحابي (Gemini)
@@ -2909,31 +2942,31 @@ export default function ContentCreationPage() {
                       </div>
                     </div>
                   ) : isLoading ? (
-                    <div className="flex flex-col items-center justify-center min-h-[500px] space-y-12 bg-[#09090b]/50 relative p-8 border border-[#27272a]">
-                       <div className="absolute inset-0 bg-gradient-to-b from-[#121214]/80 to-[#121214] pointer-events-none" />
+                    <div className="flex flex-col items-center justify-center min-h-[500px] space-y-12 bg-black/50 relative p-8 border border-white/5 rounded-3xl">
+                       <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/80 to-black pointer-events-none rounded-3xl" />
                        <div className="relative z-10 w-64 h-64 flex items-center justify-center">
                           <motion.div 
                             animate={{ rotate: 360 }}
                             transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-                            className="absolute inset-0 border-[2px] border-[#168ee8]/30 rounded-full" 
+                            className="absolute inset-0 border-[2px] border-[#d4af37]/30 rounded-full" 
                             style={{ borderStyle: "dashed dotted" }}
                           />
                           <motion.div 
                             animate={{ rotate: -360 }}
                             transition={{ duration: 12, repeat: Infinity, ease: "linear" }}
-                            className="absolute inset-4 border-[1px] border-[#168ee8]/40 rounded-full shadow-[0_0_15px_rgba(22,142,232,0.1)]" 
+                            className="absolute inset-4 border-[1px] border-[#d4af37]/40 rounded-full shadow-[0_0_15px_rgba(212,175,55,0.1)]" 
                           />
                           <motion.div 
                             animate={{ scale: [1, 1.1, 1] }}
                             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                            className="absolute inset-12 bg-[#168ee8]/5 rounded-full blur-md" 
+                            className="absolute inset-12 bg-[#d4af37]/5 rounded-full blur-md" 
                           />
                           <div className="relative z-10 flex flex-col items-center gap-3">
                             <div className="relative group">
-                              <div className="absolute inset-0 bg-[#369ff0] blur-xl opacity-20 group-hover:opacity-40 animate-pulse" />
-                              <Loader2 className="w-14 h-14 text-[#168ee8] animate-spin relative z-[1] drop-shadow-[0_0_5px_rgba(22,142,232,0.6)]" />
+                              <div className="absolute inset-0 bg-[#d4af37] blur-xl opacity-20 group-hover:opacity-40 animate-pulse" />
+                              <Loader2 className="w-14 h-14 text-[#d4af37] animate-spin relative z-[1] drop-shadow-[0_0_5px_rgba(212,175,55,0.6)]" />
                             </div>
-                            <span className="text-[14px] font-arabic text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] font-black drop-shadow-md">{progress}%</span>
+                            <span className="text-[14px] font-mono text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)] font-black drop-shadow-md">{progress}%</span>
                           </div>
                         </div>
 
@@ -2952,7 +2985,7 @@ export default function ContentCreationPage() {
                           {/* Radar sweep effect */}
                           <div className="absolute top-0 left-0 w-full h-[2px] bg-gradient-to-r from-transparent via-[#168ee8] to-transparent animate-scan mix-blend-screen opacity-70 z-10" />
                           
-                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-[#03060a] border border-[#168ee8]/40 text-[10px] font-arabic text-[#168ee8]   shadow-[0_0_10px_rgba(22,142,232,0.3)] z-10 rounded">SYS.PROCESSING</div>
+                          <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 bg-[#03060a] border border-[#168ee8]/40 text-[10px] font-mono text-[#168ee8] uppercase tracking-[0.4em] shadow-[0_0_10px_rgba(22,142,232,0.3)] z-10 rounded">SYS.PROCESSING</div>
                           
                           <h3 className="text-2xl sm:text-3xl font-arabic font-black text-white leading-tight drop-shadow-[0_0_8px_rgba(255,255,255,0.4)] relative z-10 mt-4">{status}</h3>
                           
@@ -2980,7 +3013,7 @@ export default function ContentCreationPage() {
                             <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-[#168ee8]/50 to-transparent" />
                             <div 
                               ref={terminalRef} 
-                              className="text-left font-arabic text-[11px] sm:text-[12px] text-[#6b9dcc] max-h-[140px] overflow-y-auto p-4 custom-scrollbar whitespace-pre-wrap break-words"
+                              className="text-left font-mono text-[11px] sm:text-[12px] text-[#6b9dcc] max-h-[140px] overflow-y-auto p-4 custom-scrollbar whitespace-pre-wrap break-words"
                               style={{ direction: 'ltr', textShadow: '0 0 5px rgba(107,157,204,0.4)' }}
                             >
                                {/* terminal active log goes here */}
@@ -3000,7 +3033,7 @@ export default function ContentCreationPage() {
                             </motion.div>
                           </div>
                           
-                          <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-arabic text-[#6b9dcc] font-medium pt-4 opacity-90 z-10 relative">
+                          <div className="flex justify-between items-center text-[10px] sm:text-[11px] font-mono text-[#6b9dcc] uppercase tracking-widest pt-4 opacity-90 z-10 relative">
                             <span className="flex items-center gap-2">
                               ESTIMATING: <span className="text-[#a5d1f5] font-bold">{formattedRemaining}</span>
                             </span>
@@ -3012,7 +3045,7 @@ export default function ContentCreationPage() {
 
                        <button 
                          onClick={handleStopGeneration}
-                         className="px-8 py-4 border-b border-red-500/20 text-[#ef4444]/60 hover:text-red-400 hover:border-red-500/50 active:scale-95 transition-all font-arabic text-[10px] font-medium group relative z-10"
+                         className="px-8 py-4 border-b border-red-500/20 text-[#ef4444]/60 hover:text-red-400 hover:border-red-500/50 active:scale-95 transition-all font-mono text-[10px] uppercase tracking-[0.5em] group relative z-10"
                         >
                           <Skull className="w-4 h-4 inline mr-2 transition-transform group-hover:scale-110" />
                           Abort_Operation
@@ -3023,7 +3056,7 @@ export default function ContentCreationPage() {
                       <div className="text-center space-y-6">
                         <div className="inline-flex items-center justify-center gap-3 px-4 py-1.5 rounded-full bg-[#121214]/80 border border-[#27272a] mb-4">
                           <div className="w-2 h-2 rounded-full bg-[#4f46e5] animate-pulse"></div>
-                          <span className="text-[10px] font-arabic text-[#a1a1aa] font-medium">Architectural Blueprint</span>
+                          <span className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">Architectural Blueprint</span>
                         </div>
                         <h2 className="text-4xl lg:text-5xl font-arabic font-extrabold text-[#fafafa] tracking-tight leading-tight">الخريطة السردية (The Roadmap)</h2>
                         <p className="text-[#71717a] font-arabic text-lg font-semibold max-w-2xl mx-auto">
@@ -3039,7 +3072,7 @@ export default function ContentCreationPage() {
                             return (
                               <div key={idx} className={`relative flex items-center justify-between md:justify-normal md:odd:flex-row-reverse group`}>
                                 {/* Timeline Marker */}
-                                <div className={`flex items-center justify-center w-14 h-14 rounded-full border-4 border-[#0b0f17] bg-[#121214] text-[#4f46e5] font-arabic font-bold text-xl shrink-0 z-10 transition-transform duration-500 group-hover:scale-110 group-hover:shadow-sm md:order-1 md:group-odd:-ml-7 md:group-even:-mr-7 shadow-sm`}>
+                                <div className={`flex items-center justify-center w-14 h-14 rounded-full border-4 border-[#0b0f17] bg-[#121214] text-[#4f46e5] font-mono font-bold text-xl shrink-0 z-10 transition-transform duration-500 group-hover:scale-110 group-hover:shadow-sm md:order-1 md:group-odd:-ml-7 md:group-even:-mr-7 shadow-sm`}>
                                   0{idx + 1}
                                 </div>
                                 
@@ -3052,7 +3085,7 @@ export default function ContentCreationPage() {
                                      {/* Key points/revelations - styled as a checklist */}
                                      {((chapter.key_revelations || chapter.key_points || []) as string[]).length > 0 && (
                                        <div className="mt-6 pt-4 border-t border-[#27272a] space-y-3">
-                                         <h4 className="text-[10px]  font-arabic  text-[#71717a] mb-3">Key Focus Areas</h4>
+                                         <h4 className="text-[10px] uppercase font-mono tracking-widest text-[#71717a] mb-3">Key Focus Areas</h4>
                                          {(chapter.key_revelations || chapter.key_points || []).map((rev: string, revIdx: number) => (
                                            <div key={revIdx} className="flex gap-3 items-start text-xs font-arabic text-[#8c867e] transition-colors hover:text-[#e5e3e0]">
                                              <div className="w-1.5 h-1.5 bg-[#27272a] rounded-lg border border-[#71717a] mt-1 shrink-0 flex items-center justify-center group-hover:border-[#4f46e5]/50 transition-colors">
@@ -3098,7 +3131,7 @@ export default function ContentCreationPage() {
                       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 pb-12 border-b border-[#27272a]">
                         <div className="space-y-4 text-right flex-1">
                           <div className="flex items-center justify-end gap-4">
-                            <span className="px-3 py-1 bg-[#121214] border border-blue-100 text-[#4f46e5] text-[9px] font-arabic font-medium font-bold rounded-full">Operation Complete</span>
+                            <span className="px-3 py-1 bg-[#121214] border border-blue-100 text-[#4f46e5] text-[9px] font-mono uppercase tracking-widest font-bold rounded-full">Operation Complete</span>
                             <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)] animate-pulse" />
                           </div>
                           <h1 className="text-5xl lg:text-7xl font-arabic font-extrabold text-[#fafafa] tracking-tight leading-tight drop-shadow-sm">
@@ -3118,7 +3151,7 @@ export default function ContentCreationPage() {
                               notify.classified("تم أرشفة التقرير في السجلات");
                             }}
                             disabled={isحفظd}
-                            className={`w-full px-4 py-3 ${isحفظd ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-[#121214]  text-[#e5e3e0] border-[#27272a] hover:bg-[#27272a]/50 active:scale-95"} border text-[10px] font-arabic font-bold font-medium flex items-center justify-center gap-2 transition-all rounded-xl mt-1`}
+                            className={`w-full px-4 py-3 ${isحفظd ? "bg-emerald-50 text-emerald-600 border-emerald-200" : "bg-[#121214]  text-[#e5e3e0] border-[#27272a] hover:bg-[#27272a]/50 active:scale-95"} border text-[10px] font-mono font-bold uppercase tracking-widest flex items-center justify-center gap-2 transition-all rounded-xl mt-1`}
                           >
                             <Save size={14} />
                             {isحفظd ? "Archived" : "Archive in Radar"}
@@ -3126,26 +3159,41 @@ export default function ContentCreationPage() {
                         </div>
                       </div>
 
-                      {/* TABS NAVIGATION */}
-                      <div className="flex gap-8 border-b border-[#27272a] overflow-x-auto no-scrollbar">
-                        {["script", "assets", "kit", "shorts", "audit", "echo", "planner"].map(tab => (
-                          <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab as any)}
-                            className={`pb-4 px-6 text-[10px] font-arabic font-medium font-bold transition-all relative shrink-0 ${activeTab === tab ? "text-[#4f46e5]" : "text-[#71717a] active:scale-95"}`}
-                          >
-                            {activeTab === tab && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[3px] bg-[#4f46e5] rounded-t-full shadow-[0_-5px_15px_rgba(37,99,235,0.2)]" />}
-                            {tab === "script" ? "01 Script Core" : tab === "assets" ? "02 Media Manifest" : tab === "kit" ? "03 Visual Identity" : tab === "shorts" ? "04 Social Fragments" : tab === "audit" ? "05 Audit Radar" : tab === "echo" ? "06 Echo Chamber" : "07 Publish Planner"}
-                          </button>
-                        ))}
+                      {/* TABS NAVIGATION & VIEW TOOLS */}
+                      <div className="flex justify-between items-center border-b border-[#27272a] mb-6">
+                        <div className="flex gap-8 overflow-x-auto no-scrollbar">
+                          {["script", "assets", "kit", "shorts", "audit", "echo", "planner"].map(tab => (
+                            <button
+                              key={tab}
+                              onClick={() => setActiveTab(tab as any)}
+                              className={`pb-4 px-6 text-[10px] font-mono uppercase tracking-widest font-bold transition-all relative shrink-0 ${activeTab === tab ? "text-[#4f46e5]" : "text-[#71717a] active:scale-95"}`}
+                            >
+                              {activeTab === tab && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 w-full h-[3px] bg-[#4f46e5] rounded-t-full shadow-[0_-5px_15px_rgba(37,99,235,0.2)]" />}
+                              {tab === "script" ? "01 Script Core" : tab === "assets" ? "02 Media Manifest" : tab === "kit" ? "03 Visual Identity" : tab === "shorts" ? "04 Social Fragments" : tab === "audit" ? "05 Audit Radar" : tab === "echo" ? "06 Echo Chamber" : "07 Publish Planner"}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="flex items-center gap-4 pb-4">
+                           <div className="flex bg-[#121214] border border-[#27272a] rounded-lg p-1">
+                               <button onClick={() => setViewMode('cards')} className={`p-2 rounded-md ${viewMode === 'cards' ? 'bg-[#27272a] text-white' : 'text-[#71717a]'}`}><Layers size={14} /></button>
+                               <button onClick={() => setViewMode('timeline')} className={`p-2 rounded-md ${viewMode === 'timeline' ? 'bg-[#27272a] text-white' : 'text-[#71717a]'}`}><Eye size={14} /></button>
+                           </div>
+                           <button 
+                             onClick={() => setIsZenMode(!isZenMode)}
+                             className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-[10px] font-mono uppercase border transition-colors ${isZenMode ? 'bg-amber-500/10 text-amber-500 border-amber-500/30' : 'bg-[#121214] text-[#71717a] border-[#27272a]'}`}
+                           >
+                             {isZenMode ? <Minimize2 size={14}/> : <Maximize2 size={14}/>} {isZenMode ? 'Exit Zen' : 'Zen Mode'}
+                           </button>
+                        </div>
                       </div>
 
                       <div className="grid grid-cols-1 lg:grid-cols-12 gap-16">
                         {/* MAIN TAB CONTENT */}
-        <div className="lg:col-span-8 space-y-12">
+        <div className={`space-y-12 ${isZenMode ? 'lg:col-span-12' : 'lg:col-span-8'}`}>
           <AnimatePresence mode="wait">
             {activeTab === "script" && (
               <ContentEditorModule 
+                generationTook={generationTook}
                 data={data}
                 researchMap={researchMap}
                 finalVoiceScript={finalVoiceScript}
@@ -3202,8 +3250,8 @@ export default function ContentCreationPage() {
                                 {fragmenterData ? (
                                   <div className="space-y-10">
                                      <div className="flex justify-between items-center">
-                                        <h3 className="text-[10px] font-arabic text-[#4f46e5] font-medium font-black">Unified_Feed_Array</h3>
-                                        <button onClick={() => setFragmenterData(null)} className="text-[9px] font-arabic text-[#71717a] active:scale-95 ">Regenerate</button>
+                                        <h3 className="text-[10px] font-mono text-[#4f46e5] uppercase tracking-[0.5em] font-black">Unified_Feed_Array</h3>
+                                        <button onClick={() => setFragmenterData(null)} className="text-[9px] font-mono text-[#71717a] active:scale-95 uppercase">Regenerate</button>
                                      </div>
                                      {renderFragmenterUI()}
                                   </div>
@@ -3245,7 +3293,7 @@ export default function ContentCreationPage() {
                                         }
                                       }}
                                       disabled={isGeneratingFragments}
-                                      className="px-10 py-4 bg-[#121214]  text-black font-arabic text-[10px]  font-black active:scale-95 transition-colors"
+                                      className="px-10 py-4 bg-[#121214]  text-black font-mono text-[10px] uppercase font-black active:scale-95 transition-colors"
                                      >
                                        {isGeneratingFragments ? "Transmitting..." : "Execute_Fragmentation"}
                                      </button>
@@ -3264,7 +3312,7 @@ export default function ContentCreationPage() {
                                    <button 
                                     key={tab} 
                                     onClick={() => setIntelTab(tab as any)}
-                                    className={`flex-1 py-3 text-[9px] font-arabic   font-black transition-all ${intelTab === tab ? "bg-[#4f46e5] text-white" : "text-[#71717a] active:scale-95"}`}
+                                    className={`flex-1 py-3 text-[9px] font-mono uppercase tracking-[0.2em] font-black transition-all ${intelTab === tab ? "bg-[#4f46e5] text-white" : "text-[#71717a] active:scale-95"}`}
                                    >
                                      {tab === "audit" ? "Fact_Audit" : tab === "map" ? "Network" : "Vault"}
                                    </button>
@@ -3282,8 +3330,8 @@ export default function ContentCreationPage() {
                                        </div>
                                        {data.audit_report?.red_team_score !== undefined && (
                                          <div className="w-24 shrink-0 flex flex-col items-center justify-center p-4 bg-slate-900 border border-slate-700 shadow-inner rounded">
-                                           <span className="text-[10px]  font-black text-slate-500 tracking-wider mb-2 text-center leading-tight">Red Team<br/>Eval</span>
-                                           <span className={`text-2xl font-arabic ${data.audit_report?.red_team_score > 80 ? 'text-green-400' : data.audit_report?.red_team_score > 60 ? 'text-yellow-400' : 'text-[#ef4444]'}`}>
+                                           <span className="text-[10px] uppercase font-black text-slate-500 tracking-wider mb-2 text-center leading-tight">Red Team<br/>Eval</span>
+                                           <span className={`text-2xl font-mono ${data.audit_report?.red_team_score > 80 ? 'text-green-400' : data.audit_report?.red_team_score > 60 ? 'text-yellow-400' : 'text-[#ef4444]'}`}>
                                              {data.audit_report?.red_team_score}<span className="text-xs text-slate-500">/100</span>
                                            </span>
                                          </div>
@@ -3322,7 +3370,7 @@ export default function ContentCreationPage() {
                                        </div>
                                      )}
                                      <div className="space-y-3 pt-4 border-t border-[#27272a]">
-                                        <span className="text-[8px] font-arabic text-[#71717a]  block mb-3">Origin_Sources</span>
+                                        <span className="text-[8px] font-mono text-[#71717a] uppercase block mb-3">Origin_Sources</span>
                                         {data.sources.slice(0, 5).map((s, i) => (
                                           typeof s !== "string" && s.url ? (
                                             <a key={i} href={s.url} target="_blank" className="flex flex-row-reverse justify-between items-center p-3 bg-[#121214]  border-[#27272a] shadow-sm active:scale-95 transition-colors group">
@@ -3343,12 +3391,12 @@ export default function ContentCreationPage() {
                                   <motion.div key="it-assets" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-8">
                                      <div className="grid grid-cols-2 gap-4">
                                         <div className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-1">
-                                           <span className="text-[8px] font-arabic text-[#71717a]  block">Prompts</span>
-                                           <span className="text-lg font-arabic text-[#fafafa] font-bold">{data.scenes.length + 1}</span>
+                                           <span className="text-[8px] font-mono text-[#71717a] uppercase block">Prompts</span>
+                                           <span className="text-lg font-mono text-[#fafafa] font-bold">{data.scenes.length + 1}</span>
                                         </div>
                                         <div className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-1">
-                                           <span className="text-[8px] font-arabic text-[#71717a]  block">B-Roll</span>
-                                           <span className="text-lg font-arabic text-[#fafafa] font-bold">DETECTED</span>
+                                           <span className="text-[8px] font-mono text-[#71717a] uppercase block">B-Roll</span>
+                                           <span className="text-lg font-mono text-[#fafafa] font-bold">DETECTED</span>
                                         </div>
                                      </div>
                                   </motion.div>
@@ -3394,7 +3442,7 @@ export default function ContentCreationPage() {
                                     {renderTensionHeatmap()}
                                   </div>
                                   <div className="flex justify-between items-center pt-2">
-                                     <span className="text-[9px] font-arabic text-[#71717a]   flex items-center gap-2 italic">
+                                     <span className="text-[9px] font-mono text-[#71717a] uppercase tracking-[0.3em] flex items-center gap-2 italic">
                                         <Activity size={12} className="text-[#ef4444] animate-pulse" /> Narrative_Pacing_Curve
                                      </span>
                                      <div className="flex gap-4">
@@ -3438,7 +3486,7 @@ export default function ContentCreationPage() {
                                   />
                                 ))}
                               </div>
-                              <div className="flex justify-between text-[8px] font-arabic text-[#71717a] ">
+                              <div className="flex justify-between text-[8px] font-mono text-[#71717a] uppercase">
                                  <span>Intro</span>
                                  <span>Crescendo</span>
                                  <span>Coda</span>
@@ -3447,28 +3495,21 @@ export default function ContentCreationPage() {
                          </div>
 
                          {/* DIRECTOR OVERRIDE SIDEBAR (lg:col-span-4) */}
-                         <div className="lg:col-span-4 space-y-8">
-                           <div className="bg-[#121214]  border border-[#27272a] rounded-3xl p-8 shadow-sm space-y-8 sticky top-12">
-                             <div className="flex items-center justify-between border-b border-[#27272a] pb-4 flex-row-reverse">
-                               <div className="flex items-center gap-3 flex-row-reverse">
-                                  <Sliders className="w-5 h-5 text-[#4f46e5]" />
+                         {!isZenMode && (
+                           <div className="lg:col-span-4 space-y-8">
+                             <div className="bg-[#121214]  border border-[#27272a] rounded-3xl p-8 shadow-sm space-y-8 sticky top-12">
+                               <div className="flex items-center justify-between border-b border-[#27272a] pb-4 flex-row-reverse">
+                                 <div className="flex items-center gap-3 flex-row-reverse">
+                                    <Sliders className="w-5 h-5 text-[#4f46e5]" />
                                   <h3 className="text-xl font-arabic font-bold text-[#fafafa] text-right">قائمة المخرج</h3>
                                </div>
-                               <button 
-                                  onClick={() => { setIsExpertMode(!isExpertMode); playClick(); }}
-                                  className="text-[10px] font-arabic text-[#4f46e5] hover:underline font-medium font-bold"
-                                >
-                                  {isExpertMode ? "العودة للقوالب السريعة" : "عرض كل القوالب"}
-                                </button>
                              </div>
 
                              <div className="space-y-6">
-                               {isExpertMode && (
-                                 <>
                                    <div className="space-y-3">
                                       <div className="flex justify-between items-center text-right">
-                                        <span className="text-sm font-arabic text-[#4f46e5] font-bold">{suspenseLevel}/10</span>
-                                        <span className="text-xs font-arabic text-[#71717a] font-medium font-bold">حالة المود: تشويق</span>
+                                        <span className="text-sm font-mono text-[#4f46e5] font-bold">{suspenseLevel}/10</span>
+                                        <span className="text-xs font-mono text-[#71717a] uppercase tracking-widest font-bold">حالة المود: تشويق</span>
                                       </div>
                                       <div className="relative h-2 w-full">
                                         <input 
@@ -3490,26 +3531,24 @@ export default function ContentCreationPage() {
                                    </div>
 
                                    <div className="space-y-4 pt-4 border-t border-[#27272a] flex flex-col text-right">
-                                     <label className="text-[10px] font-arabic text-[#71717a] font-medium font-bold block w-full text-right">Operational Strategy</label>
+                                     <label className="text-[10px] font-mono text-[#71717a] uppercase tracking-widest font-bold block w-full text-right">Operational Strategy</label>
                                      <div className="grid grid-cols-2 gap-3">
                                         <button 
                                          onClick={() => setNarrativeStrategy("HCS")}
                                          className={`p-4 text-center border transition-all relative overflow-hidden group rounded-xl ${narrativeStrategy === "HCS" ? "bg-[#121214]  border-[#4f46e5] shadow-sm" : "bg-[#27272a]/50 border-[#27272a] active:scale-95"}`}
                                         >
-                                           <span className={`text-[9px] font-arabic  block mb-1 font-bold ${narrativeStrategy === "HCS" ? "text-[#4f46e5]" : "text-[#71717a]"}`}>Phase 01</span>
+                                           <span className={`text-[9px] font-mono uppercase block mb-1 font-bold ${narrativeStrategy === "HCS" ? "text-[#4f46e5]" : "text-[#71717a]"}`}>Phase 01</span>
                                            <h4 className={`text-sm font-arabic font-bold ${narrativeStrategy === "HCS" ? "text-[#fafafa]" : "text-[#71717a]"}`}>تحليل الوثائق</h4>
                                         </button>
                                         <button 
                                          onClick={() => setNarrativeStrategy("HAP")}
                                          className={`p-4 text-center border transition-all relative overflow-hidden group rounded-xl ${narrativeStrategy === "HAP" ? "bg-[#121214]  border-[#4f46e5] shadow-sm" : "bg-[#27272a]/50 border-[#27272a] active:scale-95"}`}
                                         >
-                                           <span className={`text-[9px] font-arabic  block mb-1 font-bold ${narrativeStrategy === "HAP" ? "text-[#4f46e5]" : "text-[#71717a]"}`}>Phase 02</span>
+                                           <span className={`text-[9px] font-mono uppercase block mb-1 font-bold ${narrativeStrategy === "HAP" ? "text-[#4f46e5]" : "text-[#71717a]"}`}>Phase 02</span>
                                            <h4 className={`text-sm font-arabic font-bold ${narrativeStrategy === "HAP" ? "text-[#fafafa]" : "text-[#71717a]"}`}>تشويق درامي</h4>
                                         </button>
                                      </div>
                                    </div>
-                                 </>
-                               )}
 
                                <button
                                  onClick={() => {
@@ -3518,7 +3557,7 @@ export default function ContentCreationPage() {
                                       window.scrollTo({ top: 0, behavior: "smooth" });
                                    }
                                  }}
-                                 className="w-full h-16 bg-[#4f46e5] active:scale-95 text-white font-arabic font-bold text-xl flex items-center justify-center gap-3 flex-row-reverse transition-all shadow-medium shadow-blue-500/20 group mt-6 active:scale-95 rounded-xl  tracking-wider"
+                                 className="w-full h-16 bg-[#4f46e5] active:scale-95 text-white font-arabic font-bold text-xl flex items-center justify-center gap-3 flex-row-reverse transition-all shadow-medium shadow-blue-500/20 group mt-6 active:scale-95 rounded-xl uppercase tracking-wider"
                                >
                                  <RefreshCcw className="w-5 h-5 group-active:scale-95 transition-transform duration-500" />
                                  Re-roll (إعادة التوليد)
@@ -3527,6 +3566,7 @@ export default function ContentCreationPage() {
                              </div>
                            </div>
                          </div>
+                       )}
 
                        </div>
                      </div>
@@ -3536,35 +3576,35 @@ export default function ContentCreationPage() {
             </motion.div>
           )}
         </AnimatePresence>
-      </main>
+      </div>
 
       {/* FOOTER BAR HUD */}
-      <footer className="fixed bottom-0 left-0 w-full z-[150] px-10 py-6 border-t border-[#27272a] bg-[#121214] /80  flex flex-col md:flex-row justify-between items-center gap-6">
-        <div className="flex items-center gap-10 flex-row-reverse">
+      <footer className="fixed bottom-0 left-0 right-0 lg:left-[260px] z-[150] px-6 lg:px-10 py-6 border-t border-[#27272a] bg-[#09090b]/95 backdrop-blur-3xl flex flex-col md:flex-row justify-between items-center gap-6">
+        <div className="flex items-center gap-6 lg:gap-10 flex-row-reverse">
            <div className="flex gap-4 items-center flex-row-reverse">
               <div className="p-2 border border-[#27272a] bg-[#121214] ">
                 {MOODS.find(m => m.type === mood)?.icon && React.createElement(MOODS.find(m => m.type === mood)!.icon, { size: 14, className: "text-[#4f46e5]" })}
               </div>
-              <div>
-                <p className="text-[9px] font-arabic text-[#71717a] font-medium mb-0.5">Narrative_Vector</p>
+              <div className="text-right">
+                <p className="text-[9px] font-mono text-[#71717a] uppercase tracking-widest mb-0.5">Narrative_Vector</p>
                 <p className="text-xs font-arabic text-[#fafafa] font-bold leading-none">{mood}</p>
               </div>
            </div>
            
-           <div className="w-[1px] h-8 bg-[#121214]  border-[#27272a] shadow-sm" />
+           <div className="w-[1px] h-8 bg-[#121214] border-x border-[#27272a]/50" />
            
            <button 
              onClick={() => setIsPersonaModalOpen(true)}
              title="تغيير العدسة السردية (Persona)"
-             className="flex gap-4 items-center flex-row-reverse group cursor-pointer hover:bg-[#27272a]/50 p-2 transition-colors -m-2"
+             className="flex gap-4 items-center flex-row-reverse group cursor-pointer hover:bg-[#27272a]/20 p-2 transition-colors -m-2"
            >
-              <div className="p-2 border border-[#27272a] bg-[#121214]  group-hover:border-cyan-400 transition-colors">
+              <div className="p-2 border border-[#27272a] bg-[#121214] group-hover:border-cyan-400 transition-colors">
                 <User size={14} className="text-cyan-400" />
               </div>
               <div className="text-right">
-                <p className="text-[9px] font-arabic text-[#71717a] font-medium mb-0.5 group-hover:text-[#4f46e5] transition-colors">صوت الراوي</p>
+                <p className="text-[9px] font-mono text-[#71717a] uppercase tracking-widest mb-0.5 group-hover:text-cyan-400 transition-colors">صوت الراوي</p>
                 <p className="text-xs font-arabic text-[#fafafa] font-bold leading-none">
-                  {persona === 'النبّاش' ? 'المحقق' : persona.replace('برواز ', '')}
+                  {persona === 'النبّاش' ? 'المحقق السري' : persona.replace('برواز ', '')}
                 </p>
               </div>
            </button>
@@ -3574,44 +3614,44 @@ export default function ContentCreationPage() {
            {pipelineStep > 1 && !isLoading && (
               <button 
                 onClick={() => setPipelineStep(prev => (prev - 1) as any)}
-                className="group px-8 py-4 border border-[#27272a] active:scale-95 text-[#a1a1aa] active:scale-95 font-arabic text-[10px]  transition-all flex items-center gap-3 active:scale-95"
+                className="group px-6 py-3 border border-[#27272a] bg-[#09090b] hover:bg-[#121214] active:scale-95 text-[#a1a1aa] hover:text-white font-mono text-[10px] uppercase transition-all flex items-center gap-3"
               >
-                <ChevronLeft size={14} className="transition-transform group-active:scale-95" />
+                <ChevronLeft size={14} className="transition-transform group-hover:-translate-x-1" />
                 Previous_Phase
               </button>
            )}
            
-           <div className="flex items-center gap-4 px-6 py-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] whitespace-nowrap">
+           <div className="flex items-center gap-4 px-6 py-4 bg-[#121214] border border-[#27272a] whitespace-nowrap">
               <div className="flex items-center gap-2">
                  <button 
-                  onClick={() => setUseOllama(false)}
-                  className={`p-1.5 border transition-all ${!useOllama ? 'border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]' : 'border-[#27272a] text-[#71717a] active:scale-95'}`}
-                  title="محرك سحابي (Gemini)"
-                 >
-                   <Zap size={14} />
-                 </button>
-                 <button 
                   onClick={() => setUseOllama(true)}
-                  className={`p-1.5 border transition-all ${useOllama ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]' : 'border-[#27272a] text-[#71717a] active:scale-95'}`}
-                  title="محرك محلي (Ollama)"
+                  className={`p-1.5 border transition-all ${useOllama ? 'border-[#10B981] bg-[#10B981]/10 text-[#10B981]' : 'border-[#27272a] bg-[#09090b] text-[#71717a] hover:border-white/20'}`}
+                  title="Local Engine (Ollama)"
                  >
                    <Database size={14} />
                  </button>
+                 <button 
+                  onClick={() => setUseOllama(false)}
+                  className={`p-1.5 border transition-all ${!useOllama ? 'border-[#3b82f6] bg-[#3b82f6]/10 text-[#3b82f6]' : 'border-[#27272a] bg-[#09090b] text-[#71717a] hover:border-white/20'}`}
+                  title="Cloud Engine (Gemini)"
+                 >
+                   <Zap size={14} />
+                 </button>
               </div>
 
-              <div className="w-[1px] h-4 bg-[#121214] mx-1" />
+              <div className="w-[1px] h-4 bg-[#27272a] mx-1" />
 
               <button 
                 onClick={() => setShowSettings(true)}
-                className="flex items-center gap-2 text-[#a1a1aa] active:scale-95 transition-colors"
+                className="flex items-center gap-2 text-[#a1a1aa] hover:text-white transition-colors"
                 title="إعدادات المحرك"
               >
                 <Settings size={14} />
-                <span className="text-[10px] font-arabic   font-bold">CONFIG</span>
+                <span className="text-[10px] font-mono uppercase tracking-[0.4em] font-bold">CONFIG</span>
               </button>
-              <div className="w-[1px] h-4 bg-[#121214] mx-1" />
-              <div className={`w-1.5 h-1.5 rounded-full animate-pulse shadow-[0_0_8px_currentColor]`} style={{ color: mainAccent, backgroundColor: mainAccent }} />
-              <span className="text-[10px] font-arabic text-[#a1a1aa]   font-bold">{useOllama ? 'LOCAL_ACTIVE' : 'CLOUD_ACTIVE'}</span>
+              <div className="w-[1px] h-4 bg-[#27272a] mx-1" />
+              <div className={`w-1.5 h-1.5 rounded-full animate-pulse`} style={{ backgroundColor: useOllama ? '#10B981' : '#3b82f6', boxShadow: `0 0 8px ${useOllama ? '#10B981' : '#3b82f6'}` }} />
+              <span className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-[0.4em] font-bold">{useOllama ? 'LOCAL_ACTIVE' : 'CLOUD_ACTIVE'}</span>
            </div>
         </div>
       </footer>
@@ -3653,7 +3693,7 @@ export default function ContentCreationPage() {
          {showTeleprompter && (
             <TeleprompterOverlay 
               key="teleprompter"
-              script={rawScriptText}
+              script={finalVoiceScript}
               onClose={() => setShowTeleprompter(false)} 
             />
          )}
@@ -3686,7 +3726,7 @@ export default function ContentCreationPage() {
                </p>
 
                <div className="bg-[#27272a] border border-red-500/20 p-4 rounded-lg mb-8">
-                 <h3 className="text-xs font-arabic text-red-400 mb-2">// التصحيح التاريخي للحلقة</h3>
+                 <h3 className="text-xs font-mono text-red-400 mb-2">// التصحيح التاريخي للحلقة</h3>
                  <p className="text-white font-arabic text-sm">{conflictCorrection}</p>
                </div>
 
@@ -3728,6 +3768,14 @@ export default function ContentCreationPage() {
            </motion.div>
          )}
       </AnimatePresence>
+      {isDeepResearchOpen && (
+        <DeepResearchOverlay
+          topic={topic || "موضوع غير محدد"}
+          interactionId={deepResearchInteractionId}
+          onClose={() => setIsDeepResearchOpen(false)}
+          onComplete={handleDeepResearchComplete}
+        />
+      )}
     </div>
   );
 }

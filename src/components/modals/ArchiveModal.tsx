@@ -61,20 +61,20 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
         </button>
         <header className="mb-10 text-center border-b border-[#27272a] pb-8 relative">
           <h2 className="text-2xl font-arabic font-black text-[#fafafa] tracking-tighter mb-2">
-            الأرشيف والسجلات
+            دفتر الديون (الأرشيف)
           </h2>
           <p className="text-sm font-arabic text-[#a1a1aa]">
-            مركز النسخ الاحتياطي (Offline Backup) لجميع مسودات التقارير
+            مكان ما بنرمي الورق القديم عشان مننساش تاريخنا
           </p>
           <div className="absolute top-0 left-0 flex gap-4 text-left" dir="ltr">
              <button
                onClick={handleExport}
-               className="p-2 border border-[#27272a] text-[#4f46e5] hover:bg-[#4f46e5]/10 rounded-lg flex items-center gap-2 text-[10px] font-arabic transition-all  "
+               className="p-2 border border-[#27272a] text-[#4f46e5] hover:bg-[#4f46e5]/10 rounded-lg flex items-center gap-2 text-[10px] font-mono transition-all uppercase tracking-widest"
              >
-               <Download size={14} /> EXPORT BACKUP
+               <Download size={14} /> هات الورق كله
              </button>
-             <label className="p-2 border border-[#27272a] text-emerald-500 hover:bg-emerald-500/10 rounded-lg flex items-center gap-2 text-[10px] font-arabic transition-all cursor-pointer  ">
-               <Upload size={14} /> IMPORT BACKUP
+             <label className="p-2 border border-[#27272a] text-emerald-500 hover:bg-emerald-500/10 rounded-lg flex items-center gap-2 text-[10px] font-mono transition-all cursor-pointer uppercase tracking-widest">
+               <Upload size={14} /> ارفع الورق
                <input type="file" accept=".json" onChange={handleImport} className="hidden" />
              </label>
           </div>
@@ -91,7 +91,7 @@ export const ArchiveModal: React.FC<ArchiveModalProps> = ({
                 <div className="absolute top-0 right-0 w-1 h-full bg-[#4f46e5] rounded-r-xl opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div className="flex justify-between items-start">
                    <div className="flex items-center gap-4">
-                     <span className="text-xs font-arabic text-[#71717a]">#{String(archive.length - i).padStart(3, '0')}</span>
+                     <span className="text-xs font-mono text-[#71717a]">#{String(archive.length - i).padStart(3, '0')}</span>
                      <h4 className="text-lg font-arabic font-bold text-[#fafafa]">{ep.video_title}</h4>
                    </div>
                    <button 

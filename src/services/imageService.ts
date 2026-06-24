@@ -1,11 +1,11 @@
 import { apiFetch } from "../lib/apiFetch";
 
-export async function generateNanoBananaImage(prompt: string): Promise<string> {
+export async function generateNanoBananaImage(prompt: string, aspectRatio?: string): Promise<string> {
   try {
     const res = await apiFetch("/api/images/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt })
+      body: JSON.stringify({ prompt, aspectRatio })
     });
     
     if (!res.ok) throw new Error("Image Gen failed");

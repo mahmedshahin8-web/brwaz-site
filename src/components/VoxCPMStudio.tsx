@@ -203,12 +203,12 @@ export const VoxCPMStudio: React.FC<VoxCPMStudioProps> = ({ isOpen, onClose, ini
                   type="text" 
                   value={serverUrl}
                   onChange={(e) => setServerUrl(e.target.value)}
-                  className="w-full text-sm p-2 outline-none text-[#fafafa] bg-[#27272a]/50 border border-[#27272a] rounded-lg font-arabic text-left"
+                  className="w-full text-sm p-2 outline-none text-[#fafafa] bg-[#27272a]/50 border border-[#27272a] rounded-lg font-mono text-left"
                   dir="ltr"
                   placeholder="http://127.0.0.1:5000"
                 />
                 <p className="text-xs text-[#71717a] mt-2 leading-relaxed">
-                  أدخل رابط الخادم الذي يعمل عليه سكربت VoxCPM المحلي. سيتم إرسال طلب التوليد إلى المسار <span className="font-arabic bg-[#121214] px-1 rounded-lg">/api/generate</span>.
+                  أدخل رابط الخادم الذي يعمل عليه سكربت VoxCPM المحلي. سيتم إرسال طلب التوليد إلى المسار <span className="font-mono bg-[#121214] px-1 rounded-lg">/api/generate</span>.
                 </p>
               </div>
             </div>

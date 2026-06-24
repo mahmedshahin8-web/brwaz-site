@@ -10,6 +10,7 @@ import { AudioWaveform } from "./AudioWaveform";
 import { motion, AnimatePresence } from "motion/react";
 import { BRollModal } from "./BRollModal";
 import { ImageWithFallback } from "./ImageWithFallback";
+import { useCreatorStore } from "../store/useCreatorStore";
 
 interface SceneCardProps {
   key?: React.Key;
@@ -34,6 +35,7 @@ interface SceneCardProps {
   onVSMode?: () => void;
   onAcceptVersion?: (version: "original" | "comparison") => void;
   isABTesting?: boolean;
+  onGenerateVariations?: () => void;
 }
 
 export const SceneCard = React.memo(function SceneCard({ 
@@ -56,8 +58,12 @@ export const SceneCard = React.memo(function SceneCard({
   isProcessingAudio,
   onVSMode,
   onAcceptVersion,
-  isABTesting
+  isABTesting,
+  onGenerateVariations
 }: SceneCardProps) {
+  const creatorMode = useCreatorStore((state) => state.creatorMode);
+  const isVertical = creatorMode === "reels";
+  
   const [isExpanded, setIsExpanded] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editedVoiceOver, setEditedVoiceOver] = useState(scene.voice_over || "");
@@ -68,8 +74,43 @@ export const SceneCard = React.memo(function SceneCard({
   const [isRewriting, setIsRewriting] = useState(false);
   const [isPlayingTTS, setIsPlayingTTS] = useState(false);
   const [showBrollModal, setShowBrollModal] = useState(false);
+  const [floatingToolbar, setFloatingToolbar] = useState<{show: boolean, top: number, left: number, start: number, end: number} | null>(null);
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
+  const textAreaRef = React.useRef<HTMLTextAreaElement | null>(null);
   const status = scene.status || "pending";
+
+  const handleTextareaSelect = (e: React.SyntheticEvent<HTMLTextAreaElement>) => {
+    const target = e.target as HTMLTextAreaElement;
+    if (target.selectionStart !== target.selectionEnd) {
+       // get coordinates approx
+       // We'll just show it near mouse cursor or simple fixed relative to textarea
+    }
+  };
+
+  const handlePointerUp = (e: React.PointerEvent<HTMLTextAreaElement>) => {
+    const target = e.target as HTMLTextAreaElement;
+    if (target.selectionStart !== target.selectionEnd) {
+       const rect = target.getBoundingClientRect();
+       setFloatingToolbar({
+           show: true,
+           top: Math.max(e.clientY - rect.top - 40, 0),
+           left: e.clientX - rect.left,
+           start: target.selectionStart,
+           end: target.selectionEnd
+       });
+    } else {
+       setFloatingToolbar(null);
+    }
+  };
+
+  const insertTTSModifier = (modifier: string) => {
+    if (!floatingToolbar) return;
+    const { start, end } = floatingToolbar;
+    const text = editedVoiceOver;
+    const newText = text.substring(0, start) + modifier + text.substring(start, end) + (modifier.includes('[') ? '] ' : ' ') + text.substring(end);
+    setEditedVoiceOver(newText);
+    setFloatingToolbar(null);
+  };
 
   const handleApprove = () => {
     onUpdate({ ...scene, status: "approved" });
@@ -221,7 +262,7 @@ export const SceneCard = React.memo(function SceneCard({
   const handleGenerateImage = async () => {
     try {
       setIsGeneratingImage(true);
-      const url = await generateNanoBananaImage(scene.image_prompt || "");
+      const url = await generateNanoBananaImage(scene.image_prompt || "", isVertical ? "9:16" : "16:9");
       onUpdate({ ...scene, generated_image_url: url });
     } catch (err) {
       console.error(err);
@@ -234,7 +275,7 @@ export const SceneCard = React.memo(function SceneCard({
   const handleGenerateFirstFrame = async () => {
     try {
       setIsGeneratingImage(true);
-      const url = await generateNanoBananaImage(scene.first_frame_image_prompt || scene.image_prompt || "");
+      const url = await generateNanoBananaImage(scene.first_frame_image_prompt || scene.image_prompt || "", isVertical ? "9:16" : "16:9");
       onUpdate({ ...scene, first_frame_url: url });
     } catch (err) {
       console.error(err);
@@ -247,7 +288,7 @@ export const SceneCard = React.memo(function SceneCard({
   const handleGenerateSecondFrame = async () => {
     try {
       setIsGeneratingImage(true);
-      const url = await generateNanoBananaImage(scene.second_frame_image_prompt || scene.image_prompt || "");
+      const url = await generateNanoBananaImage(scene.second_frame_image_prompt || scene.image_prompt || "", isVertical ? "9:16" : "16:9");
       onUpdate({ ...scene, second_frame_url: url });
     } catch (err) {
       console.error(err);
@@ -267,7 +308,8 @@ export const SceneCard = React.memo(function SceneCard({
       const videoUrl = await generateGrokVideo(
         scene.first_frame_url, 
         scene.second_frame_url, 
-        scene.first_frame_motion_prompt || "Cinematic camera movement"
+        scene.first_frame_motion_prompt || "Cinematic camera movement",
+        isVertical ? "9:16" : "16:9"
       );
       onUpdate({ ...scene, generated_video_url: videoUrl });
       toast.success("تم توليد المشهد السينمائي بنجاح!");
@@ -369,8 +411,8 @@ export const SceneCard = React.memo(function SceneCard({
               {/* VERSION A: ORIGINAL */}
               <div className="space-y-6 p-6 border border-[#27272a] bg-[#27272a]/50 flex flex-col rounded-xl">
                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-arabic text-[#a1a1aa]  ">Version_A</span>
-                    <span className={`text-[8px] font-arabic border px-2 py-0.5 rounded-full ${(!scene.engine_source || scene.engine_source === 'gemini') ? 'border-[#3b82f6] text-[#3b82f6]' : 'border-[#10B981] text-[#10B981]'}`}>
+                    <span className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">Version_A</span>
+                    <span className={`text-[8px] font-mono border px-2 py-0.5 rounded-full ${(!scene.engine_source || scene.engine_source === 'gemini') ? 'border-[#3b82f6] text-[#3b82f6]' : 'border-[#10B981] text-[#10B981]'}`}>
                        {(scene.engine_source || 'gemini').toUpperCase()}
                     </span>
                  </div>
@@ -394,8 +436,8 @@ export const SceneCard = React.memo(function SceneCard({
               {/* VERSION B: COMPARISON */}
               <div className="space-y-6 p-6 border border-[#4f46e5]/20 bg-[#4f46e5]/5 flex flex-col">
                  <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-arabic text-[#4f46e5]  ">Version_B (New)</span>
-                    <span className={`text-[8px] font-arabic border px-2 py-0.5 rounded-full ${(scene.comparison_version.engine_source === 'ollama') ? 'border-[#10B981] text-[#10B981]' : 'border-[#3b82f6] text-[#3b82f6]'}`}>
+                    <span className="text-[10px] font-mono text-[#4f46e5] uppercase tracking-widest">Version_B (New)</span>
+                    <span className={`text-[8px] font-mono border px-2 py-0.5 rounded-full ${(scene.comparison_version.engine_source === 'ollama') ? 'border-[#10B981] text-[#10B981]' : 'border-[#3b82f6] text-[#3b82f6]'}`}>
                        {(scene.comparison_version.engine_source || 'ollama').toUpperCase()}
                     </span>
                  </div>
@@ -422,7 +464,7 @@ export const SceneCard = React.memo(function SceneCard({
       
       <div className="flex justify-between items-center border-b border-[#27272a] pb-4 flex-wrap gap-4 relative z-10">
         <div className="flex items-center gap-4">
-          <span className={`px-3 py-1 text-[10px] font-arabic font-bold rounded-lg ${status === "approved" ? "text-green-700 bg-green-50 border border-green-200" : "bg-[#27272a]/50 text-[#71717a] border border-[#27272a]"}`}>
+          <span className={`px-3 py-1 text-[10px] font-mono font-bold rounded-lg ${status === "approved" ? "text-green-700 bg-green-50 border border-green-200" : "bg-[#27272a]/50 text-[#71717a] border border-[#27272a]"}`}>
             NODE_{scene.asset_id.replace(/\D/g, "") || "00"} {status === "approved" && "✓"}
           </span>
           {scene.loop_type && (
@@ -431,7 +473,7 @@ export const SceneCard = React.memo(function SceneCard({
                 e.stopPropagation();
                 if (scene.loop_id && onLoopClick) onLoopClick(scene.loop_id);
               }}
-              className={`flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-arabic font-black transition-all shadow-sm ${
+              className={`flex items-center justify-center w-6 h-6 rounded-full text-[10px] font-mono font-black transition-all shadow-sm ${
                 scene.loop_type === 'O' 
                   ? 'border border-orange-200 text-orange-600 bg-orange-50' 
                   : 'border border-[#4f46e5]/30 text-[#4f46e5] bg-[#121214]'
@@ -440,7 +482,7 @@ export const SceneCard = React.memo(function SceneCard({
               {scene.loop_type}
             </button>
           )}
-          <span className="text-[10px] font-arabic bg-[#27272a]/50 border border-[#27272a] rounded-lg px-2 py-1 text-[#71717a] ">
+          <span className="text-[10px] font-mono bg-[#27272a]/50 border border-[#27272a] rounded-lg px-2 py-1 text-[#71717a] uppercase">
              EST_DUR: {scene.estimated_duration_seconds || Math.ceil((scene.voice_over?.length || 100) / 15)}s
           </span>
         </div>
@@ -448,16 +490,25 @@ export const SceneCard = React.memo(function SceneCard({
         {scene.visual_treatment && (
           <div className="flex items-center gap-2 bg-amber-50 border border-amber-100 rounded-lg px-3 py-1">
              <Video size={12} className="text-amber-500" />
-             <span className="font-sans font-semibold text-amber-700  text-[10px] pl-1 tracking-wider">Treatment: {scene.visual_treatment}</span>
+             <span className="font-sans font-semibold text-amber-700 uppercase text-[10px] pl-1 tracking-wider">Treatment: {scene.visual_treatment}</span>
           </div>
         )}
 
         <div className="flex gap-2">
+          {onGenerateVariations && (
+             <button
+              onClick={onGenerateVariations}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border border-blue-500/30 text-blue-400 bg-blue-500/10 active:scale-95`}
+             >
+               <RefreshCw size={12} /> 
+               توليد بدائل (Variations)
+             </button>
+          )}
           {onVSMode && !scene.comparison_version && (
              <button
               onClick={onVSMode}
               disabled={isABTesting}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans  tracking-wider transition-all border border-[#27272a] text-[#71717a] active:scale-95 ${isABTesting ? 'opacity-50 cursor-wait' : ''}`}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border border-[#27272a] text-[#71717a] active:scale-95 ${isABTesting ? 'opacity-50 cursor-wait' : ''}`}
              >
                {isABTesting ? <RefreshCw size={12} className="animate-spin" /> : <Swords size={12} />} 
                VS Mode
@@ -466,7 +517,7 @@ export const SceneCard = React.memo(function SceneCard({
           {(onStartRecording || onRecord) && (
             <button
               onClick={isRecording ? onStopRecording : (onRecord || onStartRecording)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans  tracking-wider transition-all border ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border ${
                 isRecording 
                   ? 'border-red-200 bg-[#ef4444]/10 text-[#ef4444] animate-pulse' 
                   : 'border-[#27272a] text-[#71717a] active:scale-95 active:scale-95'
@@ -477,14 +528,14 @@ export const SceneCard = React.memo(function SceneCard({
           )}
           <button
             onClick={handleDownloadMp3}
-            className="px-3 py-1.5 rounded-lg border border-[#27272a] font-sans font-medium  tracking-wider text-[10px] text-[#71717a] active:scale-95 transition-all"
+            className="px-3 py-1.5 rounded-lg border border-[#27272a] font-sans font-medium uppercase tracking-wider text-[10px] text-[#71717a] active:scale-95 transition-all"
             title="تحميل MP3 (يتطلب مفتاح ElevenLabs)"
           >
             MP3
           </button>
           <button
             onClick={handlePlayTTS}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans  tracking-wider transition-all border ${isPlayingTTS ? 'border-red-200 bg-[#ef4444]/10 text-[#ef4444]' : 'border-[#27272a] text-[#71717a] active:scale-95 active:scale-95'}`}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-medium font-sans uppercase tracking-wider transition-all border ${isPlayingTTS ? 'border-red-200 bg-[#ef4444]/10 text-[#ef4444]' : 'border-[#27272a] text-[#71717a] active:scale-95 active:scale-95'}`}
           >
             {isPlayingTTS ? <><Square size={12} className="fill-current" /> Stop</> : <><Volume2 size={12} /> Play</>}
           </button>
@@ -494,17 +545,32 @@ export const SceneCard = React.memo(function SceneCard({
       <div className="flex flex-col space-y-4 relative z-10">
         {isEditing ? (
           <div className="relative">
-             <div className="absolute top-2 left-4 text-[#71717a] text-xs font-sans ">Editing...</div>
+             <div className="absolute top-2 left-4 text-[#71717a] text-xs font-sans uppercase">Editing...</div>
              <textarea
+               ref={textAreaRef}
                value={editedVoiceOver}
                onChange={(e) => setEditedVoiceOver(e.target.value)}
+               onSelect={handleTextareaSelect}
+               onPointerUp={handlePointerUp}
                className="w-full h-48 p-6 bg-[#27272a]/50 border border-[#27272a] rounded-xl font-arabic text-xl leading-relaxed text-[#fafafa] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-[#4f46e5] resize-none"
                dir="rtl"
              />
+             {floatingToolbar && floatingToolbar.show && (
+                <div 
+                  className="absolute z-50 flex gap-1 p-2 bg-[#27272a] border border-white/10 rounded-xl shadow-xl backdrop-blur-xl"
+                  style={{ top: Math.max(floatingToolbar.top, 30), left: Math.min(floatingToolbar.left, window.innerWidth - 300) }}
+                >
+                   <button onPointerDown={(e) => { e.preventDefault(); insertTTSModifier('[PAUSE_0.5s]'); }} className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white text-xs rounded-lg active:scale-95 font-mono">+ صمت</button>
+                   <button onPointerDown={(e) => { e.preventDefault(); insertTTSModifier('[SPEED: FAST]'); }} className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white text-xs rounded-lg active:scale-95 font-mono">سريع</button>
+                   <button onPointerDown={(e) => { e.preventDefault(); insertTTSModifier('[SPEED: SLOW]'); }} className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white text-xs rounded-lg active:scale-95 font-mono">بطيء</button>
+                   <button onPointerDown={(e) => { e.preventDefault(); insertTTSModifier('[EMOTION: SAD]'); }} className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white text-xs rounded-lg active:scale-95 font-mono">حزين</button>
+                   <button onPointerDown={(e) => { e.preventDefault(); insertTTSModifier('[EMOTION: EXCITED]'); }} className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white text-xs rounded-lg active:scale-95 font-mono">حماسي</button>
+                </div>
+             )}
           </div>
         ) : (
           <div className="bg-[#121214]  p-8 border border-[#27272a] rounded-xl shadow-sm transition-all group/script relative">
-            <div className="absolute top-4 left-6 text-[#71717a]/50   text-xs font-arabic">SCENE TEXT</div>
+            <div className="absolute top-4 left-6 text-[#71717a]/50 uppercase tracking-widest text-xs font-mono">SCENE TEXT</div>
             <div className="absolute top-4 right-6 opacity-0 group-hover/script:opacity-100 transition-opacity flex gap-2">
                <button onClick={handleEditToggle} className="text-[#71717a] hover:text-[#6366f1] active:scale-95 bg-[#27272a]/50 p-2 rounded-lg transition-colors"><Edit2 size={16} /></button>
                <button onClick={() => copyToClipboard(scene.voice_over)} className="text-[#71717a] hover:text-green-500 active:scale-95 bg-[#27272a]/50 p-2 rounded-lg transition-colors"><Copy size={16} /></button>
@@ -519,7 +585,7 @@ export const SceneCard = React.memo(function SceneCard({
               {/* ARCHIVE COLUMN (1/3 width on Desktop if quotes exist) */}
               {scene.archival_quotes && scene.archival_quotes.length > 0 && (
                  <div className="mt-8 md:mt-0 border-t md:border-t-0 md:border-r border-[#27272a] pt-6 md:pt-0 md:pr-6">
-                   <h4 className="text-xs font-arabic text-[#71717a]   mb-4 flex items-center gap-2">
+                   <h4 className="text-xs font-mono text-[#71717a] uppercase tracking-widest mb-4 flex items-center gap-2">
                      <Archive className="w-4 h-4 text-amber-600" />
                      Archival Testimony
                    </h4>
@@ -527,14 +593,14 @@ export const SceneCard = React.memo(function SceneCard({
                      {scene.archival_quotes.map((quote, idx) => (
                        <div key={idx} className="bg-amber-50/50 border border-amber-100 rounded-xl p-4 relative group/quote hover:shadow-medium transition-shadow">
                          <div className="text-amber-900 font-bold mb-2 flex items-center justify-between">
-                           <span className="text-xs font-sans  tracking-wider font-bold">{quote.speaker}</span>
-                           {quote.is_audio_available && <span title="مقطع صوتي/مرئي متاح في الأرشيف"><Mic className="w-4 h-4 text-green-600 hover:text-green-500 transition-colors cursor-help" /></span>}
+                           <span className="text-xs font-sans uppercase tracking-wider font-bold">{quote.speaker}</span>
+                           {quote.is_audio_available && <span title="Audio/Video likely in Archives"><Mic className="w-4 h-4 text-green-600 hover:text-green-500 transition-colors cursor-help" /></span>}
                          </div>
                          <blockquote className="text-base font-arabic text-amber-800 italic pr-3 border-r-2 border-amber-300 pointer-events-none">
                            "{quote.quote_text}"
                          </blockquote>
                          {quote.source_context && (
-                           <div className="mt-4 pt-2 border-t border-amber-100 text-[10px] text-amber-600/80 font-arabic italic opacity-0 group-hover/quote:opacity-100 transition-opacity duration-300">
+                           <div className="mt-4 pt-2 border-t border-amber-100 text-[10px] text-amber-600/80 font-mono italic opacity-0 group-hover/quote:opacity-100 transition-opacity duration-300">
                              [SOURCE]: {quote.source_context}
                            </div>
                          )}
@@ -594,13 +660,13 @@ export const SceneCard = React.memo(function SceneCard({
                 {(audioUrl || isRecording) && (
                   <div className="space-y-4 mb-6 pb-6 border-b border-[#27272a]">
                     <div className="flex items-center justify-between">
-                        <h3 className="text-xs font-arabic font-bold text-[#71717a]   flex items-center gap-2">
+                        <h3 className="text-xs font-mono font-bold text-[#71717a] uppercase tracking-widest flex items-center gap-2">
                           <Zap className="w-3 h-3 text-[#6366f1]" /> Audio Engine
                         </h3>
                         {audioUrl && !scene.is_mastered && onMasterAudio && (
                           <button 
                             onClick={onMasterAudio}
-                            className="text-xs font-arabic text-[#6366f1] active:scale-95 transition-colors"
+                            className="text-xs font-mono text-[#6366f1] active:scale-95 transition-colors"
                           >
                               Run Studio Polish
                           </button>
@@ -621,22 +687,22 @@ export const SceneCard = React.memo(function SceneCard({
                    
                    {scene.visual_treatment && (
                      <div className="bg-amber-50 p-4 rounded-lg border border-amber-100 text-amber-900">
-                       <strong className="block text-xs  tracking-wider text-amber-700 mb-1">Visual Treatment</strong>
+                       <strong className="block text-xs uppercase tracking-wider text-amber-700 mb-1">Visual Treatment</strong>
                        <p className="font-medium">{scene.visual_treatment}</p>
                      </div>
                    )}
                    
                    {scene.multi_camera_angles && scene.multi_camera_angles.length > 0 && (
                      <div className="bg-slate-800 p-4 rounded-lg border border-slate-700 shadow-inner">
-                       <strong className="block text-xs  tracking-wider text-slate-300 mb-3 flex items-center gap-2">
+                       <strong className="block text-xs uppercase tracking-wider text-slate-300 mb-3 flex items-center gap-2">
                          <Camera size={14} className="text-slate-400" /> Multi-Cam Director's Cuts
                        </strong>
                        <div className="space-y-3">
                          {scene.multi_camera_angles.map((cam, camIdx) => (
                            <div key={camIdx} className="bg-slate-900 border border-slate-700 p-3 rounded-md flex flex-col gap-1">
                              <div className="flex justify-between items-center">
-                               <span className="text-[10px]  font-bold text-slate-400 tracking-wider bg-slate-800 px-2 py-0.5 rounded-full">{cam.type}</span>
-                               <span className="text-[10px] font-arabic text-cyan-400 border border-cyan-900 bg-cyan-950/30 px-2 py-0.5 rounded-full">{cam.lens}</span>
+                               <span className="text-[10px] uppercase font-bold text-slate-400 tracking-wider bg-slate-800 px-2 py-0.5 rounded-full">{cam.type}</span>
+                               <span className="text-[10px] font-mono text-cyan-400 border border-cyan-900 bg-cyan-950/30 px-2 py-0.5 rounded-full">{cam.lens}</span>
                              </div>
                              <p className="text-slate-300 text-sm mt-1">{cam.description}</p>
                            </div>
@@ -647,7 +713,7 @@ export const SceneCard = React.memo(function SceneCard({
 
                    {scene.visual_cue && (
                      <div className="bg-[#27272a]/50 p-4 rounded-lg border border-[#27272a]">
-                       <strong className="block text-xs  tracking-wider text-[#71717a] mb-1">Visual Cue</strong>
+                       <strong className="block text-xs uppercase tracking-wider text-[#71717a] mb-1">Visual Cue</strong>
                        <p className="text-[#e5e3e0]">{scene.visual_cue}</p>
                      </div>
                    )}
@@ -655,18 +721,27 @@ export const SceneCard = React.memo(function SceneCard({
                    {scene.b_roll_search_query && (
                     <div className="bg-[#121214]/50 p-4 rounded-lg border border-blue-100">
                       <div className="flex justify-between items-start mb-2">
-                        <strong className="text-xs  tracking-wider text-[#6366f1]">اقتراح فيديو (بيكسلز)</strong>
+                        <strong className="text-xs uppercase tracking-wider text-[#6366f1]">اقتراح فيديو (بيكسلز)</strong>
                         <button 
                           onClick={() => setShowBrollModal(true)}
-                          className="flex items-center gap-1.5 bg-[#27272a] active:scale-95 text-[#4f46e5] px-3 py-1 text-[10px]  font-arabic tracking-wider transition-colors rounded-full"
+                          className="flex items-center gap-1.5 bg-[#27272a] active:scale-95 text-[#4f46e5] px-3 py-1 text-[10px] uppercase font-mono tracking-wider transition-colors rounded-full"
                         >
                           <Search size={12} /> Search
                         </button>
                       </div>
                       <div className="text-blue-900 font-medium mb-3">Query: {scene.b_roll_search_query}</div>
                       {scene.pexelsAsset && (
-                        <div className="relative rounded-lg overflow-hidden border border-[#4f46e5]/30 shadow-sm mt-3 h-48">
-                           <ImageWithFallback src={scene.pexelsAsset.image} alt={scene.b_roll_search_query || "B-Roll"} className="w-full h-full" />
+                        <div className="relative rounded-lg overflow-hidden border border-[#4f46e5]/30 shadow-sm mt-3 h-48 group">
+                           {scene.pexelsAsset.videoFiles && scene.pexelsAsset.videoFiles.length > 0 ? (
+                             <video 
+                               src={scene.pexelsAsset.videoFiles[0].link} 
+                               poster={scene.pexelsAsset.image}
+                               className="w-full h-full object-cover"
+                               autoPlay loop muted playsInline
+                             />
+                           ) : (
+                             <ImageWithFallback src={scene.pexelsAsset.image} alt={scene.b_roll_search_query || "B-Roll"} className="w-full h-full object-cover" />
+                           )}
                            <div className="absolute inset-x-0 bottom-0 p-3 bg-gradient-to-t from-black/80 to-transparent">
                               <a href={scene.pexelsAsset.url} target="_blank" rel="noreferrer" className="text-white text-xs block active:scale-95 transition-colors cursor-pointer">
                                   عرض في بيكسلز <ExternalLink size={12} className="inline ml-1" />
@@ -679,7 +754,7 @@ export const SceneCard = React.memo(function SceneCard({
                    
                    {scene.sfx && (
                      <div className="bg-[#09090b] p-4 rounded-lg border border-gray-700">
-                       <strong className="block text-xs  tracking-wider text-[#71717a] mb-1">Sound Design (SFX)</strong>
+                       <strong className="block text-xs uppercase tracking-wider text-[#71717a] mb-1">Sound Design (SFX)</strong>
                        <p className="text-gray-200">{scene.sfx}</p>
                      </div>
                    )}
@@ -689,7 +764,7 @@ export const SceneCard = React.memo(function SceneCard({
                    {scene.image_prompt && (
                       <div className="bg-[#27272a]/50 p-6 rounded-xl border border-[#27272a] relative">
                        <div className="flex justify-between items-start mb-4">
-                         <strong className="text-xs  tracking-wider text-[#71717a]">وصف الصورة للذكاء الاصطناعي (ميدجورني/نانو)</strong>
+                         <strong className="text-xs uppercase tracking-wider text-[#71717a]">وصف الصورة للذكاء الاصطناعي (ميدجورني/نانو)</strong>
                          <button 
                            onClick={handleGenerateImage}
                            disabled={isGeneratingImage}
@@ -714,7 +789,7 @@ export const SceneCard = React.memo(function SceneCard({
                       {/* FIRST FRAME */}
                       <div className="bg-[#27272a]/50 p-6 rounded-xl border border-[#27272a]">
                         <div className="flex justify-between items-center mb-4">
-                          <strong className="text-xs  tracking-wider text-[#71717a]">First Frame (Start)</strong>
+                          <strong className="text-xs uppercase tracking-wider text-[#71717a]">First Frame (Start)</strong>
                           <button 
                              onClick={handleGenerateFirstFrame}
                              disabled={isGeneratingImage}
@@ -738,7 +813,7 @@ export const SceneCard = React.memo(function SceneCard({
                       {/* SECOND FRAME */}
                       <div className="bg-[#27272a]/50 p-6 rounded-xl border border-[#27272a]">
                         <div className="flex justify-between items-center mb-4">
-                          <strong className="text-xs  tracking-wider text-[#71717a]">Second Frame (End)</strong>
+                          <strong className="text-xs uppercase tracking-wider text-[#71717a]">Second Frame (End)</strong>
                           <button 
                              onClick={handleGenerateSecondFrame}
                              disabled={isGeneratingImage}
@@ -768,10 +843,10 @@ export const SceneCard = React.memo(function SceneCard({
                             <div>
                                <h3 className="text-sm font-bold text-[#fafafa] mb-1">Grok Video Engine 1.5 Preview</h3>
                                <div className="flex items-center gap-4">
-                                  <div className="flex items-center gap-1 text-[10px] text-green-500 font-arabic">
+                                  <div className="flex items-center gap-1 text-[10px] text-green-500 font-mono">
                                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></span> 720p HD READY
                                   </div>
-                                  <div className="text-[10px] text-[#71717a] font-arabic">24 FPS / 16:9</div>
+                                  <div className="text-[10px] text-[#71717a] font-mono">24 FPS / 16:9</div>
                                </div>
                             </div>
                             <button 
@@ -785,7 +860,7 @@ export const SceneCard = React.memo(function SceneCard({
                          </div>
 
                          {scene.generated_video_url ? (
-                           <div className="aspect-video bg-black rounded-lg overflow-hidden border border-[#6366f1]/40 group/vid relative">
+                           <div className={`${isVertical ? "aspect-[9/16] max-w-[280px]" : "aspect-video"} bg-black rounded-lg overflow-hidden border border-[#6366f1]/40 group/vid relative mx-auto`}>
                               <video 
                                 src={scene.generated_video_url} 
                                 controls 
@@ -796,7 +871,7 @@ export const SceneCard = React.memo(function SceneCard({
                               </div>
                            </div>
                          ) : (
-                           <div className="aspect-video bg-[#121214] rounded-lg border border-[#27272a] border-dashed flex flex-col items-center justify-center text-[#71717a] space-y-3">
+                           <div className={`${isVertical ? "aspect-[9/16] max-w-[280px] py-16" : "aspect-video"} bg-[#121214] rounded-lg border border-[#27272a] border-dashed flex flex-col items-center justify-center text-[#71717a] space-y-3 mx-auto w-full`}>
                               <Video size={40} className="text-[#27272a]" />
                               <p className="text-xs">اضبط الفريمات ثم اطلب التحريك السينمائي</p>
                            </div>
@@ -806,7 +881,7 @@ export const SceneCard = React.memo(function SceneCard({
                            <div className="mt-6 flex items-center gap-3 p-4 bg-[#121214] rounded-xl border border-[#27272a]">
                               <Waypoints className="text-[#4f46e5]" size={16} />
                               <div className="flex-1">
-                                 <div className="text-[10px] text-[#71717a]  font-arabic ">SMART_CHAIN_LOGIC</div>
+                                 <div className="text-[10px] text-[#71717a] uppercase font-mono tracking-widest">SMART_CHAIN_LOGIC</div>
                                  <div className="text-xs text-[#fafafa] font-bold">
                                     {scene.transition_to_next_scene === 'Match Cut' || scene.transition_to_next_scene === 'Same Scene' 
                                       ? "🔗 ربط ذكي مفعّل: تم سحب إطار البراز من المشهد السابق"

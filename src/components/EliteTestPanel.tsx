@@ -25,11 +25,11 @@ export const EliteTestPanel: React.FC = () => {
             <div className="w-2 h-8 bg-[#ef4444] rounded shadow-[0_0_15px_rgba(235,38,48,0.4)]" />
             <div className="flex flex-col gap-1">
               {/* Typography: Sans for Header */}
-              <h2 className="text-2xl font-black text-[#fafafa] tracking-tight ">
+              <h2 className="text-2xl font-black text-[#fafafa] tracking-tight uppercase">
                 لوحة_التحكم_المركزية
               </h2>
               {/* Typography: Mono for micro-copy */}
-              <span className="text-[10px] font-arabic text-[#a1a1aa]  ">
+              <span className="text-[10px] font-mono text-[#a1a1aa] tracking-[0.2em] uppercase">
                 SYS.CORE.v4.5 // BERWAZ_ENGINE
               </span>
             </div>
@@ -38,7 +38,7 @@ export const EliteTestPanel: React.FC = () => {
           <div className="flex items-center gap-2 px-3 py-1.5 bg-[#121214]  shadow-sm border border-[#27272a] rounded">
             {/* Berwaz Yellow for status indicator */}
             <div className={`w-1.5 h-1.5 rounded-full ${isSyncing ? 'bg-[#4f46e5] animate-pulse' : 'bg-[#ef4444]'}`} />
-            <span className="text-[9px] font-arabic font-bold text-[#fafafa]/70">
+            <span className="text-[9px] font-mono font-bold text-[#fafafa]/70">
               {isSyncing ? 'جارِ_المزامنة' : 'متصل'}
             </span>
           </div>
@@ -63,8 +63,8 @@ export const EliteTestPanel: React.FC = () => {
         {/* Evidence Mapping Simulation */}
         <div className="mb-8 p-4 bg-[#27272a]/50 border border-[#27272a] relative z-10 flex flex-col gap-4">
           <div className="flex justify-between items-center pb-3 border-b border-[#27272a]">
-            <span className="text-[10px] font-arabic text-[#a1a1aa]  ">تحليل_النص // RAG</span>
-            <span className="text-[10px] font-arabic text-[#4f46e5]   animate-pulse">ربط_نشط</span>
+            <span className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">تحليل_النص // RAG</span>
+            <span className="text-[10px] font-mono text-[#4f46e5] uppercase tracking-[0.2em] animate-pulse">ربط_نشط</span>
           </div>
           <p className="text-sm text-[#fafafa]/80 leading-relaxed font-arabic">
             يُظهر التاريخ أن نقطة التحول الأساسية لم تبدأ في العاصمة، بل انطلقت من الموانئ التجارية الكبرى
@@ -85,7 +85,7 @@ export const EliteTestPanel: React.FC = () => {
             className="flex items-center gap-3 px-6 py-3 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] rounded transition-none"
           >
             <TerminalSquare className="w-4 h-4 text-[#fafafa]/70" />
-            <span className="text-xs font-arabic font-bold  text-[#fafafa]/90">
+            <span className="text-xs font-mono font-bold tracking-widest text-[#fafafa]/90">
               {isSyncing ? 'تهيئة...' : 'مزامنة_الخوادم'}
             </span>
           </motion.button>
@@ -99,11 +99,11 @@ const StatsBox = ({ icon, label, value, status }: { icon: React.ReactNode, label
   <div className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] flex flex-col gap-3">
     <div className="flex justify-between items-center">
       {icon}
-      <span className="text-[8px] font-arabic text-[#4f46e5] ">{status}</span>
+      <span className="text-[8px] font-mono text-[#4f46e5] tracking-widest">{status}</span>
     </div>
     <div>
-      <h3 className="text-[9px] font-arabic text-[#71717a] mb-1">{label}</h3>
-      <p className="text-sm font-bold font-arabic text-[#fafafa]/90">{value}</p>
+      <h3 className="text-[9px] font-mono text-[#71717a] mb-1">{label}</h3>
+      <p className="text-sm font-bold font-mono text-[#fafafa]/90">{value}</p>
     </div>
   </div>
 );
@@ -114,6 +114,6 @@ const EvidenceTag = ({ docId }: { docId: string }) => (
     className="inline-flex items-center gap-1 mx-1.5 px-2 py-0.5 bg-[#121214] /[0.03] border border-[#27272a] rounded cursor-pointer align-middle transition-none"
   >
     <ShieldAlert className="w-2.5 h-2.5 text-[#4f46e5]" />
-    <span className="text-[9px] font-arabic font-bold text-[#4f46e5] ">{docId}</span>
+    <span className="text-[9px] font-mono font-bold text-[#4f46e5] tracking-widest">{docId}</span>
   </motion.span>
 );

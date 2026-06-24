@@ -43,7 +43,7 @@ export function BRollModal({ keyword, onClose }: Props) {
         className="relative w-full max-w-5xl bg-[#121214]  border border-[#27272a] p-6 flex flex-col h-[80vh]"
       >
         <div className="flex justify-between items-center mb-6">
-           <h3 className="text-[#4f46e5] font-medium text-sm flex items-center gap-2">
+           <h3 className="text-[#4f46e5] font-mono uppercase tracking-widest text-sm flex items-center gap-2">
              <Search size={16} /> B-Roll Radar: <span className="text-[#a1a1aa]">"{keyword}"</span>
            </h3>
            <button onClick={onClose} className="text-[#a1a1aa] active:scale-95 transition-colors">
@@ -55,14 +55,14 @@ export function BRollModal({ keyword, onClose }: Props) {
           {isLoading ? (
             <div className="h-full flex flex-col items-center justify-center text-[#a1a1aa] gap-4">
               <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-              <div className="font-medium text-xs animate-pulse">جاري جلب الوسائط...</div>
+              <div className="font-mono text-xs uppercase tracking-widest animate-pulse">Scanning Pexels Servers...</div>
             </div>
           ) : error ? (
-            <div className="h-full flex items-center justify-center text-[#ef4444] font-arabic text-sm max-w-md mx-auto text-center border border-red-500/20 bg-red-500/5 p-4">
+            <div className="h-full flex items-center justify-center text-[#ef4444] font-mono text-sm max-w-md mx-auto text-center border border-red-500/20 bg-red-500/5 p-4">
               Error fetching B-Roll: {error}
             </div>
           ) : results.length === 0 ? (
-            <div className="h-full flex items-center justify-center text-[#a1a1aa] font-arabic text-sm">
+            <div className="h-full flex items-center justify-center text-[#a1a1aa] font-mono text-sm">
               No results found for this visual query.
             </div>
           ) : (
@@ -83,12 +83,12 @@ export function BRollModal({ keyword, onClose }: Props) {
                        />
                      </div>
                      <div className="p-3 flex justify-between items-center">
-                       <span className="text-[10px] font-arabic text-[#a1a1aa]">{video.width}x{video.height}</span>
+                       <span className="text-[10px] font-mono text-[#a1a1aa]">{video.width}x{video.height}</span>
                        <a
                          href={bestFile?.link}
                          target="_blank"
                          rel="noopener noreferrer"
-                         title="تنزيل"
+                         title="Download"
                          className="p-2 bg-[#121214]  border-[#27272a] shadow-sm active:scale-95 transition-colors rounded-lg text-[#fafafa]"
                          download
                        >

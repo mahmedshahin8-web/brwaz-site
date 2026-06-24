@@ -56,14 +56,14 @@ export const CyberToast: React.FC<CyberToastProps> = ({ message, level, onComple
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2" style={{ color: clearance.color }}>
           {getIcon()}
-          <span className="text-[10px] font-arabic font-bold ">
+          <span className="text-[10px] font-mono font-bold tracking-[0.2em]">
             {clearance.label}
           </span>
         </div>
         <div className="w-2 h-2 rounded-full animate-pulse" style={{ backgroundColor: clearance.color }}></div>
       </div>
       
-      <div className="text-sm font-arabic text-[#fafafa]/90 leading-relaxed min-h-[1.5em]" dir="rtl">
+      <div className="text-sm font-mono text-[#fafafa]/90 leading-relaxed min-h-[1.5em]" dir="rtl">
         {displayedText}
         <span className="inline-block w-2 h-4 ml-1 bg-[#121214]  animate-[blink_1s_infinite] align-middle"></span>
       </div>

@@ -13,13 +13,14 @@ export interface VideoGenResponse {
 export async function generateGrokVideo(
   firstFrame: string, 
   secondFrame: string, 
-  motionPrompt: string
+  motionPrompt: string,
+  aspectRatio?: string
 ): Promise<string> {
   try {
     const res = await apiFetch("/api/video/generate", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ firstFrame, secondFrame, motionPrompt })
+      body: JSON.stringify({ firstFrame, secondFrame, motionPrompt, aspectRatio })
     });
 
     if (!res.ok) throw new Error("Video generation failed at origin");

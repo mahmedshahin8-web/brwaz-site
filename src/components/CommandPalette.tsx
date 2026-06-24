@@ -35,7 +35,7 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-[999] bg-[#27272a]/50/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div className="absolute inset-0" onClick={() => setOpen(false)} />
-      <div className="relative w-full max-w-xl bg-[#121214]  border border-[#27272a] shadow-2xl flex flex-col font-arabic text-sm">
+      <div className="relative w-full max-w-xl bg-[#121214]  border border-[#27272a] shadow-2xl flex flex-col font-mono text-sm">
         <Command label="Command Menu" className="flex flex-col h-full" onClick={(e) => e.stopPropagation()} filter={(value, search) => {
           if (value.toLowerCase().includes(search.toLowerCase())) return 1;
           return 0;
@@ -47,18 +47,18 @@ export function CommandPalette() {
                value={searchQuery}
                onValueChange={setSearchQuery}
                placeholder="[UNIFIED_INTELLIGENCE] // إبحث في الوثائق، الملفات، الأوامر السريعة، أو اسأل AI..." 
-               className="w-full bg-transparent text-[#fafafa] py-4 focus:outline-none placeholder:text-[#71717a] text-[10px]  font-arabic "
+               className="w-full bg-transparent text-[#fafafa] py-4 focus:outline-none placeholder:text-[#71717a] text-[10px] tracking-widest font-mono uppercase"
                dir="rtl"
              />
           </div>
           <Command.List className="max-h-[400px] overflow-y-auto custom-scrollbar p-2" dir="rtl">
             <Command.Empty className="p-8 text-[#a1a1aa] text-center flex flex-col items-center gap-3">
                <Zap className="w-6 h-6 text-cyan-400 opacity-50" />
-               <span className="  text-[10px]">استخراج الداتا من الفضاء السيبراني...</span>
+               <span className="uppercase tracking-widest text-[10px]">استخراج الداتا من الفضاء السيبراني...</span>
             </Command.Empty>
 
             {searchQuery.length > 2 && (
-              <Command.Group heading="[AI_SUGGESTIONS] // البحث الذكي" className="px-2 py-2 text-[#71717a] text-[10px] font-medium [&_[cmdk-group-heading]]:mb-2 text-right">
+              <Command.Group heading="[AI_SUGGESTIONS] // البحث الذكي" className="px-2 py-2 text-[#71717a] text-[10px] uppercase tracking-widest [&_[cmdk-group-heading]]:mb-2 text-right">
                 <Command.Item
                   onSelect={() => { 
                      navigate('/script-editor', { state: { magicDraftTopic: searchQuery } });
@@ -76,7 +76,7 @@ export function CommandPalette() {
               </Command.Group>
             )}
 
-            <Command.Group heading="التنقل السريع" className="px-2 py-2 text-[#71717a] text-[10px] font-medium [&_[cmdk-group-heading]]:mb-2 text-right">
+            <Command.Group heading="[NAVIGATION] // التنقل السريع" className="px-2 py-2 text-[#71717a] text-[10px] uppercase tracking-widest [&_[cmdk-group-heading]]:mb-2 text-right">
               <Command.Item
                 onSelect={() => navigateTo('dashboard')}
                 value="warRoom dashboard الرئيسية"
@@ -127,7 +127,7 @@ export function CommandPalette() {
               </Command.Item>
             </Command.Group>
 
-            <Command.Group heading="أوضاع النظام" className="px-2 py-2 text-[#71717a] text-[10px] font-medium [&_[cmdk-group-heading]]:mb-2 text-right border-t border-[#27272a] mt-2 pt-4">
+            <Command.Group heading="[MODES] // أوضاع النظام" className="px-2 py-2 text-[#71717a] text-[10px] uppercase tracking-widest [&_[cmdk-group-heading]]:mb-2 text-right border-t border-[#27272a] mt-2 pt-4">
                <Command.Item
                 onSelect={() => { document.documentElement.classList.toggle('zen-mode'); setOpen(false); }}
                 value="zen mode تركيز"

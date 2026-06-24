@@ -61,7 +61,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             <div className="p-2 bg-[#4f46e5]/10 text-[#4f46e5]">
               <Settings size={20} />
             </div>
-            <h3 className="text-xl font-arabic font-black text-[#fafafa]">إعدادات المحرك (Engine Settings)</h3>
+            <h3 className="text-xl font-arabic font-black text-[#fafafa]">الأورطمزيون (إعدادات المحرك)</h3>
           </div>
           <button onClick={onClose} className="text-[#71717a] active:scale-95 transition-colors">
             <X size={24} />
@@ -72,7 +72,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           <div className="flex items-center justify-between p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a]">
             <div className="space-y-1">
               <span className="text-sm font-arabic text-[#fafafa]">استخدام Ollama محلياً</span>
-              <p className="text-[10px] text-[#71717a] font-arabic">CONNECT_TO_LOCAL_AI_ENGINE</p>
+              <p className="text-[10px] text-[#71717a] font-mono">CONNECT_TO_LOCAL_AI_ENGINE</p>
             </div>
             <button 
               onClick={() => setUseOllama(!useOllama)}
@@ -91,22 +91,22 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 className="space-y-4 pt-4 border-t border-[#27272a] overflow-hidden"
               >
                 <div className="space-y-2">
-                  <label className="text-[10px] font-arabic text-[#a1a1aa]  ">Ollama_Endpoint_URL</label>
+                  <label className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">Ollama_Endpoint_URL</label>
                   <input 
                     type="text" 
                     value={ollamaUrl} 
                     onChange={(e) => setOllamaUrl(e.target.value)}
-                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-arabic text-xs focus:border-[#4f46e5] outline-none transition-all"
+                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-mono text-xs focus:border-[#4f46e5] outline-none transition-all"
                   />
                 </div>
                 <div className="space-y-2">
-                  <label className="text-[10px] font-arabic text-[#a1a1aa]  ">AI_Model_Target</label>
+                  <label className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">AI_Model_Target</label>
                   <div className="flex flex-wrap gap-2 mb-3">
                     {["gemma4:31b-cloud", "gemma2:9b-instruct-q4_0", "llama3:8b", "mistral"].map(m => (
                       <button 
                         key={m} 
                         onClick={() => setOllamaModel(m)}
-                        className={`px-2 py-1 text-[9px] font-arabic border transition-all ${ollamaModel === m ? 'bg-[#4f46e5] border-[#4f46e5] text-black' : 'bg-[#121214]  border-[#27272a] shadow-sm border-[#27272a] text-[#a1a1aa] active:scale-95'}`}
+                        className={`px-2 py-1 text-[9px] font-mono border transition-all ${ollamaModel === m ? 'bg-[#4f46e5] border-[#4f46e5] text-black' : 'bg-[#121214]  border-[#27272a] shadow-sm border-[#27272a] text-[#a1a1aa] active:scale-95'}`}
                       >
                         {m.includes('cloud') ? '🌩️ ' + m.split(':')[0] : m.split(':')[0]}
                       </button>
@@ -116,7 +116,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     type="text" 
                     value={ollamaModel} 
                     onChange={(e) => setOllamaModel(e.target.value)}
-                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-arabic text-xs focus:border-[#4f46e5] outline-none transition-all"
+                    className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-mono text-xs focus:border-[#4f46e5] outline-none transition-all"
                     placeholder="e.g. gemma2:9b-instruct-q4_0"
                   />
                   <p className="text-[9px] text-[#4f46e5]/50 italic">Recommended: gemma4:31b-cloud</p>
@@ -126,12 +126,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </AnimatePresence>
 
           <div className="space-y-6 pt-6 border-t border-[#27272a]">
-            <h4 className="text-[10px] font-arabic text-[#a1a1aa]  ">Multi-Engine Protocols</h4>
+            <h4 className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">Multi-Engine Protocols</h4>
             <div className="space-y-4">
               <div className="flex items-center justify-between p-3 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a]">
                 <div className="space-y-1">
                   <span className="text-[11px] font-arabic text-[#fafafa]">نظام التوزيع الذكي (Tag-Team)</span>
-                  <p className="text-[9px] text-[#71717a] font-arabic">GEMINI_RESEARCH + OLLAMA_DRAFTING</p>
+                  <p className="text-[9px] text-[#71717a] font-mono">GEMINI_RESEARCH + OLLAMA_DRAFTING</p>
                 </div>
                 <button 
                   onClick={() => setIsTagTeam(!isTagTeam)}
@@ -144,7 +144,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div className="flex items-center justify-between p-3 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a]">
                 <div className="space-y-1">
                   <span className="text-[11px] font-arabic text-[#fafafa]">درع الرصيد (Quota Shield)</span>
-                  <p className="text-[9px] text-[#71717a] font-arabic">AUTO_FAILOVER_TO_OLLAMA_ON_GEMINI_LIMIT</p>
+                  <p className="text-[9px] text-[#71717a] font-mono">AUTO_FAILOVER_TO_OLLAMA_ON_GEMINI_LIMIT</p>
                 </div>
                 <button 
                   onClick={() => setIsQuotaShield(!isQuotaShield)}
@@ -157,25 +157,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           </div>
 
           <div className="space-y-4 pt-6 border-t border-[#27272a]">
-            <h4 className="text-[10px] font-arabic text-[#a1a1aa]  ">External_Voice_Engines</h4>
+            <h4 className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">External_Voice_Engines</h4>
             <div className="space-y-4">
               <div className="space-y-2">
-                <label className="text-[10px] font-arabic text-[#a1a1aa]  ">ElevenLabs_API_Key</label>
+                <label className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">ElevenLabs_API_Key</label>
                 <input 
                   type="password" 
                   value={elevenLabsKey} 
                   onChange={(e) => setElevenLabsKey(e.target.value)}
-                  className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-arabic text-xs focus:border-[#4f46e5] outline-none transition-all"
+                  className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-mono text-xs focus:border-[#4f46e5] outline-none transition-all"
                   placeholder="sk_..."
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-arabic text-[#a1a1aa]  ">ElevenLabs_Voice_ID</label>
+                <label className="text-[10px] font-mono text-[#a1a1aa] uppercase tracking-widest">ElevenLabs_Voice_ID</label>
                 <input 
                   type="text" 
                   value={elevenLabsVoiceId} 
                   onChange={(e) => setElevenLabsVoiceId(e.target.value)}
-                  className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-arabic text-xs focus:border-[#4f46e5] outline-none transition-all"
+                  className="w-full bg-[#121214]  shadow-sm border border-[#27272a] p-3 text-[#fafafa] font-mono text-xs focus:border-[#4f46e5] outline-none transition-all"
                 />
               </div>
             </div>

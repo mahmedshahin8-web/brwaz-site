@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Camera, Loader2, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { useCreatorStore } from '../store/useCreatorStore';
 
 interface ImageWithFallbackProps {
   src?: string;
@@ -12,22 +13,24 @@ interface ImageWithFallbackProps {
 export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, className = "", isGenerating = false }) => {
   const [error, setError] = useState(false);
   const [loading, setLoading] = useState(true);
+  const creatorMode = useCreatorStore((state) => state.creatorMode);
+  const isVertical = creatorMode === "reels";
 
   // Fallback image URL (Placeholder for Barwaz logo)
   const FALLBACK_IMAGE = "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=800&q=80&auto=format&fit=crop";
 
   if (isGenerating) {
     return (
-      <div className={`aspect-video bg-[#1a1a18] rounded-xl border border-dashed border-[#27272a] flex flex-col items-center justify-center gap-4 ${className}`}>
+      <div className={`${isVertical ? "aspect-[9/16] max-w-[280px]" : "aspect-video"} bg-[#1a1a18] rounded-xl border border-dashed border-[#27272a] flex flex-col items-center justify-center gap-4 ${className} mx-auto`}>
         <Loader2 className="w-8 h-8 animate-spin text-[#ef4444]" />
-        <span className="text-xs font-bold text-[#71717a] font-arabic animate-pulse">[DEVELOPING] // استخراج الصورة المودعة...</span>
+        <span className="text-xs font-bold text-[#71717a] font-mono animate-pulse text-center px-4">[DEVELOPING] // استخراج الصورة المودعة...</span>
       </div>
     );
   }
 
   if (!src || error) {
     return (
-      <div className={`relative overflow-hidden group bg-[#121214]  shadow-sm border border-[#27272a] rounded-xl flex flex-col items-center justify-center p-6 gap-4 ${className}`}>
+      <div className={`relative overflow-hidden group bg-[#121214]  shadow-sm border border-[#27272a] rounded-xl flex flex-col items-center justify-center p-6 gap-4 ${isVertical ? "aspect-[9/16] max-w-[280px]" : "aspect-video"} ${className} mx-auto`}>
         <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
         <div className="relative">
           {error ? (
@@ -37,10 +40,10 @@ export const ImageWithFallback: React.FC<ImageWithFallbackProps> = ({ src, alt, 
           )}
         </div>
         <div className="text-center relative">
-          <p className="text-micro font-bold text-[#a1a1aa]  ">
+          <p className="text-micro font-bold text-[#a1a1aa] uppercase tracking-widest">
             {error ? 'فشل التحميض - صورة تالفة' : 'لا توجد صورة في الملف'}
           </p>
-          <p className="text-[8px] text-[#e5e3e0] mt-1  font-arabic">
+          <p className="text-[8px] text-[#e5e3e0] mt-1 uppercase font-mono">
             {error ? 'Error: Broken Negative' : 'Pending Development'}
           </p>
         </div>

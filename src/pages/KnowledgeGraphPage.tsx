@@ -18,7 +18,7 @@ export const KnowledgeGraphPage: React.FC = () => {
   }, []);
 
   const graphData = useMemo(() => {
-    const nodes: any[] = [{ id: 'CORE', group: 0, name: 'المركزية', val: 20 }];
+    const nodes: any[] = [{ id: 'CORE', group: 0, name: 'T_NEXUS', val: 20 }];
     const links: any[] = [];
 
     if (rawDocs.length > 0) {
@@ -28,14 +28,14 @@ export const KnowledgeGraphPage: React.FC = () => {
         if (doc.scenes && doc.scenes.length > 0) {
            doc.scenes.slice(0, 3).forEach((scene: any, sIdx: number) => {
               const sId = `scene_${idx}_${sIdx}`;
-              nodes.push({ id: sId, group: 2, name: `الأدلة_${sIdx}`, val: 5 });
+              nodes.push({ id: sId, group: 2, name: `EVIDENCE_${sIdx}`, val: 5 });
               links.push({ source: `doc_${idx}`, target: sId, value: 1 });
            });
         }
       });
     } else {
       // Empty state node
-      nodes.push({ id: 'NO_DATA', group: 3, name: 'في انتظار البيانات', val: 8 });
+      nodes.push({ id: 'NO_DATA', group: 3, name: 'AWAITING_INGESTION', val: 8 });
       links.push({ source: 'CORE', target: 'NO_DATA', value: 1 });
     }
 
@@ -66,21 +66,21 @@ export const KnowledgeGraphPage: React.FC = () => {
         <div className="relative z-10">
           <h2 className="text-3xl font-black text-[#fafafa] font-arabic mb-2 tracking-wide flex items-center gap-3">
              <Zap className="w-8 h-8 text-[#4f46e5] animate-pulse" />
-             رادار الكيانات
+             [KNOWLEDGE_GRAPH] // رادار الكيانات
           </h2>
-          <p className="text-[#a1a1aa] font-arabic text-xs leading-relaxed max-w-2xl mt-2  ">
+          <p className="text-[#a1a1aa] font-mono text-xs leading-relaxed max-w-2xl mt-2 uppercase tracking-widest">
             خريطة الروابط الاستخباراتية وشبكة البيانات بين المشاريع والأدلة.
           </p>
         </div>
         
         <div className="flex gap-4 relative z-10">
            <div className="flex flex-col items-center justify-center px-4 py-2 bg-[#27272a]/50 rounded-lg border border-[#4f46e5]/20 backdrop-blur">
-              <span className="text-[9px] text-[#71717a] font-bold font-arabic   flex items-center gap-1"><Activity size={10} className="text-[#4f46e5]" /> نقاط التفاعل</span>
-              <span className="text-[#fafafa] font-bold font-arabic text-lg">{graphData.nodes.length}</span>
+              <span className="text-[9px] text-[#71717a] font-bold font-mono uppercase tracking-widest flex items-center gap-1"><Activity size={10} className="text-[#4f46e5]" /> ACTIVE_NODES</span>
+              <span className="text-[#fafafa] font-bold font-mono text-lg">{graphData.nodes.length}</span>
            </div>
            <div className="flex flex-col items-center justify-center px-4 py-2 bg-[#27272a]/50 rounded-lg border border-[#4f46e5]/20 backdrop-blur">
-              <span className="text-[9px] text-[#71717a] font-bold font-arabic   flex items-center gap-1"><Target size={10} className="text-[#10b981]" /> عدد الروابط</span>
-              <span className="text-[#fafafa] font-bold font-arabic text-lg">{graphData.links.length}</span>
+              <span className="text-[9px] text-[#71717a] font-bold font-mono uppercase tracking-widest flex items-center gap-1"><Target size={10} className="text-[#10b981]" /> ACTIVE_LINKS</span>
+              <span className="text-[#fafafa] font-bold font-mono text-lg">{graphData.links.length}</span>
            </div>
         </div>
       </header>
@@ -93,14 +93,14 @@ export const KnowledgeGraphPage: React.FC = () => {
             
            {/* Legend Area */}
            <div className="absolute top-6 right-6 z-10 flex flex-col gap-2 pointer-events-none">
-              <div className="text-[10px] font-arabic border border-[#ef4444]/30 bg-[#ef4444]/10 text-[#ef4444] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
-                  <div className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse" /> المركزية
+              <div className="text-[10px] font-mono border border-[#ef4444]/30 bg-[#ef4444]/10 text-[#ef4444] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-[#ef4444] animate-pulse" /> T_NEXUS
               </div>
-              <div className="text-[10px] font-arabic border border-[#4f46e5]/30 bg-[#4f46e5]/10 text-[#4f46e5] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
-                  <div className="w-2 h-2 rounded-full bg-[#4f46e5]" /> المشاريع
+              <div className="text-[10px] font-mono border border-[#4f46e5]/30 bg-[#4f46e5]/10 text-[#4f46e5] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-[#4f46e5]" /> DOSSIERS
               </div>
-              <div className="text-[10px] font-arabic border border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
-                  <div className="w-2 h-2 rounded-full bg-[#10b981]" /> الأدلة
+              <div className="text-[10px] font-mono border border-[#10b981]/30 bg-[#10b981]/10 text-[#10b981] px-3 py-1 flex items-center gap-3 rounded-lg  shadow-sm">
+                  <div className="w-2 h-2 rounded-full bg-[#10b981]" /> EVIDENCE
               </div>
            </div>
 
@@ -110,9 +110,9 @@ export const KnowledgeGraphPage: React.FC = () => {
          {/* Tooltip */}
          {hoverNode && (
             <div className="absolute top-4 right-4 z-10 bg-[#121214]  border border-[#4f46e5]/50 p-4 max-w-xs pointer-events-none">
-              <h3 className="font-arabic text-xs text-[#4f46e5]   mb-1">{hoverNode.name}</h3>
-              <p className="font-arabic text-[10px] text-[#a1a1aa]  ">ID: {hoverNode.id}</p>
-              <p className="font-arabic text-[10px] text-[#a1a1aa]   mt-2">{hoverNode.group === 0 ? 'المركز الرئيسي' : hoverNode.group === 1 ? 'عقدة المشروع' : 'أجزاء الأدلة'}</p>
+              <h3 className="font-mono text-xs text-[#4f46e5] uppercase tracking-widest mb-1">{hoverNode.name}</h3>
+              <p className="font-mono text-[10px] text-[#a1a1aa] uppercase tracking-widest">ID: {hoverNode.id}</p>
+              <p className="font-mono text-[10px] text-[#a1a1aa] uppercase tracking-widest mt-2">{hoverNode.group === 0 ? 'CENTRAL_NEXUS' : hoverNode.group === 1 ? 'DOSSIER_NODE' : 'EVIDENCE_FRAGMENT'}</p>
             </div>
          )}
          

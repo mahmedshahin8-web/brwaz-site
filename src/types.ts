@@ -87,7 +87,7 @@ export interface MasterOutline {
   timeline?: any[];
 }
 
-export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو" | "برواز الحكاوي" | "شاهد على العصر" | "الشاهد الصامت" | "الهرم الرابع" | "الدحيح";
+export type PersonaType = "النبّاش" | "برواز التاريخ" | "برواز التكنو" | "برواز الحكاوي" | "شاهد على العصر" | "الشاهد الصامت" | "الهرم الرابع" | "الدحيح" | "الدحيح المحقق" | "دحيح آخر الليل" | "الدحيح الاقتصادي" | "عزيزي المشاهد";
 
 export type MoodType = string;
 
@@ -223,6 +223,13 @@ export interface ThumbnailBlueprint {
   mood_color_instructions: string;
 }
 
+export interface ArchivalQueries {
+  primary_documents: string[];
+  gritty_realism: string[];
+  visual_metaphors: string[];
+  mood_board: string[];
+}
+
 export interface EpisodeData {
   id?: string;
   video_title: string;
@@ -239,5 +246,6 @@ export interface EpisodeData {
   shorts: ShortsData[];
   omnichannel?: OmnichannelKit;
   audit_report?: SecurityAudit;
+  archival_search_queries?: ArchivalQueries;
   createdAt?: any;
 }

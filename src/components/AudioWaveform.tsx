@@ -113,7 +113,7 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
         <div ref={containerRef} className="w-full" />
         
         {/* TIME MARKERS */}
-        <div className="absolute top-2 left-6 right-6 flex justify-between data-text text-[#71717a] text-[9px] font-medium relative z-10">
+        <div className="absolute top-2 left-6 right-6 flex justify-between data-text text-[#71717a] text-[9px] uppercase tracking-widest relative z-10">
            <span>00:00:00</span>
            <span className="neon-cyan opacity-60">[{currentTime.toFixed(2)}s / {duration.toFixed(2)}s]</span>
            <span>MASTER_END</span>
@@ -173,9 +173,9 @@ export const AudioWaveform: React.FC<AudioWaveformProps> = ({
           >
              <div className="flex items-center gap-4 mb-4">
                 <div className="w-3 h-3 rounded-full bg-red-500 animate-pulse shadow-[0_0_15px_rgba(239,68,68,1)]" />
-                <h2 className="text-2xl font-arabic font-black text-[#ef4444]  ">يرجى استخدام سماعات الرأس</h2>
+                <h2 className="text-2xl font-mono font-black text-[#ef4444] tracking-[0.3em] uppercase">[SYSTEM_REQ: SECURE HEADPHONES]</h2>
              </div>
-             <p className="text-micro font-medium text-[#a1a1aa] text-center">لالتقاط صوت واضح ونقي</p>
+             <p className="text-micro font-mono text-[#a1a1aa] uppercase tracking-widest text-center">Avoid feedback loop // High-fidelity capturing active</p>
           </motion.div>
         )}
       </AnimatePresence>

@@ -44,7 +44,7 @@ export const BootSequence: React.FC<{ onComplete: () => void }> = ({ onComplete 
       initial={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.5, ease: "easeInOut" }}
-      className="fixed inset-0 z-[9999] bg-[#27272a]/50 text-cyan-500 font-arabic flex flex-col justify-end p-8"
+      className="fixed inset-0 z-[9999] bg-[#27272a]/50 text-cyan-500 font-mono flex flex-col justify-end p-8"
       style={{
         backgroundImage: "radial-gradient(circle at center, rgba(0,240,255,0.05) 0%, transparent 70%)"
       }}
@@ -55,10 +55,10 @@ export const BootSequence: React.FC<{ onComplete: () => void }> = ({ onComplete 
       
       <div className="max-w-3xl w-full mx-auto relative z-10 flex flex-col justify-end h-full">
         <div className="mb-8 flex items-center justify-between border-b border-cyan-500/30 pb-4">
-          <div className="text-4xl font-bold font-medium drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">
+          <div className="text-4xl font-bold tracking-[0.3em] uppercase drop-shadow-[0_0_10px_rgba(0,240,255,0.5)]">
             برواز <span className="opacity-50">OS</span>
           </div>
-          <div className="text-xs  opacity-70">
+          <div className="text-xs tracking-widest opacity-70">
             v2.4.9-SECURE
           </div>
         </div>
@@ -69,7 +69,7 @@ export const BootSequence: React.FC<{ onComplete: () => void }> = ({ onComplete 
               key={i} 
               initial={{ opacity: 0, x: -10 }}
               animate={{ opacity: 1, x: 0 }}
-              className="text-xs font-medium"
+              className="text-xs uppercase tracking-widest"
             >
               <span className="opacity-50 mr-4">{`[${String(i).padStart(3, '0')}]`}</span>
               <span className={i === bootLogs.length - 1 ? 'text-[#4f46e5] font-bold drop-shadow-[0_0_5px_rgba(240,199,34,0.8)]' : ''}>{log}</span>

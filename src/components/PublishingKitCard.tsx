@@ -22,14 +22,14 @@ export function PublishingKitCard({ data }: PublishingKitCardProps) {
       <header className="flex justify-between items-center border-b border-[#27272a] pb-6">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-red-600 animate-pulse" />
-          <h3 className="text-micro font-medium text-[#a1a1aa]">حزمة النشر على يوتيوب</h3>
+          <h3 className="text-micro font-mono text-[#a1a1aa] uppercase tracking-[0.4em]">YouTube_Packaging_Module</h3>
         </div>
-        <span className="text-[10px] font-arabic text-[#71717a]">VER: 2.1_TACTICAL</span>
+        <span className="text-[10px] font-mono text-[#71717a]">VER: 2.1_TACTICAL</span>
       </header>
 
       {/* Suggested Titles */}
       <div className="space-y-4">
-        <h4 className="text-xs font-medium text-[#4f46e5] flex items-center gap-2">
+        <h4 className="text-xs font-mono text-[#4f46e5] uppercase tracking-widest flex items-center gap-2">
            <Copy className="w-3 h-3" /> Potential_Viral_Titles
         </h4>
         <div className="grid grid-cols-1 gap-3">
@@ -49,10 +49,10 @@ export function PublishingKitCard({ data }: PublishingKitCardProps) {
       {/* Description */}
       <div className="space-y-4">
         <div className="flex justify-between items-center">
-            <h4 className="text-xs font-medium text-[#4f46e5] flex items-center gap-2">
+            <h4 className="text-xs font-mono text-[#4f46e5] uppercase tracking-widest flex items-center gap-2">
                 <BookOpen className="w-3 h-3" /> High_Retention_Description
             </h4>
-            <button onClick={() => copyToClipboard(data.description, "الوصف")} className="text-[10px] font-arabic text-[#71717a] active:scale-95 font-medium flex items-center gap-2">
+            <button onClick={() => copyToClipboard(data.description, "الوصف")} className="text-[10px] font-mono text-[#71717a] active:scale-95 uppercase flex items-center gap-2">
                 <Copy size={12} /> Copy_Full_TEXT
             </button>
         </div>
@@ -63,12 +63,12 @@ export function PublishingKitCard({ data }: PublishingKitCardProps) {
 
       {/* Tags */}
       <div className="space-y-4">
-        <h4 className="text-xs font-medium text-[#4f46e5] flex items-center gap-2">
+        <h4 className="text-xs font-mono text-[#4f46e5] uppercase tracking-widest flex items-center gap-2">
            <Hash className="w-3 h-3" /> SEO_Hash_Cluster
         </h4>
         <div className="flex flex-wrap flex-row-reverse gap-2">
           {data.tags.map((tag, i) => (
-            <span key={i} className="px-3 py-1 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] text-[10px] font-arabic text-[#a1a1aa]">
+            <span key={i} className="px-3 py-1 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] text-[10px] font-mono text-[#a1a1aa]">
               #{tag}
             </span>
           ))}
@@ -79,7 +79,7 @@ export function PublishingKitCard({ data }: PublishingKitCardProps) {
       <div className="p-6 bg-[#4f46e5]/5 border-l-2 border-[#4f46e5] space-y-3">
          <div className="flex items-center gap-2 text-[#4f46e5]">
             <CheckCircle2 size={14} />
-            <span className="text-[10px] font-medium">استراتيجية الصورة المصغرة</span>
+            <span className="text-[10px] font-mono uppercase tracking-[0.2em]">Verified_Thumbnail_Strategy</span>
          </div>
          <p className="font-arabic text-sm text-[#fafafa]/70 text-right">
             {data.thumbnail_prompt}

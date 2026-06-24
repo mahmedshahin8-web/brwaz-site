@@ -1,7 +1,9 @@
 import { EpisodeData } from '../types';
 import { notify } from './notify';
+import JSZip from 'jszip';
 
 export const copyToClipboard = async (
+
   text: string,
   identifier: string = "تم النسخ بنجاح",
 ) => {
@@ -191,4 +193,68 @@ ${clipItems}
 
   const blob = new Blob([xmlContent], { type: 'application/xml' });
   nativeDownload(blob, `${(data.video_title || 'Export').replace(/\s+/g, "_")}_Cinematic_Timeline.xml`);
+};
+
+export const exportProjectZip = async (data: EpisodeData) => {
+  const zip = new JSZip();
+  
+  // 1. Data JSON
+  zip.file("ProjectData.json", JSON.stringify(data, null, 2));
+
+  // 2. The TSV / CSV Export
+  let csvContent = "Scene,Voice Over,Duration (S),Shot 1 Prompt,Shot 1 Motion,Shot 2 Prompt,Shot 2 Motion,B-Roll Query,Negative Prompt\n";
+  const allScenes = [data.opening_sketch, ...data.scenes].filter(Boolean);
+  const negativePrompt = "no photorealism, 3d render, bokeh, european faces, blond hair, blue eyes, modern technology, generic arabian nights, aladdin style, orientalist tropes, text, typography, watermark";
+
+  allScenes.forEach((scene, index) => {
+    const vo = scene.voice_over || '';
+    const wordCount = vo.trim().split(/\s+/).length;
+    const dynamicDuration = Math.max(3, Math.ceil(wordCount / 2.2));
+    
+    const voEscaped = `"${vo.replace(/"/g, '""')}"`;
+    const prompt1 = `"${(scene.first_frame_image_prompt || scene.image_prompt || '').replace(/"/g, '""')}"`;
+    const motion1 = `"${(scene.first_frame_motion_prompt || scene.ai_video_prompt || '').replace(/"/g, '""')}"`;
+    const prompt2 = `"${(scene.second_frame_image_prompt || '').replace(/"/g, '""')}"`;
+    const motion2 = `"${(scene.second_frame_motion_prompt || '').replace(/"/g, '""')}"`;
+    const broll = `"${(scene.b_roll_keywords || scene.b_roll_search_query || '').replace(/"/g, '""')}"`;
+    
+    csvContent += `Scene ${index + 1},${voEscaped},${dynamicDuration},${prompt1},${motion1},${prompt2},${motion2},${broll},"${negativePrompt}"\n`;
+  });
+  zip.file("1_Shotlist.csv", '\\ufeff' + csvContent);
+
+  // 3. The Guide
+  const guide = `# الدليل الاحترافي لمونتاج الحلقة: ${data.video_title}
+
+أهلاً بك يا صديقي المونتير! هذا الملف صُمم خصيصاً ليأخذ بيدك خطوة بخطوة لتحويل هذه الملفات إلى حلقة احترافية بدون وجه (Faceless).
+
+## ما الذي يحتويه هذا المجلد؟
+1. **1_Shotlist.csv**: ملف الإكسيل الذي يحتوي على التقسيم الزمني الدقيق متى يظهر كل مشهد، النص الذي ينطق، وصور أو لقطات الـ B-Roll المقترحة.
+2. **ProjectData.json**: البيانات الخام للحلقة في حال أردت العودة لها.
+
+## خطوات العمل على برامج المونتاج (Premiere Pro / DaVinci Resolve)
+
+### 1- التحضير وهندسة الصوت (Voice-Over)
+- قم باستيراد جميع ملفات الصوت (MP3/WAV) التي قمت بتحميلها من الموقع.
+- رتبها بحسب الترتيب الزمني الموجود في الملف 1_Shotlist.csv.
+- نصيحة الدحيح: مسافات الصمت (Silence) مهمة جداً خصوصاً عند المواقف الصادمة. اترك نصف ثانية إلى ثانية بين كل فقرة والثانية للتهيئة النفسية!
+
+### 2- هندسة المؤثرات الصوتية (SFX) والفيديو المستمر (J-Cuts / L-Cuts)
+- هل تلاحظ علامات مثل [SFX: Whoosh] وغيرها؟ هذه يجب توزيعها بعناية.
+- لا تقم بتوحيد الصوت بـ B-Roll واحد فقط لكل المشهد. استخدم J-Cuts: اجعل المؤثر أو موسيقى الخلفية يبدأ **قبل** أن يبدأ المشهد الجديد بجزء من الثانية. 
+
+### 3- بناء العناصر المرئية (B-Roll) واستخدام الصور
+- نظراً لأن هذا فيديو بدون وجه، لا تدع صورة واحدة تبقى على الشاشة لأكثر من 5 ثواني.
+- تم توحيد الهوية البصرية للصور المولدة باستخدام الذكاء الاصطناعي بناءً على الـ Mood الخاص بالحلقة. استخدم دائماً (Ken Burns) زووم بطيء مستمر لجعل الصورة حية.
+
+### 4- النص على الشاشة (Typography)
+- الكلمات القوية أو الصادمة بالأحمر ضعها كنص كبير (Bold) باللغة العربية وفي منتصف الشاشة ولون مميز.
+- لا تنس إزالة خلفيات الصور التي لا حاجة لها.
+
+بالتوفيق في الإخراج، ولا تنس تشاركنا النتيجة!
+`;
+  zip.file("README_MONTAJ_GUIDE.md", guide);
+
+  // Generate ZIP
+  const content = await zip.generateAsync({ type: "blob" });
+  nativeDownload(content, `${(data.video_title || 'Export').replace(/\\s+/g, "_")}_Pro_Kit.zip`);
 };

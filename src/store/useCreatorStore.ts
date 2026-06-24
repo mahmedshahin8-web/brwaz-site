@@ -17,6 +17,8 @@ interface CreatorState {
   // Input Form States
   topic: string;
   setTopic: (topic: string | ((prev: string) => string)) => void;
+  creatorMode: "documentary" | "reels" | null;
+  setCreatorMode: (mode: "documentary" | "reels" | null) => void;
   isLongForm: boolean;
   setIsLongForm: (isLongForm: boolean) => void;
   useOllama: boolean;
@@ -47,6 +49,8 @@ export const useCreatorStore = create<CreatorState>((set) => ({
   
   topic: "",
   setTopic: (topic) => set((state) => ({ topic: typeof topic === 'function' ? topic(state.topic) : topic })),
+  creatorMode: null,
+  setCreatorMode: (creatorMode) => set({ creatorMode }),
   isLongForm: false,
   setIsLongForm: (isLongForm) => set({ isLongForm }),
   useOllama: (() => {

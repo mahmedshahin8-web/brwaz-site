@@ -16,7 +16,7 @@ const SOUNDS = [
 
 export function TeleprompterOverlay({ script, onClose }: Props) {
   const [countdown, setCountdown] = useState<number | null>(null);
-  const [isتسجيل, setIsتسجيل] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
   const [isMirrored, setIsMirrored] = useState(false);
   const [activeSound, setActiveSound] = useState<string | null>(null);
   
@@ -89,7 +89,7 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
       const t = setTimeout(() => setCountdown(countdown - 1), 1000);
       return () => clearTimeout(t);
     } else if (countdown === 0) {
-      setIsتسجيل(true);
+      setIsRecording(true);
       setCountdown(null);
       if (recognitionRef.current) {
         try { recognitionRef.current.start(); } catch (e) {}
@@ -144,7 +144,7 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
              >
                <FastForward size={16} />
              </button>
-             <div className="px-3 font-arabic text-xs text-[#71717a] font-bold border-l border-[#4f46e5]/30">
+             <div className="px-3 font-mono text-xs text-[#71717a] font-bold border-l border-[#4f46e5]/30">
                {scrollSpeed.toFixed(1)}x
              </div>
            </div>
@@ -152,16 +152,16 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
            {/* Voice Sync */}
            {!isPlaying && (
              <React.Fragment>
-               {isتسجيل ? (
+               {isRecording ? (
                  <div className="flex items-center gap-3 ml-4">
                    <div className="w-4 h-4 bg-red-500 rounded-full animate-pulse shadow-[0_0_15px_#ef4444]" />
-                   <span className="text-[#ef4444] font-medium text-sm">تسجيل</span>
+                   <span className="text-[#ef4444] font-mono text-sm tracking-widest uppercase">Recording</span>
                    <Activity className="w-5 h-5 text-[#a1a1aa] ml-2 animate-pulse" />
                  </div>
                ) : (
                  <button
                    onClick={handleStartVoiceSync}
-                   className="ml-4 bg-[#121214] active:scale-95 text-[#fafafa]/80 px-6 py-3 rounded-full font-medium text-sm flex items-center gap-2 transition-all"
+                   className="ml-4 bg-[#121214] active:scale-95 text-[#fafafa]/80 px-6 py-3 rounded-full font-mono text-sm tracking-widest uppercase flex items-center gap-2 transition-all"
                  >
                    <Mic size={18} /> Start_Voice_Sync
                  </button>
@@ -175,7 +175,7 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
                <button
                  key={s.id}
                  onClick={() => toggleSound(s)}
-                 className={`px-3 py-1 text-[10px]  font-arabic tracking-wider border rounded-full transition-colors ${
+                 className={`px-3 py-1 text-[10px] uppercase font-mono tracking-wider border rounded-full transition-colors ${
                    activeSound === s.id ? 'bg-[#4f46e5] text-white border-[#4f46e5]' : 'border-[#4f46e5]/30 text-[#a1a1aa] active:scale-95'
                  }`}
                >
@@ -212,7 +212,7 @@ export function TeleprompterOverlay({ script, onClose }: Props) {
             exit={{ scale: 1.5, opacity: 0 }}
             className="absolute inset-0 flex items-center justify-center z-40 bg-[#121214] /80 backdrop-blur-sm"
           >
-            <div className="text-[20vw] font-black text-[#4f46e5] font-arabic leading-none">
+            <div className="text-[20vw] font-black text-[#4f46e5] font-mono leading-none">
               {countdown}
             </div>
           </motion.div>

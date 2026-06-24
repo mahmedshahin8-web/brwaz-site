@@ -79,6 +79,9 @@ ${design.research_data}
 [PREVIOUS ROLLING CONTEXT (To continue flawlessly and avoid loops)]:
 ${rollingContext ? rollingContext : "This is the very first chapter."}
 
+[ANTI-REPETITION QA WAKIL (وكيل المراجعة الصارم)]:
+CRITICAL: You MUST NOT repeat any facts, stories, or jokes that were just mentioned in the rolling context above. Advance the plot forward continuously.
+
 === NARRATIVE DNA RULES (CRITICAL) ===
 1. ${strategyInstructions}
    * NOTE: Suspense Level is ${suspenseLevel}/10.
@@ -131,12 +134,24 @@ Output strict JSON:
   return fullScript;
 }
 
+
+function calculateSimilarityScore(str1: string, str2: string): number {
+  if (!str1 || !str2) return 0;
+  const s1 = str1.toLowerCase().trim().replace(/[^a-z0-9أ-ي]/g, '');
+  const s2 = str2.toLowerCase().trim().replace(/[^a-z0-9أ-ي]/g, '');
+  if (s1 === s2) return 1;
+  // If one contains the other entirely and is reasonably long
+  if ((s1.includes(s2) && s2.length > 20) || (s2.includes(s1) && s1.length > 20)) return 0.9;
+  return 0;
+}
+
 export async function executeAgent2_Director(
   masterScript: string,
   mood: MoodType,
   engine: string,
   onChunk?: (text: string) => void,
-  onProgressUpdate?: (p: number, status: string) => void
+  onProgressUpdate?: (p: number, status: string) => void,
+  isVertical?: boolean
 ) {
   if (!masterScript || masterScript.trim().length === 0) {
      throw new Error("Fox Error: MasterScript is empty. The director cannot work with a void.");
@@ -161,7 +176,7 @@ export async function executeAgent2_Director(
     const chunkWordCount = currentChunkArr.join(" ").split(/\s+/).length;
     
     // Strict chunking: limit by words to prevent JSON truncation
-    if (chunkWordCount > 100) {
+    if (chunkWordCount > 300) {
       scriptChunks.push(currentChunkArr.join(" "));
       currentChunkArr = [];
     }
@@ -179,9 +194,15 @@ export async function executeAgent2_Director(
         const progressVal = 50 + Math.floor((10 * i) / scriptChunks.length);
         onProgressUpdate(progressVal, `[!] فوكس (المخرج): معالجة المشاهد المرئية جزء ${i + 1} من ${scriptChunks.length}...`);
     }
+    const verticalFormattingInstruction = isVertical 
+      ? "\n[9:16 VERTICAL FRAMING MANDATE]\n- You MUST structure scenes and visual details specifically for 9:16 portrait vertical layouts (Shorts/Reels).\n- Ensure subjects remain centered in the middle of the frame. Mention '9:16 vertical orientation, tall portrait aspect ratio, central focus' in your image_prompt concepts.\n- All key visual cues must leave safe spaces on top and bottom to avoid mobile app overlays."
+      : "";
+
     const prompt = `[Agent: Fox - Master Visual Director]
-Task: You are the visual overlay director. You receive raw spoken script. You must map it into highly precise visual scenes.
-Crucial Zero-Drop Rule: You MUST map EVERY SINGLE WORD and SENTENCE from the script segment exactly into the scenes. DO NOT summarize, drop, or rewrite any text!
+Task: You are the visual overlay director. You receive raw spoken script. You must map it into highly precise visual scenes.${verticalFormattingInstruction}
+Crucial Zero-Drop Rule: You MUST map EVERY SINGLE WORD and SENTENCE from the script segment exactly into the scenes.
+CRITICAL PACING RULE: MINIMIZE the number of scenes! Group the narration into LARGE, cohesive blocks (approx 45-60+ seconds or 100+ words per scene). Do NOT create a new scene for every single sentence.
+CRITICAL QUALITY ASSURANCE OUTRIGHT REJECTION RULE: NEVER, EVER repeat a scene, a visual concept, or a script segment that you have already generated. Provide strict continuity! Deduplicate thoughts! (وكيل المراجعة المتشدد سيرفض أي مشهد مكرر)
 
 [MOOD & FORMAT DIRECTIVES]
 ${getMoodContext(mood).visualAudioStyle}
@@ -256,17 +277,43 @@ Output strict JSON:
     const parsed = safeJsonParse(rawContent, { scenes: [] });
     if (parsed && Array.isArray(parsed.scenes)) {
       // Direct backward compatibility mapping for Orchestrator bounds
-      const properlyMapped = parsed.scenes.map((s: any) => ({
-        scene_id: s.scene_id,
-        visual_cue: s.visual_concept,
-        clean_tts: s.clean_tts || s.script_line,
-        voice_over: s.voiceover_text || s.clean_tts || s.script_line, // Use voice_over!
-        image_prompt: s.image_prompt || "",
-        sound_design: s.sound_design || "",
-        b_roll_search_query: s.b_roll_search_query || "",
-        montage_instructions: s.montage_instructions || "",
-        estimated_duration_seconds: s.estimated_duration_seconds || 15
-      }));
+      const properlyMapped: any[] = [];
+      const reviewAgentRejectLog = [];
+      for (const s of parsed.scenes) {
+        const text = s.clean_tts || s.script_line || "";
+        const visual = s.visual_concept || "";
+        
+        // Agent 2.5: Deep Scene Reviewer (Deduplication)
+        // وكيل المراجعة: فحص التكرار بدقة
+        const isDuplicate = [...allScenes, ...properlyMapped].some(existing => {
+           const existingText = String(existing.clean_tts || "");
+           const existingVisual = String(existing.visual_cue || "");
+           if (existingText.length > 5 && text.length > 5 && calculateSimilarityScore(text, existingText) > 0.8) return true;
+           if (existingVisual.length > 10 && visual.length > 10 && calculateSimilarityScore(visual, existingVisual) > 0.8) return true;
+           return false;
+        });
+
+        if (isDuplicate) {
+            reviewAgentRejectLog.push(s.scene_id || "Scene");
+            continue; // 🚫 Refuse duplicated scene (مرفوض)
+        }
+
+        properlyMapped.push({
+          scene_id: s.scene_id,
+          visual_cue: visual,
+          clean_tts: text,
+          voice_over: s.voiceover_text || text, 
+          image_prompt: s.image_prompt || "",
+          sound_design: s.sound_design || "",
+          b_roll_search_query: s.b_roll_search_query || "",
+          montage_instructions: s.montage_instructions || "",
+          estimated_duration_seconds: s.estimated_duration_seconds || 15
+        });
+      }
+      if (reviewAgentRejectLog.length > 0 && onProgressUpdate) {
+         onProgressUpdate(100, `[وكيل المراجعة] 🚫 تم رصد ورفض مشاهد مكررة: ${reviewAgentRejectLog.length} مشهد.`);
+      }
+      
       allScenes.push(...properlyMapped);
       
       if (properlyMapped.length > 0) {
@@ -320,7 +367,10 @@ Scene segment:
 ${JSON.stringify(sceneSegment, null, 2)}
 
 === GLOBAL VISUAL CONDITION (MANDATORY THEME) ===
-${globalVisualCondition ? globalVisualCondition : "cinematic dark thriller, neon accents, high contrast lighting, mysterious hacker aesthetic, shadowy atmosphere, glowing digital artifacts, sharp focus, hyper-realistic details."}
+CRITICAL VISUAL DNA OVERRIDE: 
+Regardless of any global theme, you MUST enforce the following aesthetic for ALL images:
+"Authentic vintage editorial illustration, mid-century screen print style, muted earthy color palette, textured parchment paper grain, soft halftone print imperfections, dramatic chiaroscuro lighting, highly detailed historical atmosphere."
+Do not use 3D render, photorealism, modern neon, or hacker vibes. Replace them with vintage archival aesthetics.
 
 === CRITICAL RULE: CONTEXTUAL SYMBOLISM (الرمزية السياقية) ===
 CRITICAL RULE: NEVER use generic or cartoonish elements. The aesthetic is serious, tense, and investigative. If abstract elements are needed, they MUST be semantically related to the topic (e.g., floating redacted documents, glowing data nodes, fragmented glass, binary rain, subtle red string investigation boards). They must seamlessly blend with the dark cinematic setting.
@@ -356,7 +406,7 @@ CRITICAL: To ensure the generated images look like a high-budget thriller when e
 
 === THE MIDJOURNEY PROMPT FORMULA (MANDATORY) ===
 To ensure a highly compelling, dark cinematic aesthetic, the "first_frame_image_prompt" and "second_frame_image_prompt" MUST follow this exact structure:
-[Camera Angle & Shot Size] of <Exact Subject / The Masked Investigator> <Action> in <DARK, MOODY LOCATION> -- Surroundings: <Subtle contextual metaphors, scattered case files, glowing screens> -- Style: <cinematic dark thriller, neon accents, high contrast lighting, mysterious hacker aesthetic, shadowy atmosphere, glowing digital artifacts, sharp focus, anamorphic lens flare> --ar 16:9 --style raw --v 6.0 --no text, typography, letters, words, watermark, cartoon, bright daylight, flat colors, low quality
+[Camera Angle & Shot Size] of <Exact Subject / The Narrator> <Action> in <HISTORICAL/VINTAGE SETTING> -- Surroundings: <Subtle contextual metaphors, scattered archival documents> -- Style: Authentic vintage editorial illustration, mid-century screen print style, muted earthy color palette, textured parchment paper grain, soft halftone print imperfections, dramatic chiaroscuro lighting, highly detailed historical atmosphere --ar 16:9 --v 6.0 --no photorealism, 3d render, modern technology, neon, text, typography, letters, words, watermark, cartoon, bright daylight, flat colors
 
 === CAMERA MOTION PROTOCOL (ENGRAVED IN OUTPUT) ===
 You MUST provide a clear English camera motion instruction for AI Video (Runway/Kling) that matches the image perspective:
@@ -818,7 +868,8 @@ export async function executeAgent_TTSNormalizer(
   script: string,
   engine: string,
   persona: string,
-  onChunk?: (text: string) => void
+  onChunk?: (text: string) => void,
+  model?: string
 ): Promise<string> {
   const isFastPaced = persona !== "الهرم الرابع" && persona !== "برواز التاريخ";
 
@@ -846,7 +897,7 @@ ${script}
 `;
 
   return callWithRetry(async () => {
-    const rawContent = await generateAIContentRaw(prompt, null, engine, onChunk, undefined, false, 0.1);
+    const rawContent = await generateAIContentRaw(prompt, null, engine, onChunk, undefined, false, model || 0.1);
     let cleanText = rawContent.trim();
     cleanText = cleanText.replace(/^```[^\n]*\n/g, '').replace(/\n```$/g, '');
     return cleanText.trim();

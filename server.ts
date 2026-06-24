@@ -12,6 +12,8 @@ import { GoogleGenAI } from "@google/genai";
 import multer from "multer";
 import * as pdfParseModule from "pdf-parse";
 const pdfParse = (pdfParseModule as any).default || pdfParseModule;
+import { PERSONAS } from "./src/config/personas";
+import { MOODS } from "./src/config/moods";
 
 const delay = (ms: number) => new Promise(res => setTimeout(res, ms));
 
@@ -125,8 +127,13 @@ const useGeminiWithKey = async (prompt: string, instr: string, temp: number, api
    }
    
    if (schema || instr.toLowerCase().includes("json")) {
-     config.responseMimeType = "application/json";
-     if (schema) config.responseSchema = schema;
+     if (!enableSearch) {
+         config.responseMimeType = "application/json";
+         if (schema) config.responseSchema = schema;
+     } else {
+         instr = (instr || "") + "\n\nCRITICAL: You MUST return ONLY valid raw JSON data. Do not use markdown formatting (no ```json).";
+         config.systemInstruction = instr;
+     }
    }
 
    const response = await ai.models.generateContent({
@@ -172,6 +179,17 @@ import { jsonrepair } from 'jsonrepair';
 const sanitizeJSONString = (text: string): string => {
     if (!text || typeof text !== "string") return "";
     let clean = text.trim();
+    
+    // Remove think tags
+    clean = clean.replace(/<think>[\s\S]*?<\/think>/gi, '');
+
+    // Fix unquoted number-with-unit values after a colon
+    clean = clean.replace(/:\s*(\d+(?:\.\d+)?)\s*([a-zA-Z\u0600-\u06FF_]+(?:[\s-_][a-zA-Z\u0600-\u06FF_]+)*)\s*(?=,|\n|})/g, ':"$1 $2"');
+
+    // Fix unquoted true or false
+    clean = clean.replace(/:\s*true\s+or\s+false/gi, ': false');
+    clean = clean.replace(/:\s*false\s+or\s+true/gi, ': false');
+
     clean = clean.replace(/^```([a-z]*)\s*/gim, '').replace(/```\s*$/gim, '').trim();
     
     // Extract JSON block if there's surrounding text
@@ -421,6 +439,11 @@ const runWithRotation = async (prompt: string, instr: string = "", temp: number,
                 return await performAttempt(attempt + 1);
             }
             
+            if (getGeminiKeys().length > 0) {
+                console.log("[MAESTRO] All Ollama retries exhausted. Falling back to Gemini...");
+                return runWithRotation(prompt, instr, temp, schema, "gemini", undefined, undefined, stream, enableSearch);
+            }
+            
             if (isTimeout) {
                 throw new Error("Local AI Server Timeout. المحرك استغرق وقتاً طويلاً جداً في الاستجابة (أكثر من 10 دقائق).");
             }
@@ -467,7 +490,7 @@ const pipeOllamaStream = async (req: express.Request, res: express.Response) => 
 
         if (!response.ok) {
             const err = await response.text();
-            return res.status(500).json({ error: `Ollama Stream Error: ${err}` });
+            console.warn(`[STREAM] Ollama Stream Error, falling back to Gemini: ${err}`); req.body.engine = "gemini"; return pipeGeminiStream(req, res);
         }
 
         res.setHeader('Content-Type', 'text/event-stream');
@@ -536,38 +559,50 @@ const pipeGeminiStream = async (req: express.Request, res: express.Response) => 
         }
         
         if (schema || systemInstruction?.toLowerCase().includes("json")) {
-          config.responseMimeType = "application/json";
-          if (schema) config.responseSchema = schema;
+          if (!enableSearch) {
+              config.responseMimeType = "application/json";
+              if (schema) config.responseSchema = schema;
+          } else {
+              config.systemInstruction = (config.systemInstruction || "") + "\n\nCRITICAL: You MUST return ONLY valid raw JSON data. Do not use markdown formatting (no ```json).";
+          }
         }
 
         console.log(`[STREAM] Initiating Gemini Stream (gemini-2.5-flash)`);
         
-        const responseStream = await ai.models.generateContentStream({
-            model: "gemini-2.5-flash",
-            contents: [{ role: 'user', parts: [{ text: prompt }] }],
-            config
-        });
-
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
-
-        let fullContent = "";
-        for await (const chunk of responseStream) {
-            const text = chunk.text;
-            fullContent += text;
-            res.write(`data: ${JSON.stringify({ text, full: fullContent })}\n\n`);
-        }
+        res.flushHeaders();
         
-        res.write('data: [DONE]\n\n');
-        res.end();
+        const pingInterval = setInterval(() => {
+           res.write(':ping\n\n');
+        }, 15000);
+
+        try {
+            const responseStream = await ai.models.generateContentStream({
+                model: "gemini-2.5-flash",
+                contents: [{ role: 'user', parts: [{ text: prompt }] }],
+                config
+            });
+
+            let fullContent = "";
+            for await (const chunk of responseStream) {
+                const text = chunk.text;
+                fullContent += text;
+                res.write(`data: ${JSON.stringify({ text, full: fullContent })}\n\n`);
+            }
+            
+            res.write('data: [DONE]\n\n');
+        } catch (e: any) {
+            console.error("[GEMINI_STREAM_ERROR INNER]", e);
+            res.write(`data: ${JSON.stringify({ error: parseApiError(e) })}\n\n`);
+        } finally {
+            clearInterval(pingInterval);
+            res.end();
+        }
     } catch (e: any) {
         console.error("[GEMINI_STREAM_ERROR]", e);
         if (!res.headersSent) res.status(500).json({ error: parseApiError(e) });
-        else {
-             res.write(`data: ${JSON.stringify({ error: parseApiError(e) })}\n\n`);
-             res.end();
-        }
     }
 };
 
@@ -869,9 +904,10 @@ const startServer = async () => {
 
   app.post("/api/images/generate", async (req, res) => {
     try {
-      const { prompt } = req.body;
-      const strictRules = " STRICT NEGATIVE PROMPT: Avoid completely any geometric shapes, floating circles, or connected lines. The image must be realistic, cinematic, and maintain a consistent visual identity.";
+      const { prompt, aspectRatio } = req.body;
+      const strictRules = " STRICT MODIFIER: You must generate the image as a vintage 19th-century intricate color lithograph illustration. The style should be classic, slightly antique, highly detailed with watercolor-like tints, resembling historical or orientalist engravings, perfectly fitted to the requested subject, place, events, and characters.";
       const finalPrompt = prompt + strictRules;
+      const targetAspectRatio = aspectRatio === "9:16" ? "9:16" : "16:9";
       
       const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
       const response = await ai.models.generateImages({
@@ -879,7 +915,7 @@ const startServer = async () => {
         prompt: finalPrompt,
         config: {
           outputMimeType: "image/jpeg",
-          aspectRatio: "16:9",
+          aspectRatio: targetAspectRatio,
           personGeneration: "DONT_ALLOW" as any
         }
       });
@@ -898,14 +934,15 @@ const startServer = async () => {
 
   app.post("/api/video/generate", async (req, res) => {
     try {
-      const { firstFrame, secondFrame, motionPrompt } = req.body;
+      const { firstFrame, secondFrame, motionPrompt, aspectRatio } = req.body;
       const apiKey = process.env.XAI_GROK_API_KEY;
+      const targetAspectRatio = aspectRatio === "9:16" ? "9:16" : "16:9";
       
       if (!apiKey) {
         throw new Error("XAI_GROK_API_KEY_MISSING");
       }
 
-      console.log("[GROK_VIDEO] Unified Payload Specs Applied: 720p @ 24fps [16:9]");
+      console.log(`[GROK_VIDEO] Unified Payload Specs Applied: 720p @ 24fps [${targetAspectRatio}]`);
       
       // xAI Grok Imagine Video 1.5 Preview Integration
       // Following the provided user specs for the payload
@@ -920,7 +957,7 @@ const startServer = async () => {
           prompt: motionPrompt || "Cinematic camera movement",
           first_frame: firstFrame, // Expecting Base64 or URL
           second_frame: secondFrame, // Expecting Base64 or URL
-          aspect_ratio: "16:9",
+          aspect_ratio: targetAspectRatio,
           resolution: "720p",
           fps: 24,
           quality: "high"
@@ -944,31 +981,146 @@ const startServer = async () => {
     try {
       const Parser = (await import('rss-parser')).default;
       const parser = new Parser();
-      const items: any[] = [];
-      
-      const feeds = ['https://techcrunch.com/feed/', 'https://www.wired.com/feed/rss'];
-      for (const url of feeds) {
-        try {
-          const feed = await parser.parseURL(url);
-          feed.items.slice(0, 5).forEach(item => items.push({ title: item.title, link: item.link, source: feed.title }));
-        } catch(e) {}
-      }
-
-      res.json({ success: true, items });
-    } catch (e) {
-      res.status(500).json({ error: "Intelligence core failure" });
+      const feed = await parser.parseURL('https://trends.google.com/trends/trendingsearches/daily/rss?geo=EG');
+      res.json({ success: true, items: feed.items || [] });
+    } catch (e: any) {
+      console.error("[TRENDS_ERROR]", e);
+      res.status(500).json({ error: "Failed to fetch trends", details: e.message });
     }
   });
 
-  // --- GHANDOUR 2.0: Autonomous Search & Context Compression Pipeline ---
-  app.post("/api/research/ghandour", async (req, res) => {
-    // Keep-alive to prevent Cloud Run 60s timeout
-    res.setHeader('Content-Type', 'application/json');
-    res.setHeader('Transfer-Encoding', 'chunked');
-    const keepAlive = setInterval(() => { res.write(' '); }, 10000);
+  app.post("/api/research/free-deep-research", async (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
 
     try {
-      const { topic, engine, ollamaUrl, ollamaModel, ragContext } = req.body;
+      const { topic, engine, ollamaUrl, ollamaModel } = req.body;
+      const isOllama = engine === "ollama";
+
+      const sendEvent = (type: string, data: any) => {
+         res.write(`data: ${JSON.stringify({ type, ...data })}\n\n`);
+      };
+
+      sendEvent("thought", { title: "تفكيك الموضوع...", detail: `تحليل "${topic}" لصياغة خطة بحث شاملة.` });
+      await new Promise(r => setTimeout(r, 1000));
+
+      let reportText = "";
+
+      if (isOllama) {
+         sendEvent("search", { title: "البحث في الذاكرة المحلية...", detail: `جاري استخراج البيانات والأحداث التاريخية من المحرك المحلي (${ollamaModel || "gemma"})...` });
+         
+         const prompt = `Please perform a deep, comprehensive research on the following topic. Extract actual events, real facts, behind the scenes information, and dates. Ensure your final response is a detailed report in Arabic under 4 main sections.\n\nTopic: ${topic}`;
+         reportText = await runWithRotation(prompt, "أنت باحث استقصائي خبير.", 0.4, undefined, engine, ollamaUrl, ollamaModel);
+         
+         sendEvent("thought", { title: "مراجعة وتوثيق المصادر...", detail: "مطابقة التواريخ، واستبعاد المصادر غير الموثوقة محلياً." });
+         await new Promise(r => setTimeout(r, 1000));
+      } else {
+         const availableKeys = getGeminiKeys();
+         if (availableKeys.length === 0) throw new Error("Gemini API Key is missing. Please add it from Settings > Secrets.");
+         
+         const ai = new GoogleGenAI({ apiKey: availableKeys[0] });
+
+         sendEvent("search", { title: "البحث في الويب...", detail: `استخدام أداة Google Search لجمع أحدث التقارير والمقالات حول ${topic}.` });
+         
+         const response = await ai.models.generateContent({
+             model: "gemini-2.5-flash",
+             contents: `Please perform a deep, comprehensive research on the following topic. Use the Google Search tool to find actual events, real facts, archives, and dates. Always cite your sources with URLs. Ensure your final response is a detailed report in Arabic under 4 main sections, plus a sources section.\n\nTopic: ${topic}`,
+             config: {
+                 tools: [{ googleSearch: {} }],
+                 temperature: 0.3
+             }
+         });
+         reportText = response.text || "";
+
+         sendEvent("thought", { title: "مراجعة وتوثيق المصادر...", detail: "مطابقة التواريخ، واستبعاد المصادر غير الموثوقة." });
+         await new Promise(r => setTimeout(r, 1000));
+      }
+
+      sendEvent("output", { report: reportText });
+      sendEvent("completed", {});
+      
+      res.end();
+    } catch (err: any) {
+      console.error("[FREE_DEEP_RESEARCH]", err);
+      res.write(`data: ${JSON.stringify({ type: "error", error: parseApiError(err) || err.message })}\n\n`);
+      res.end();
+    }
+  });
+
+  app.post("/api/interactions/deep-research", async (req, res) => {
+    try {
+      const { topic } = req.body;
+      if (!topic) {
+        return res.status(400).json({ error: "Topic is required" });
+      }
+      
+      const availableKeys = getGeminiKeys();
+      if (availableKeys.length === 0) {
+          throw new Error("Gemini API Key is missing. Please add it from Settings > Secrets.");
+      }
+      
+      const ai = new GoogleGenAI({ 
+        apiKey: availableKeys[0],
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+      
+      // Start background research
+      const initialInteraction = await ai.interactions.create({
+          agent: "deep-research-preview-04-2026",
+          input: `Research everything about: ${topic}. Focus on Egyptian and Arabic sources, archives, history books, and historical context.`,
+          background: true,
+      });
+      
+      res.json({ success: true, interactionId: initialInteraction.id });
+    } catch (e: any) {
+      console.error("[DEEP_RESEARCH]", e);
+      res.status(500).json({ error: parseApiError(e) || e.message });
+    }
+  });
+
+  app.get("/api/interactions/deep-research/:id", async (req, res) => {
+    try {
+      const availableKeys = getGeminiKeys();
+      if (availableKeys.length === 0) {
+          throw new Error("Gemini API Key is missing. Please add it from Settings > Secrets.");
+      }
+      
+      const ai = new GoogleGenAI({ 
+        apiKey: availableKeys[0],
+        httpOptions: { headers: { 'User-Agent': 'aistudio-build' } }
+      });
+      
+      const interaction = await ai.interactions.get(req.params.id);
+      
+      let fullReport = "";
+      if (interaction.status === "completed") {
+          for (const step of interaction.steps) {
+              if (step.type === 'model_output') {
+                  const textContent = step.content?.find(c => c.type === 'text');
+                  if (textContent) fullReport += textContent.text;
+              }
+          }
+      }
+      
+      res.json({ 
+        success: true, 
+        status: interaction.status, 
+        report: fullReport,
+        steps: interaction.steps 
+      });
+    } catch(e: any) {
+      console.error("[DEEP_RESEARCH_POLL]", e);
+      res.status(500).json({ error: parseApiError(e) || e.message });
+    }
+  });
+
+  app.post("/api/research/ghandour", async (req, res) => {
+    const keepAlive = setInterval(() => {
+      res.write(' ');
+    }, 15000);
+    try {
+      const { topic, engine, ollamaUrl, ollamaModel, ragContext, persona, mood } = req.body;
       if (!topic) {
         clearInterval(keepAlive);
         res.write(JSON.stringify({ error: "الموضوع (topic) مطلوب لتشغيل وكيل البحث." }));
@@ -976,26 +1128,59 @@ const startServer = async () => {
         return;
       }
 
-      console.log(`[GHANDOUR 2.0] Initiating autonomous pipeline for: "${topic}"`);
+      console.log(`[GHANDOUR 2.0] Initiating autonomous pipeline for: "${topic}" | Persona: "${persona || 'None'}" | Mood: "${mood || 'None'}"`);
 
-        let rawScrapedTexts = "";
-        let sourcesList: { title: string, url: string }[] = [];
+      let rawScrapedTexts = "";
+      let sourcesList: { title: string, url: string }[] = [];
 
       if (ragContext && ragContext.trim().length > 0) {
           console.log(`[GHANDOUR 2.0] Academic RAG Context provided. Length: ${ragContext.length}`);
-          rawScrapedTexts += `[REF_RAG] Title: Academic Document\nURL: Local RAG\nContent: ${ragContext.substring(0, 30000)}\n\n`; // Limit huge PDFs just in case
-          sourcesList.push({ title: "الملف الأكاديمي המقروء (RAG)", url: "local://rag-document" });
+          rawScrapedTexts += `[REF_RAG] Title: Academic Document\nURL: Local RAG\nContent: ${ragContext.substring(0, 30000)}\n\n`;
+          sourcesList.push({ title: "الملف الأكاديمي المقروء (RAG)", url: "local://rag-document" });
       }
 
-      // 1. Query Generation (الاستنباط)
-      const queryPrompt = `أنت العقل المدبر لـ "غندور 2.0" (Ghandour's Brain)، وكيل البحث التاريخي والاستقصائي صلب البنية.
-الموضوع: "${topic}"
-توجيه صارم للبحث الإقليمي (CRITICAL RULE): يجب توجيه عمليات البحث والكلمات المفتاحية دائماً لتسليط الضوء على المحتوى العربي، الإسلامي، والمصري (شخصيات عربية ومصرية، إنجازات إقليمية، وشخصيات تاريخية ومعاصرة في منطقتنا) ما لم يقم المستخدم بتحديد اسم شخصية أجنبية صراحة. تجنب تماماً جلب نتائج أو أمثلة لأجانب إذا كان السياق يحتمل أو يطلب أمثلة لمبدعين ومفكرين أو أحداث عربية.
+      // Generate Persona and Mood Focus Context
+      let personaFocusContext = "";
+      if (persona) {
+        personaFocusContext += `\nشخصية الراوي المعتمدة لهذه الحلقة هي: "${persona}"\n`;
+        switch (persona) {
+          case "الهرم الرابع":
+            personaFocusContext += `ملاحظة هامة جداً: ركز استعلامات البحث على الجوانب التاريخية المهيبة، البطولات البشرية والإسلامية، الفتوحات، المعارك الملحمية، والوقائع الإيجابية الموثقة المؤثرة التي تتميز بالوقار والسمو الحضاري وبطولات وتاريخ العرب المسلمين.`;
+            break;
+          case "النبّاش":
+            personaFocusContext += `ملاحظة هامة جداً: ركز استعلامات البحث على الجوانب الاستقصائية الكاشفة، كواليس وتفاصيل غامضة ومثيرة، والتحاليل والملفات غير المفتوحة والبحث وراء الأرقام والقرائن للوصول إلى حقائق.`;
+            break;
+          case "الشاهد الصامت":
+            personaFocusContext += `ملاحظة هامة جداً: ركز استعلامات البحث على الآثار أو الأماكن أو الجماد أو الشهود الصامتة التي تروي الحدث من منظور خارجي موضوعي صامت ومختلف.`;
+            break;
+          case "الدحيح":
+            personaFocusContext += `ملاحظة هامة جداً: ركز استعلامات البحث على الجوانب الكوميدية الساخرة، الميمز، تبسيط المعقد والعلوم والبوب كالشر والضحك والفكاهة والقصص الغريبة الطريفة.`;
+            break;
+          default:
+            break;
+        }
+      }
 
-المطلوب: للحصول على حلقة طويلة استقصائية مكثفة جداً (Information Density)، قم بتوليد من 5 إلى 7 أوامر بحث (Search Queries) دقيقة للغاية، بالغة التركيز، وتغطي جوانب فرعية عميقة من الموضوع (الروايات الرسمية، الكواليس السرية، الخلافات التاريخية، التأثير النفسي أو الاقتصادي، تفاصيل غير معروفة عربياً).
-أخرج الناتج تماماً بصيغة JSON نظيفة تحتوي على قائمة بالطريقة التالية دون أي شرح أو كلام إضافي:
+      let moodFocusContext = "";
+      if (mood) {
+        moodFocusContext += `\nالقالب الفني/المزاج المعتمد للحلقة هو: "${mood}"\n`;
+      }
+
+      // Now we formulate search queries based on the topic, persona, and mood using LLM
+      const queryPrompt = `أنت رئيس فريق الإعداد الأكاديمي والاستقصائي لبرنامج "برواز" (على طريقة "استقصاء الدحيح").
+الموضوع المطلوب البحث عنه وتدقيقه: "${topic}"
+${personaFocusContext}
+${moodFocusContext}
+
+مهمتك: توليد 5 إلى 7 أوامر بحث (Search Queries) احترافية وعميقة للبحث في (الكتب العميقة، الأوراق البحثية، المراجع التاريخية الموثوقة، السجلات الأرشيفية، والمصادر العربية والأجنبية الرصينة).
+يجب أن تستهدف الاستعلامات:
+1. الجذور التاريخية والأدلة العلمية القاطعة (Hard Facts & Academic Roots).
+2. الزوايا النفسية أو العلمية المعقدة (المادة الخام للتبسيط والتشبيهات - Pop Science).
+3. المفارقات المنطقية والقصص الغريبة التي تسبب صدمة للمشاهد المعتاد (Logical Paradoxes & Oddities).
+
+أخرج الناتج تماماً بصيغة JSON نظيفة (JSON array in object) دون أي نص إضافي:
 {
-  "queries": ["الاستعلام الأول", "الاستعلام الثاني", "الاستعلام الثالث", "الاستعلام الرابع", "الاستعلام الخامس"]
+  "queries": ["استعلام بحثي عن كتاب كذا", "تاريخ ظاهرة كذا في الأرشيف", "الأبحاث العلمية حول كذا", "المفارقة الغريبة في قصة كذا"]
 }`;
 
       let queriesResponse: string;
@@ -1015,7 +1200,6 @@ const startServer = async () => {
 
       // 2. Autonomous Scraping (الزحف الآلي باستخدام Tavily أو البديل)
       const tavilyApiKey = process.env.TAVILY_API_KEY;
-
       if (tavilyApiKey && tavilyApiKey.trim() !== "") {
         console.log(`[GHANDOUR 2.0] Executing Tavily crawler for queries...`);
         try {

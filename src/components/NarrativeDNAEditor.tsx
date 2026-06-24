@@ -13,7 +13,7 @@ export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorPro
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
            <BookOpen className="w-4 h-4 text-muted-amber" />
-           <span className="text-[11px] font-arabic text-[#fafafa]/70   font-bold">
+           <span className="text-[11px] font-mono text-[#fafafa]/70 uppercase tracking-widest font-bold">
              هيكل قصة الفيديو (Narrative Strategy)
            </span>
         </div>
@@ -22,7 +22,7 @@ export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorPro
       <div className="grid grid-cols-2 gap-2">
         <button 
           onClick={() => onChange("HCS")}
-          className={`px-4 py-4 rounded-md text-[11px] font-arabic font-bold transition-all flex flex-col items-center gap-1 ${
+          className={`px-4 py-4 rounded-md text-[11px] font-mono font-bold transition-all flex flex-col items-center gap-1 ${
             strategy === "HCS" 
               ? 'bg-muted-amber/20 text-muted-amber border border-muted-amber shadow-[0_0_15px_rgba(212,175,55,0.2)]' 
               : 'bg-[#121214]  border-[#27272a] shadow-sm text-[#a1a1aa] border border-[#27272a] active:scale-95'
@@ -33,7 +33,7 @@ export function NarrativeDNAEditor({ strategy, onChange }: NarrativeDNAEditorPro
         </button>
         <button 
           onClick={() => onChange("HAP")}
-          className={`px-4 py-4 rounded-md text-[11px] font-arabic font-bold transition-all flex flex-col items-center gap-1 ${
+          className={`px-4 py-4 rounded-md text-[11px] font-mono font-bold transition-all flex flex-col items-center gap-1 ${
             strategy === "HAP" 
               ? 'bg-muted-amber/20 text-muted-amber border border-muted-amber shadow-[0_0_15px_rgba(212,175,55,0.2)]' 
               : 'bg-[#121214]  border-[#27272a] shadow-sm text-[#a1a1aa] border border-[#27272a] active:scale-95'

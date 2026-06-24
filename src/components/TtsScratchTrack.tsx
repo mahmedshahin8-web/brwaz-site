@@ -22,7 +22,7 @@ export const TtsScratchTrack: React.FC<{ text: string }> = ({ text }) => {
       className={`flex items-center gap-2 p-2 border ${isSpeaking ? 'border-amber-500 bg-amber-500/10 text-amber-400' : 'border-zinc-800 bg-zinc-900 text-zinc-300'} active:scale-95 transition-none`}
     >
       {isSpeaking ? <Square size={12} fill="currentColor" /> : <Play size={12} />}
-      <span className="text-[9px] font-arabic ">{isSpeaking ? 'جاري التشغيل...' : 'توليد مبدئي'}</span>
+      <span className="text-[9px] font-mono uppercase">{isSpeaking ? 'Playing...' : 'Play_Scratch'}</span>
     </button>
   );
 };

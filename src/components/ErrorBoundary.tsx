@@ -38,8 +38,8 @@ export class ErrorBoundary extends React.Component<Props, State> {
             <p className="text-[#fafafa] font-serif text-sm">
               يبدو أن هناك عطلاً مفاجئاً في واجهة العرض.
             </p>
-            <div className="text-left font-arabic text-xs text-[#555] bg-[#121214] p-2 overflow-x-auto border border-[#27272a] max-h-32 overflow-y-auto">
-              {this.state.error?.message}
+            <div className="text-left font-mono text-xs text-[#555] bg-[#121214] p-2 overflow-x-auto border border-[#27272a] max-h-32 overflow-y-auto">
+              {this.state.error?.stack}
             </div>
             <button
               onClick={() => window.location.reload()}

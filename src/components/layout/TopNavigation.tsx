@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, Archive, Settings, LayoutDashboard, Zap, Calendar, BarChart2, User } from "lucide-react";
+import { BookOpen, Settings, Zap, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -8,52 +8,47 @@ export default function TopNavigation() {
   const navigate = useNavigate();
 
   const menuItems = [
-    { id: "dashboard", label: "المركز الرئيسي", icon: LayoutDashboard },
-    { id: "script-editor", label: "كتابة السيناريو", icon: BookOpen },
-    { id: "content", label: "صناعة المحتوى", icon: Zap },
-    { id: "scheduler", label: "خطة النشر", icon: Calendar },
-    { id: "archive", label: "الأرشيف", icon: Archive },
-    { id: "analytics", label: "التقارير", icon: BarChart2 },
+    { id: "content", label: "الاستوديو", icon: Zap },
+    { id: "graph", label: "المسودات", icon: BookOpen }
   ];
 
   return (
-    <div className="w-full fixed top-0 left-0 right-0 z-50 pointer-events-none bg-[#09090b]/80  border-b border-[#27272a]/50" dir="rtl">
-      <div className="max-w-[1400px] mx-auto px-6 h-16 flex justify-between items-center pointer-events-auto">
+    <div className="w-full fixed top-0 left-0 right-0 z-50 bg-black/80 backdrop-blur-2xl border-b border-white/[0.04]" dir="rtl">
+      <div className="max-w-[1600px] w-full mx-auto px-8 h-16 flex justify-between items-center">
         
         {/* Logo / Brand Area */}
-        <div className="flex items-center gap-3 cursor-pointer group" onClick={() => navigate('/dashboard')}>
-            <div className="w-8 h-8 rounded-lg bg-[#eff6ff] text-[#1e40af] flex items-center justify-center font-arabic font-extrabold text-lg transition-transform group-hover:scale-105">
-                ب
+        <div className="flex items-center gap-4 cursor-pointer group" onClick={() => navigate('/content')}>
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-[#d4af37] to-[#8c7322] text-black flex items-center justify-center font-bold text-lg shadow-[0_0_15px_rgba(212,175,55,0.3)] transition-transform group-hover:scale-110">
+                S
             </div>
-            <div className="flex flex-col">
-                <span className="text-xs text-[#fafafa] font-bold tracking-wide">برواز ستوديو</span>
-                <span className="text-[10px] text-[#a1a1aa]">مساحة العمل</span>
+            <div className="hidden sm:flex flex-col">
+                <span className="text-xs text-white font-bold tracking-[0.3em] font-sans uppercase">Suite</span>
             </div>
         </div>
 
         {/* Main Navigation */}
-        <nav className="flex items-center gap-1">
+        <nav className="flex items-center gap-2 flex-1 justify-center">
             {menuItems.map((item) => {
               const Icon = item.icon;
-              const isActive = location.pathname.includes(item.id) || (location.pathname === '/' && item.id === 'dashboard');
+              const isActive = location.pathname.includes(item.id) || (location.pathname === '/' && item.id === 'content');
 
               return (
                 <button
                   key={item.id}
                   onClick={() => navigate(`/${item.id}`)}
-                  className={`relative flex items-center gap-2 px-4 py-2 rounded-md transition-all duration-200 ${
-                    isActive ? "text-[#fafafa]" : "text-[#71717a] hover:text-[#d4d4d8] hover:bg-[#27272a]/30"
+                  className={`relative flex items-center gap-2 px-4 py-1.5 rounded-lg transition-colors duration-200 ${
+                    isActive ? "text-white" : "text-[#a1a1aa] hover:text-white"
                   }`}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="active-nav-pill"
-                      className="absolute inset-0 bg-[#27272a] rounded-md"
-                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                      className="absolute inset-0 bg-white/10 rounded-lg"
+                      transition={{ type: "spring", stiffness: 450, damping: 30 }}
                     />
                   )}
-                  <Icon size={16} className={`relative z-10 ${isActive ? "text-[#4f46e5]" : ""}`} />
-                  <span className={`relative z-10 text-sm font-arabic ${isActive ? "font-semibold" : "font-medium"}`}>
+                  <Icon size={14} className="relative z-10" />
+                  <span className={`relative z-10 text-xs ${isActive ? "font-bold" : "font-medium"}`}>
                     {item.label}
                   </span>
                 </button>
@@ -62,15 +57,15 @@ export default function TopNavigation() {
         </nav>
 
         {/* Right Area: Settings & User */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
              <button 
                onClick={() => navigate('/settings')}
-               className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors ${location.pathname.includes('settings') ? 'bg-[#27272a] text-[#fafafa]' : 'hover:bg-[#27272a]/50 text-[#71717a] hover:text-[#fafafa]'}`}
+               className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${location.pathname.includes('settings') ? 'bg-white/10 text-white' : 'hover:bg-white/5 text-[#a1a1aa] hover:text-white'}`}
              >
-                <Settings size={18} />
+                <Settings size={16} />
              </button>
-             <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-[#4f46e5] to-[#ec4899] flex items-center justify-center text-white text-xs font-bold shadow-sm cursor-pointer ml-1">
-                 م
+             <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white transition-opacity cursor-pointer hover:opacity-80 overflow-hidden">
+                 <User size={15} />
              </div>
         </div>
 

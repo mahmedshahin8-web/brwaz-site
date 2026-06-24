@@ -22,13 +22,13 @@ export const ThumbnailBlueprintCard: React.FC<{ blueprint: { prompt: string; tex
   return (
     <div className="p-4 border border-zinc-800 bg-zinc-950 flex flex-col gap-4">
       <div className="flex justify-between items-center">
-        <h3 className="text-micro font-arabic font-bold text-zinc-500  ">
+        <h3 className="text-micro font-mono font-bold text-zinc-500 uppercase tracking-[0.3em]">
           Thumbnail_Blueprint // تصميم_الصورة
         </h3>
         <button 
           onClick={handleGenerate}
           disabled={isGenerating}
-          className="text-[9px]  tracking-wider font-arabic bg-[#4f46e5] hover:bg-[#4f46e5] text-white px-3 py-1 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
+          className="text-[9px] uppercase tracking-wider font-mono bg-[#4f46e5] hover:bg-[#4f46e5] text-white px-3 py-1 rounded-lg flex items-center gap-2 transition-colors disabled:opacity-50"
         >
           {isGenerating ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
           {isGenerating ? "Synthesizing..." : "Generate AI_Thumb"}
@@ -47,7 +47,7 @@ export const ThumbnailBlueprintCard: React.FC<{ blueprint: { prompt: string; tex
       <div className="space-y-4 pt-4 border-t border-zinc-900 mt-2">
         <div>
           <label className="text-[8px] text-zinc-600 block mb-1">Visual_Prompt</label>
-          <p className="text-[11px] text-zinc-300 font-arabic">{blueprint.prompt}</p>
+          <p className="text-[11px] text-zinc-300 font-mono">{blueprint.prompt}</p>
         </div>
         <div className="flex gap-4">
             <div>
