@@ -2758,10 +2758,10 @@ export interface DiverseTopicCategory {
 export async function generateDiverseTopics(mood: string, engine: string, onProgress?: any, signal?: AbortSignal, model?: string): Promise<DiverseTopicCategory[]> {
   try {
     const prompt = `أنت كاتب إبداعي مصري عبقري ومعد برامج، خبير في صياغة المحتوى وصناعة الأفكار.
-المستخدم يطلب من فريق الإعداد 18 فكرة لحلقات يوتيوب خارقة للعادة ومجنونة ومبنية على بحث حقيقي ومراجع.
+المستخدم يطلب من فريق الإعداد 21 فكرة لحلقات يوتيوب خارقة للعادة ومجنونة ومبنية على بحث حقيقي ومراجع.
 نوع القناة/المجال: "${mood}".
 
-المطلوب منك ابتكار الأفكار مقسمة إلى 6 مدارس/قوالب مختلفة في صناعة المحتوى، كل مدرسة لها 3 أفكار (المجموع 18 فكرة).
+المطلوب منك ابتكار الأفكار مقسمة إلى 7 مدارس/قوالب مختلفة في صناعة المحتوى، كل مدرسة لها 3 أفكار (المجموع 21 فكرة).
 
 المدرسة الأولى: "مدرسة الدحيح (التبسيط والكوميديا العبثية)"
 - الفلسفة: تبسيط العلوم والتاريخ والاقتصاد في قالب سطحي جداً وكوميدي وساخر بالعامية المصرية، يبدأ من حاجة تافهة جداً وينتهي بنظرية علمية أو تاريخية عميقة.
@@ -2793,6 +2793,11 @@ export async function generateDiverseTopics(mood: string, engine: string, onProg
 - الهوك: رقم صادم، إفلاس مفاجئ، أو قرار إداري مجنون غيّر مسار شركة كبرى.
 - الوصف والمصادر: شرح الميكانيزمات الاقتصادية بتبسيط وتشويق، بالاعتماد على تقارير الأسواق، كتب الاقتصاد السلوكي، وتاريخ الشركات.
 
+المدرسة السابعة: "مدرسة الأدب والرواية (خبايا الكُتاب والقصص المصرية)"
+- الفلسفة: رحلة ممتعة في عقول وأعمال عمالقة الأدب في مصر والعالم، قصص القصائد الممنوعة، حكايات القهاوي الثقافية والمقاهي الأدبية في مصر، وتحليل الروايات العظيمة بشكل يربطها بالواقع.
+- الهوك: بيت شعر غامض، اقتباس صادم من رواية، أو سر خطير كان مخفي وراء كتابة قصة مشهورة.
+- الوصف والمصادر: السرد بأسلوب مشوق يعتمد على كتب النقد الأدبي، سير وتراجم الشعراء والكتاب، ومذكرات أصدقائهم.
+
 مواصفات الفكرة (لكل المدارس):
 - العنوان (title): لازم يكون "بالمصري الدارج" (إلا لو مدرسة تاريخية كلاسيكية)، صايع جداً، قصير، وبيخطف العين (Clickbaity بس شيك)، استخدم كلمات فيها إثارة وتساؤل.
 - الهوك (hook): الجملة الافتتاحية الخاطفة.. لازم تكون مكتوبة بالعامية المصرية الصميمة وكأنك بتكلم واحد صاحبك على القهوة، فيها ريتم سريع وبتشد الانتباه من أول كلمة.
@@ -2812,7 +2817,7 @@ Format your response as a JSON ARRAY OF OBJECTS, exactly like this structure:
   }
 ]
 
-Return ONLY the JSON array containing exactly 6 categories, and 3 ideas per category. NO MARKDOWN, NO OTHER TEXT.`;
+Return ONLY the JSON array containing exactly 7 categories, and 3 ideas per category. NO MARKDOWN, NO OTHER TEXT.`;
 
     // DISABLE search (last argument is false) to prevent the search tool from stripping the creativity and forcing a factual, non-comedic robotic tone.
     const res = await generateAIContentRaw(prompt, undefined, engine, onProgress, signal, true, model, false);

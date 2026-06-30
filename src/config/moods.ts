@@ -14,7 +14,7 @@ export interface MoodDefinition {
   icon: any;
   color: string;
   description: string;
-  sector: "dahih" | "history" | "shadows" | "power" | "anatomy" | "modern" | "cinema" | "biography";
+  sector: "dahih" | "history" | "shadows" | "power" | "anatomy" | "modern" | "cinema" | "biography" | "literature";
   dna?: {
     style: string;
     paper: string;
@@ -111,6 +111,24 @@ export const MOODS: MoodDefinition[] = [
     dna: { style: "Retro Broadcasting Vibe", paper: "Press Releases", localization: "Radio Studio" }
   },
 
+  // قطاع: الأدب والرواية (جديد)
+  {
+    type: "كواليس الأدب (Literary Secrets)",
+    icon: BookOpen,
+    color: "#d946ef",
+    description: "حكايات الكُتاب، الصراعات الأدبية، وما وراء كتابة أعظم الروايات والقصائد.",
+    sector: "literature",
+    dna: { style: "Classic Typewriter Text", paper: "Aged Parchment", localization: "Old Library" }
+  },
+  {
+    type: "رحلة رواية (Novel Journey)",
+    icon: Library,
+    color: "#f43f5e",
+    description: "تحليل سيكولوجي واجتماعي للروايات الخالدة وتأثيرها على الواقع.",
+    sector: "literature",
+    dna: { style: "Abstract Watercolor", paper: "Handwritten Notes", localization: "Bohemian Cafe" }
+  },
+
   // قطاع: الاقتصاد (لعبة الأرقام)
   {
     type: "بيزنس ساخن (Corporate Drama)",
@@ -172,6 +190,7 @@ export const SECTORS = [
   { id: "history", label: "ورا الكواليس (تاريخ)" },
   { id: "cinema", label: "الفن السابع (سينما)" },
   { id: "biography", label: "بورتريه (شخصيات)" },
+  { id: "literature", label: "أدب ورواية (Literature)" },
   { id: "power", label: "لعبة الفلوس (اقتصاد)" },
   { id: "anatomy", label: "صائد الخرافات (علوم)" },
   { id: "shadows", label: "أرشيف الضلمة (غموض)" },
