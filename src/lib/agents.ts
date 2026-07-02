@@ -224,9 +224,9 @@ You must output TWO versions of the script line:
 1. "clean_tts": An EXACT mapping from the text provided above, but STRIP OUT any [URL] links or source brackets. ZERO TAGS. Clean for TTS. (MUST INCLUDE ALL ORIGINAL TEXT)
 2. "voiceover_text": The EXACT SAME text, but intelligently inject performance pacing tags for a human voice actor. Use tags like [PAUSE] for dramatic pauses, [SPEED: FAST] for fast delivery, and [TONE: MYSTERIOUS] etc. DO NOT alter the actual words!
 3. "image_prompt": A highly detailed midjourney-style image generation prompt for the visual concept.
-4. "sound_design": Advanced sound design and Foley notes (e.g., 'Low cinematic sub bass drone with distant echoes').
-5. "b_roll_search_query": A clean 1-3 word english search query for stock video (e.g. 'cairo rain', 'vintage typewriter'). MUST BE IN ENGLISH.
-6. "montage_instructions": Editing instructions for this specific scene (e.g. 'Slow zoom in', 'Fast flashy cuts').
+4. "sound_design": Advanced sound design and Foley notes (e.g., 'Low cinematic sub bass drone with distant echoes'). Ensure this contrasts well with other scenes.
+5. "b_roll_search_query": A clean 1-3 word english search query for stock video. Be practical for Pexels (e.g., instead of '1950s Egyptian revolution', use 'vintage crowd' or 'old documents' or 'typewriter'). MUST BE IN ENGLISH.
+6. "montage_instructions": MUST BE IN EGYPTIAN ARABIC (بالمصري). Detailed professional Daheeh-style editing instructions for the human editor on how to animate, transition, and connect the 'first_frame' to the 'second_frame' (e.g. 'ابدا بـ Slow Zoom In على الفريم الأول وبعدها اضرب Jump Cut سريع للفريم التاني مع Sound Effect Whoosh عشان نشد انتباه المشاهد').
 
 Output strict JSON:
 {
@@ -238,8 +238,10 @@ Output strict JSON:
       "voiceover_text": "string (The text with pacing tags [PAUSE], [SPEED], [TONE] injected)",
       "image_prompt": "string (A highly detailed text-to-image prompt (english) to generate this scene)",
       "sound_design": "string (Detailed sound design layout)",
-      "b_roll_search_query": "string (1-3 English words for Pexels search)",
-      "montage_instructions": "string (Editing directions)",
+      "b_roll_search_query": "string (1-3 English words for Pexels search. Use practical, simple nouns)",
+      "montage_instructions": "string (MUST BE IN EGYPTIAN ARABIC. Daheeh-style editing directions for connecting first and second frames)",
+      "text_on_screen": "string (Arabic text. Popups for Edutainment, Daheeh style. E.g. 'نسبة 99%!!')",
+      "pop_culture_meme_insert": "string (Recommend a specific Daheeh-style meme or pop-culture insert)",
       "estimated_duration_seconds": number (approx 2.5 words per second)
     }
   ]
@@ -372,8 +374,8 @@ Regardless of any global theme, you MUST enforce the following aesthetic for ALL
 "Authentic vintage editorial illustration, mid-century screen print style, muted earthy color palette, textured parchment paper grain, soft halftone print imperfections, dramatic chiaroscuro lighting, highly detailed historical atmosphere."
 Do not use 3D render, photorealism, modern neon, or hacker vibes. Replace them with vintage archival aesthetics.
 
-=== CRITICAL RULE: CONTEXTUAL SYMBOLISM (الرمزية السياقية) ===
-CRITICAL RULE: NEVER use generic or cartoonish elements. The aesthetic is serious, tense, and investigative. If abstract elements are needed, they MUST be semantically related to the topic (e.g., floating redacted documents, glowing data nodes, fragmented glass, binary rain, subtle red string investigation boards). They must seamlessly blend with the dark cinematic setting.
+=== CRITICAL RULE: CONTEXTUAL SYMBOLISM & BACKGROUNDS (الرمزية السياقية) ===
+CRITICAL RULE: NEVER use generic or cartoonish elements. The aesthetic is serious, tense, and investigative. The BACKGROUND, SETTING, and any abstract elements MUST BE DIRECTLY AND DEEPLY RELATED to the specific topic of the scene (e.g., if the topic is about the Cold War, the background should have subtle Soviet/US motifs, era-appropriate architecture, or radar maps. If it's about biology, subtle microscopic patterns or vintage anatomical sketches). They must seamlessly blend with the dark cinematic setting. DO NOT just use generic "dark rooms" or "scattered papers" unless it fits the topic perfectly.
 
 === CRITICAL RULE: THE MAIN PERSONA (THE NARRATOR/AL NABBASH) ===
 When the script refers to the narrator, the investigator, or "النبّاش", you MUST use this exact persona description in the prompt:
@@ -424,20 +426,20 @@ Example 2 (The Clue - Close Up): [Extreme Close-Up (ECU), Over-The-Shoulder] of 
 Generate highly descriptive prompts for the visual engine.
 1. "recommended_template": (e.g. "old_tv", "archival_book", "classified_folder", "hologram_projector", or "FULLSCREEN")
 2. "first_frame_image_prompt": The precise english generative AI prompt for Shot 1, starting with [Shot Size, Camera Angle]. (CLEAN SHOT, NO HUMAN FACES UNLESS HISTORICAL FIGURE NAME).
-3. "first_frame_motion_prompt": English motion prompt for Runway/Kling for Shot 1 matching the Shot Size.
+3. "first_frame_motion_prompt": English motion prompt for Runway/Kling for Shot 1 matching the Shot Size. (Max 10s duration. OR write 'STATIC' / 'B-ROLL ARCHIVE' if AI animation is not needed).
 4. "second_frame_image_prompt": The precise english generative AI prompt for Shot 2 (seamlessly follow shot 1 with a new angle), starting with [Shot Size, Camera Angle].
-5. "second_frame_motion_prompt": English motion prompt for Runway/Kling for Shot 2 matching the Shot Size.
+5. "second_frame_motion_prompt": English motion prompt for Runway/Kling for Shot 2 matching the Shot Size. (Max 10s duration. OR write 'STATIC' / 'B-ROLL ARCHIVE').
 6. "multi_camera_angles": An array of 3 distinct directorial angles.
-7. "b_roll_search_query": Stock video search query (Pexels).
+7. "b_roll_search_query": Stock video search query (Pexels) focusing on real footage (e.g., "vintage crowd walking 1920s", "desert dunes drone shot").
 8. "sfx": Arabic SFX description.
 
 Output strict JSON:
 {
   "recommended_template": "string",
   "first_frame_image_prompt": "string",
-  "first_frame_motion_prompt": "string (ENGLISH ONLY, e.g. Slow zoom in, Cinematic fast tracking shot)",
+  "first_frame_motion_prompt": "string (ENGLISH ONLY, e.g. Slow zoom in, Cinematic fast tracking shot, or STATIC)",
   "second_frame_image_prompt": "string",
-  "second_frame_motion_prompt": "string (ENGLISH ONLY, e.g. Slow pan right, Static shot, slow motion)",
+  "second_frame_motion_prompt": "string (ENGLISH ONLY, e.g. Slow pan right, Static shot, slow motion, or B-ROLL ARCHIVE)",
   "multi_camera_angles": [
     { "type": "Wide Angle", "description": "Establishing shot of...", "lens": "24mm" },
     { "type": "Close-Up", "description": "Tight on the eyes...", "lens": "85mm macro" }
@@ -580,12 +582,17 @@ Final Text:
 ${masterScript.substring(0, 5000)} ... [Truncated]
 
 CRITICAL RULES FOR OUTPUT:
-1. TITLES (عناوين يوتيوب/فيسبوك): Must be click-magnets. Use paradoxes, shocking numbers, and curiosity gaps. NEVER use direct academic titles. Example: '٤ سنين قلبت التاريخ.. السر المرعب!' instead of 'عبقرية الحفظ'.
+1. TITLES (عناوين يوتيوب/فيسبوك): MUST generate exactly 3 titles with distinct psychological angles:
+   - Title 1 (فضولي - Curiosity Gap): A title that creates an irresistible knowledge gap (e.g., 'السر المخفي وراء...').
+   - Title 2 (قصصي - Story-Driven): A title that hints at a dramatic or bizarre narrative (e.g., 'قصة الرجل الذي خدع العالم...').
+   - Title 3 (صادم - Shocking/Paradox): A title built on a shocking contrast or paradox (e.g., 'كيف دمرت الشهرة حياة...').
+   NEVER use direct academic titles.
 2. DESCRIPTION (الوصف): Write it as a fast-paced 'Teaser' that hooks the reader. Do not summarize the video. Sell the mystery. MANDATORY: Start with 3-4 catchy sentences in Egyptian Slang.
 3. SHORTS HOOKS (الخطاف): NEVER start with clichés like 'عمرك سألت نفسك' or 'هل تعلم'. Start with a Pattern Interrupt, a bold claim, or a shocking scenario. Example: 'لو قلتلك إن في إنسان ذاكرته أقوى من هارد ديسك.. هتصدقني؟'.
 4. TONE: Clean Cairene Egyptian Slang (عامية قاهرية بيضاء). Fast-paced, suspenseful Edutainment style. No Fusha!
 5. Thumbnail Prompt: Midjourney AI prompt (in English) for an eye-catching illustration thumbnail.
    - GLOBAL THEME: MUST strictly embrace the official channel's aesthetic style: ${DNA.visual_rules.global_style}
+   - CONTEXTUAL RELEVANCE: The background, objects, and visual metaphors in the thumbnail MUST deeply relate to the specific topic of the video. Do not use generic dark rooms. If the video is about history, include historical elements; if about tech, include tech elements.
    - ASPECT RATIO: MUST append --ar 16:9 to the positive prompt.
    - STRICT NEGATIVE RULES (MANDATORY): --no text, font, letters, watermark, geometric shapes, 3d render.
    - CRITICAL COMPOSITION SAFETY RULES: NEVER use words like 'Calligraphy', 'Letters', or 'Text' in the positive image prompt.

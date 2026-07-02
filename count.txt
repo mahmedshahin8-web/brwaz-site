@@ -1,0 +1,15 @@
+  app.post("/api/documents/upload", upload.single("file"), async (req, res) => {
+  app.post("/api/ai/generate", async (req, res) => {
+  app.post("/api/drafts/generate", async (req, res) => {
+  app.post("/api/scene/analyze", async (req, res) => {
+  app.post("/api/intel/factcheck", async (req, res) => {
+  app.post("/api/drafts/critique", async (req, res) => {
+  app.post("/api/voice/generate", async (req, res) => {
+  app.post("/api/images/generate", async (req, res) => {
+  app.post("/api/video/generate", async (req, res) => {
+  app.post("/api/research/free-deep-research", async (req, res) => {
+  app.post("/api/interactions/deep-research", async (req, res) => {
+  app.post("/api/research/ghandour", async (req, res) => {
+  app.post("/api/dossiers", async (req, res) => {
+  app.post("/api/props", async (req, res) => {
+  app.post("/api/render/start", async (req, res) => {

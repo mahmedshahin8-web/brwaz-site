@@ -1,7 +1,7 @@
 import { apiFetch } from "../lib/apiFetch";
 import React, { useState } from "react";
 import { EpisodeScene } from "../types";
-import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp, Archive, Mic, Play, Wand2, Zap, ExternalLink, Video, Music, Swords, X, Search, Camera, Waypoints } from "lucide-react";
+import { Copy, Edit2, RefreshCw, CheckCircle, Image as ImageIcon, Edit3, Volume2, Square, ChevronDown, ChevronUp, Archive, Mic, Play, Wand2, Zap, ExternalLink, Video, Music, Swords, X, Search, Camera, Waypoints, Scissors, Type } from "lucide-react";
 import { toast } from "react-hot-toast";
 import { surgicalEdit } from "../lib/gemini";
 import { generateNanoBananaImage, editNanoBananaImageText } from "../services/imageService";
@@ -718,6 +718,46 @@ export const SceneCard = React.memo(function SceneCard({
                      </div>
                    )}
 
+                   {scene.montage_instructions && (
+                     <div className="bg-[#4f46e5]/10 p-4 rounded-lg border border-[#4f46e5]/30">
+                       <strong className="block text-xs uppercase tracking-wider text-[#818cf8] mb-1 flex items-center gap-2">
+                         <Scissors size={14} /> 
+                         تعليمات المونتاج (Daheeh Style)
+                       </strong>
+                       <p className="text-[#c7d2fe] font-arabic font-medium leading-relaxed">{scene.montage_instructions}</p>
+                     </div>
+                   )}
+
+                   {scene.text_on_screen && (
+                     <div className="bg-[#f59e0b]/10 p-4 rounded-lg border border-[#f59e0b]/30">
+                       <strong className="block text-xs uppercase tracking-wider text-[#fbbf24] mb-1 flex items-center gap-2">
+                         <Type size={14} /> 
+                         Text On Screen (TOS)
+                       </strong>
+                       <p className="text-[#fcd34d] font-arabic font-bold text-lg leading-relaxed">{scene.text_on_screen}</p>
+                     </div>
+                   )}
+
+                   {scene.pop_culture_meme_insert && (
+                     <div className="bg-[#ec4899]/10 p-4 rounded-lg border border-[#ec4899]/30">
+                       <strong className="block text-xs uppercase tracking-wider text-[#f472b6] mb-1 flex items-center gap-2">
+                         <Video size={14} /> 
+                         Pop Culture / Meme Insert
+                       </strong>
+                       <p className="text-[#fbcfe8] font-arabic font-medium leading-relaxed">{scene.pop_culture_meme_insert}</p>
+                     </div>
+                   )}
+
+                   {scene.sound_design && (
+                     <div className="bg-[#10b981]/10 p-4 rounded-lg border border-[#10b981]/30">
+                       <strong className="block text-xs uppercase tracking-wider text-[#34d399] mb-1 flex items-center gap-2">
+                         <Volume2 size={14} /> 
+                         تصميم الصوت والمؤثرات (SFX)
+                       </strong>
+                       <p className="text-[#a7f3d0] font-arabic font-medium leading-relaxed">{scene.sound_design}</p>
+                     </div>
+                   )}
+
                    {scene.b_roll_search_query && (
                     <div className="bg-[#121214]/50 p-4 rounded-lg border border-blue-100">
                       <div className="flex justify-between items-start mb-2">
@@ -807,7 +847,9 @@ export const SceneCard = React.memo(function SceneCard({
                              No Frame Generated
                           </div>
                         )}
-                        <div className="text-[10px] text-[#71717a] italic">Motion: {scene.first_frame_motion_prompt || "N/A"}</div>
+                        <div className="text-[10px] text-[#71717a] italic">
+                          {(scene.first_frame_motion_prompt || "").toUpperCase() === "STATIC" || (scene.first_frame_motion_prompt || "").includes("B-ROLL ARCHIVE") ? "State" : "Motion"}: {scene.first_frame_motion_prompt || "N/A"}
+                        </div>
                       </div>
 
                       {/* SECOND FRAME */}
@@ -831,7 +873,9 @@ export const SceneCard = React.memo(function SceneCard({
                              No Frame Generated
                           </div>
                         )}
-                        <div className="text-[10px] text-[#71717a] italic">Motion: {scene.second_frame_motion_prompt || "N/A"}</div>
+                        <div className="text-[10px] text-[#71717a] italic">
+                          {(scene.second_frame_motion_prompt || "").toUpperCase() === "STATIC" || (scene.second_frame_motion_prompt || "").includes("B-ROLL ARCHIVE") ? "State" : "Motion"}: {scene.second_frame_motion_prompt || "N/A"}
+                        </div>
                       </div>
                    </div>
 

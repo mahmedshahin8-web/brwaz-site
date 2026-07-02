@@ -482,23 +482,49 @@ const pipeOllamaStream = async (req: express.Request, res: express.Response) => 
 
     try {
         console.log(`[STREAM] Initiating Ollama Stream: ${url} [Model: ${payload.model}]`);
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'ngrok-skip-browser-warning': 'true' },
-            body: JSON.stringify(payload)
-        });
-
-        if (!response.ok) {
-            const err = await response.text();
-            console.warn(`[STREAM] Ollama Stream Error, falling back to Gemini: ${err}`); req.body.engine = "gemini"; return pipeGeminiStream(req, res);
+        
+        if (!res.headersSent) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders();
         }
 
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
+        const pingInterval = setInterval(() => {
+           res.write(':ping\n\n');
+        }, 15000);
+
+        let response;
+        try {
+            response = await fetch(url, {
+                method: 'POST',
+                headers: { 
+                  'Content-Type': 'application/json', 
+                  'ngrok-skip-browser-warning': 'true',
+                  'bypass-tunnel-reminder': 'true'
+                },
+                body: JSON.stringify(payload)
+            });
+        } catch(err: any) {
+            clearInterval(pingInterval);
+            console.warn(`[STREAM] Ollama Stream Fetch Error, falling back to Gemini: ${err.message}`); 
+            req.body.engine = "gemini"; 
+            return pipeGeminiStream(req, res);
+        }
+
+        if (!response.ok) {
+            clearInterval(pingInterval);
+            const err = await response.text();
+            console.warn(`[STREAM] Ollama Stream Error, falling back to Gemini: ${err}`); 
+            req.body.engine = "gemini"; 
+            return pipeGeminiStream(req, res);
+        }
 
         const reader = response.body?.getReader();
-        if (!reader) throw new Error("Null response body");
+        if (!reader) {
+            clearInterval(pingInterval);
+            throw new Error("Null response body");
+        }
 
         let fullContent = "";
         let buffer = "";
@@ -524,6 +550,7 @@ const pipeOllamaStream = async (req: express.Request, res: express.Response) => 
                 } catch (e) { }
             }
         }
+        clearInterval(pingInterval);
         res.write('data: [DONE]\n\n');
         res.end();
     } catch (e: any) {
@@ -569,10 +596,12 @@ const pipeGeminiStream = async (req: express.Request, res: express.Response) => 
 
         console.log(`[STREAM] Initiating Gemini Stream (gemini-2.5-flash)`);
         
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders();
+        if (!res.headersSent) {
+            res.setHeader('Content-Type', 'text/event-stream');
+            res.setHeader('Cache-Control', 'no-cache');
+            res.setHeader('Connection', 'keep-alive');
+            res.flushHeaders();
+        }
         
         const pingInterval = setInterval(() => {
            res.write(':ping\n\n');
@@ -703,7 +732,11 @@ const startServer = async () => {
       const fetchUrl = targetUrl.endsWith('/api/version') ? targetUrl : targetUrl.replace(/\/$/, '') + '/api/version';
       
       const response = await fetch(fetchUrl, {
-          headers: { 'User-Agent': 'aistudio-build' }
+          headers: { 
+            'User-Agent': 'aistudio-build',
+            'ngrok-skip-browser-warning': 'true',
+            'bypass-tunnel-reminder': 'true'
+          }
       });
       if (response.ok) {
         res.json({ status: "online", time: Date.now(), models: ["gemma4:31b-cloud"] });

@@ -1,5 +1,5 @@
 import React from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import { Zap, BookOpen, Settings, LayoutDashboard, Compass, Cpu } from "lucide-react";
 
@@ -60,7 +60,7 @@ export default function LandingPage() {
       <div className="absolute bottom-1/4 right-1/4 w-[25vw] h-[25vw] bg-violet-600/20 rounded-full blur-[100px] mix-blend-screen pointer-events-none" />
       
       {/* Grid Pattern */}
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
+      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none"></div>
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px] pointer-events-none mask-image-radial z-0"></div>
 
       <motion.div 

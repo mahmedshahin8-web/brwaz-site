@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 
 interface CreatorState {
   data: any | null;
@@ -33,7 +34,9 @@ interface CreatorState {
   setPipelineStep: (step: number | ((prev: number) => number)) => void;
 }
 
-export const useCreatorStore = create<CreatorState>((set) => ({
+export const useCreatorStore = create<CreatorState>()(
+  persist(
+    (set) => ({
   data: null,
   setData: (data) => set({ data }),
   status: "",
@@ -56,12 +59,12 @@ export const useCreatorStore = create<CreatorState>((set) => ({
   useOllama: (() => {
     try {
       const stored = localStorage.getItem("useOllama");
-      return stored === "true";
+      return stored !== "false"; // Default to true
     } catch {
-      return false;
+      return true;
     }
   })(),
-  ollamaUrl: localStorage.getItem("ollamaUrl") || "",
+  ollamaUrl: localStorage.getItem("ollamaUrl") || "https://improvise-attire-giblet.ngrok-free.dev",
   ollamaModel: localStorage.getItem("ollamaModel") || "gemma4:31b-cloud",
   setUseOllama: (useOllama) => set({ useOllama }),
   activeMood: "investigative",
@@ -72,4 +75,19 @@ export const useCreatorStore = create<CreatorState>((set) => ({
   setShowAdvanced: (showAdvanced) => set({ showAdvanced }),
   pipelineStep: 1,
   setPipelineStep: (step) => set((state) => ({ pipelineStep: typeof step === 'function' ? step(state.pipelineStep) : step })),
-}));
+    }),
+    {
+      name: 'creator-storage',
+      partialize: (state) => ({ 
+        data: state.data, 
+        finalVoiceScript: state.finalVoiceScript, 
+        fragmenterData: state.fragmenterData, 
+        topic: state.topic,
+        creatorMode: state.creatorMode,
+        isLongForm: state.isLongForm,
+        activeMood: state.activeMood,
+        narrativeStrategy: state.narrativeStrategy
+      }),
+    }
+  )
+);

@@ -4,7 +4,7 @@ import { EditorContent } from "@tiptap/react";
 import { MasterOutline, EpisodeData } from "../../types";
 import { Copy, Volume2, Square, Eye, Archive, Maximize2, Minimize2, Database, Layers, CheckCircle2, Sparkles, Zap, MessageSquare, Download, Activity, Search } from "lucide-react";
 import { ScriptEvaluator } from "../../components/ScriptEvaluator";
-import { copyToClipboard, exportProjectZip } from "../../lib/exportUtils";
+import { copyToClipboard } from "../../lib/exportUtils";
 import { generateAIContentRaw } from "../../lib/gemini";
 
 interface ContentEditorModuleProps {
@@ -238,22 +238,22 @@ export const ContentEditorModule: React.FC<ContentEditorModuleProps> = ({
                         <h4 className="text-[10px] font-mono text-[#a0764d] uppercase tracking-widest font-bold mb-3 flex items-center gap-2"><Search size={12}/> Archival Layers</h4>
                         
                         <div className="space-y-3">
-                          {data.archival_search_queries.primary_documents && data.archival_search_queries.primary_documents.length > 0 && (
+                          {data?.archival_search_queries?.primary_documents && data.archival_search_queries.primary_documents.length > 0 && (
                             <div className="space-y-1">
                               <span className="text-[10px] text-[#6d6964] block">Primary Documents</span>
-                              {data.archival_search_queries.primary_documents.map((q, i) => <div key={i} className="text-xs text-[#f5f3f0] bg-[#17202c] p-2 rounded">{q}</div>)}
+                              {data.archival_search_queries.primary_documents.map((q: any, i: number) => <div key={i} className="text-xs text-[#f5f3f0] bg-[#17202c] p-2 rounded">{q}</div>)}
                             </div>
                           )}
-                          {data.archival_search_queries.gritty_realism && data.archival_search_queries.gritty_realism.length > 0 && (
+                          {data?.archival_search_queries?.gritty_realism && data.archival_search_queries.gritty_realism.length > 0 && (
                             <div className="space-y-1">
                               <span className="text-[10px] text-[#6d6964] block">Gritty Realism</span>
-                              {data.archival_search_queries.gritty_realism.map((q, i) => <div key={i} className="text-xs text-[#f5f3f0] bg-[#17202c] p-2 rounded">{q}</div>)}
+                              {data.archival_search_queries.gritty_realism.map((q: any, i: number) => <div key={i} className="text-xs text-[#f5f3f0] bg-[#17202c] p-2 rounded">{q}</div>)}
                             </div>
                           )}
-                          {data.archival_search_queries.visual_metaphors && data.archival_search_queries.visual_metaphors.length > 0 && (
+                          {data?.archival_search_queries?.visual_metaphors && data.archival_search_queries.visual_metaphors.length > 0 && (
                             <div className="space-y-1">
                               <span className="text-[10px] text-[#6d6964] block">Visual Metaphors</span>
-                              {data.archival_search_queries.visual_metaphors.map((q, i) => <div key={i} className="text-xs text-[#f5f3f0] bg-[#17202c] p-2 rounded">{q}</div>)}
+                              {data.archival_search_queries.visual_metaphors.map((q: any, i: number) => <div key={i} className="text-xs text-[#f5f3f0] bg-[#17202c] p-2 rounded">{q}</div>)}
                             </div>
                           )}
                         </div>
@@ -330,7 +330,7 @@ export const ContentEditorModule: React.FC<ContentEditorModuleProps> = ({
                       <Database size={12}/> Verified Sources
                     </h4>
                     <div className="space-y-4 max-h-[500px] overflow-y-auto no-scrollbar">
-                      {data.sources.map((src, i) => {
+                      {(data?.sources || []).map((src, i) => {
                           const s = typeof src === 'string' ? { title: src, url: '#' } : src;
                           return (
                             <div key={i} className="space-y-1 group text-left">
@@ -346,7 +346,7 @@ export const ContentEditorModule: React.FC<ContentEditorModuleProps> = ({
                             </div>
                           )
                       })}
-                      {data.sources.length === 0 && (
+                      {(data?.sources || []).length === 0 && (
                         <span className="text-[9px] font-mono text-[#6d6964] italic">No citations found.</span>
                       )}
                     </div>
@@ -375,9 +375,6 @@ export const ContentEditorModule: React.FC<ContentEditorModuleProps> = ({
            <div className="space-y-1 border-l border-[#17202c] pl-10 flex-1 flex flex-wrap justify-end gap-2">
              <button onClick={exportScriptTSV} className="px-4 py-2 border border-[#17202c] rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-colors text-[#6d6964] hover:text-[#f5f3f0] hover:bg-[#111722] text-xs font-mono font-bold uppercase">
                <Download size={14} /> اسحب الاسكربت
-             </button>
-             <button onClick={() => exportProjectZip(data)} className="px-4 py-2 border border-[#a0764d]/30 bg-[#a0764d]/10 rounded-xl flex items-center justify-center gap-2 active:scale-95 transition-colors text-[#d4a574] hover:bg-[#a0764d]/20 text-xs font-mono font-bold uppercase">
-               <Download size={14} /> اطبع ورق الحلقة يا ابني (الكل)
              </button>
           </div>
         </div>

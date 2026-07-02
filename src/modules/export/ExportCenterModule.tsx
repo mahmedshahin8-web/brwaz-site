@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { exportToPremiereXML, exportToCSV } from '../../lib/exportUtils';
-import { generateTxt, generateMd, generateTeleprompter, generateGeminiTTS, generateDocx } from '../../lib/exportFormatters';
+import { generateTxt, generateMd, generateTeleprompter, generateGeminiTTS, generateDocx, generatePrintablePDF } from '../../lib/exportFormatters';
 import { useStudioStore } from '../../store/useStudioStore';
 import { EpisodeData } from '../../types';
 
@@ -10,9 +10,10 @@ interface ExportCenterProps {
   fragmenterData: any;
   finalVoiceScript: string;
   data: EpisodeData;
+  topic?: string;
 }
 
-export const ExportCenterModule: React.FC<ExportCenterProps> = ({ fragmenterData, finalVoiceScript, data }) => {
+export const ExportCenterModule: React.FC<ExportCenterProps> = ({ fragmenterData, finalVoiceScript, data, topic }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [status, setStatus] = useState("");
 
@@ -33,7 +34,8 @@ export const ExportCenterModule: React.FC<ExportCenterProps> = ({ fragmenterData
       exportFn({
         data,
         fragmenterData,
-        finalVoiceScript
+        finalVoiceScript,
+        topic
       });
       
       notify.classified(successMsg);
@@ -51,6 +53,16 @@ export const ExportCenterModule: React.FC<ExportCenterProps> = ({ fragmenterData
   const handleDownloadTeleprompterTxt = () => handleExport(generateTeleprompter, "تم التنزيل بنجاح!");
   const handleDownloadGeminiTTS = () => handleExport(generateGeminiTTS, "تم التنزيل بنجاح!");
   const handleDownloadDocx = () => handleExport(generateDocx, "تم التنزيل بنجاح!");
+  const handlePrintPDF = () => {
+    // We don't use handleExport because we don't want the loading state for just opening a new tab
+    if (!data) return;
+    try {
+      generatePrintablePDF({ data, fragmenterData, finalVoiceScript });
+      notify.classified("تم فتح الوثيقة للطباعة كملف PDF");
+    } catch (e) {
+      notify.breach("فشل استخراج ملف الطباعة.");
+    }
+  };
 
   return (
     <div className="bg-[#111722]/60 backdrop-blur-md border border-[#17202c] rounded-2xl p-4 shadow-subtle flex flex-col gap-3">
@@ -63,6 +75,18 @@ export const ExportCenterModule: React.FC<ExportCenterProps> = ({ fragmenterData
         </div>
       ) : (
         <div className="flex flex-col gap-3">
+          
+          <div className="flex flex-col gap-1">
+            <button
+              onClick={handlePrintPDF}
+              className="w-full px-4 py-3 bg-gradient-to-r from-[#0f172a] to-[#1e1b4b] text-[#818cf8] hover:from-[#1e293b] hover:to-[#312e81] hover:text-[#a5b4fc] font-bold active:scale-95 text-xs font-arabic tracking-widest flex items-center justify-center gap-2 transition-all rounded-xl border border-[#3730a3] shadow-[0_0_15px_rgba(79,70,229,0.2)]"
+            >
+              <Download className="w-4 h-4" />
+              تصدير وثيقة PDF احترافية (Director's Dossier)
+            </button>
+            <p className="text-[10px] text-[#6d6964] px-1 text-center font-arabic">يطبع لك الوثيقة الإنتاجية في ملف PDF أنيق يشبه ملفات هوليوود السرية مقسمة في جداول للمونتاج.</p>
+          </div>
+
           <div className="flex flex-col gap-1">
             <button
               onClick={handleDownloadDossierTxt}
@@ -121,7 +145,7 @@ export const ExportCenterModule: React.FC<ExportCenterProps> = ({ fragmenterData
           <div className="flex flex-col gap-1">
             <button
               onClick={() => {
-                exportToPremiereXML(data);
+                exportToPremiereXML(data, topic);
                 notify.classified("تم تصدير XML للمونتاج (Premiere/DaVinci)");
               }}
               className="w-full px-4 py-3 bg-[#6a359c] text-[#f5f3f0] hover:bg-[#4a246d] font-bold active:scale-95 text-xs font-arabic tracking-widest flex items-center justify-center gap-2 transition-all rounded-xl border border-[#6a359c]/50 shadow-[0_0_15px_rgba(106,53,156,0.2)]"
@@ -136,7 +160,7 @@ export const ExportCenterModule: React.FC<ExportCenterProps> = ({ fragmenterData
           <div className="flex flex-col gap-1">
             <button
               onClick={() => {
-                exportToCSV(data);
+                exportToCSV(data, topic);
                 notify.classified("تم تصدير ملف الإكسيل (CSV)");
               }}
               className="w-full px-4 py-3 bg-[#205a35] text-[#f5f3f0] hover:bg-[#153e24] font-bold active:scale-95 text-xs font-arabic tracking-widest flex items-center justify-center gap-2 transition-all rounded-xl border border-[#205a35]/50 shadow-[0_0_15px_rgba(32,90,53,0.2)]"

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Cpu, Mic2, ShieldAlert, Youtube, Link as LinkIcon, CheckCircle2, User as UserIcon, Eye, Users as UsersIcon, Video } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { googleSignIn, logout, getAccessToken, initAuth } from "../lib/auth";
 import { User } from "firebase/auth";
 import { fetchChannelInfo, YouTubeChannelInfo } from "../services/youtubeService";
@@ -9,11 +9,11 @@ import { TTSConfigPanel } from "../components/TTSConfigPanel";
 export default function SettingsPage() {
   const [useOllama, setUseOllama] = useState(() => {
     const stored = localStorage.getItem("useOllama");
-    return stored === "true";
+    return stored !== "false";
   });
   const [ollamaUrl, setOllamaUrl] = useState(() => {
     const stored = localStorage.getItem("ollamaUrl");
-    return stored ? stored : "";
+    return stored ? stored : "https://improvise-attire-giblet.ngrok-free.dev";
   });
   const [ollamaModel, setOllamaModel] = useState(() => localStorage.getItem("ollamaModel") || "gemma4:31b-cloud");
   const [elevenLabsKey, setElevenLabsKey] = useState(() => localStorage.getItem("elevenLabsKey") || "");

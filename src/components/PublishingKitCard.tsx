@@ -33,16 +33,30 @@ export function PublishingKitCard({ data }: PublishingKitCardProps) {
            <Copy className="w-3 h-3" /> Potential_Viral_Titles
         </h4>
         <div className="grid grid-cols-1 gap-3">
-          {data.youtube_titles.map((title, i) => (
-            <button 
-              key={i}
-              onClick={() => copyToClipboard(title, "العنوان")}
-              className="group flex items-center justify-between p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] active:scale-95 transition-all text-right"
-            >
-              <Copy className="w-4 h-4 text-[#71717a] group-active:scale-95 transition-colors" />
-              <span className="font-arabic text-lg text-[#fafafa]/80 group-active:scale-95">{title}</span>
-            </button>
-          ))}
+          {Array.isArray(data.youtube_titles) ? data.youtube_titles.map((title, i) => {
+            const angleLabels = [
+              { label: "فضولي (Curiosity)", color: "text-amber-500", bg: "bg-amber-500/10", border: "border-amber-500/20" },
+              { label: "قصصي (Story-Driven)", color: "text-blue-500", bg: "bg-blue-500/10", border: "border-blue-500/20" },
+              { label: "صادم (Shocking)", color: "text-rose-500", bg: "bg-rose-500/10", border: "border-rose-500/20" },
+            ];
+            const angle = angleLabels[i] || { label: "بديل (Alternative)", color: "text-purple-500", bg: "bg-purple-500/10", border: "border-purple-500/20" };
+            
+            return (
+              <button 
+                key={i}
+                onClick={() => copyToClipboard(title, "العنوان")}
+                className="group flex flex-col md:flex-row items-start md:items-center justify-between p-4 bg-[#121214] shadow-sm border border-[#27272a] hover:border-[#3f3f46] active:scale-95 transition-all text-right gap-4"
+              >
+                <div className="flex flex-col items-start gap-2 w-full">
+                   <div className={`px-2 py-0.5 text-[9px] font-mono font-bold uppercase rounded-sm border ${angle.bg} ${angle.color} ${angle.border}`}>
+                     {angle.label}
+                   </div>
+                   <span className="font-arabic text-lg text-[#fafafa] font-bold group-hover:text-[#4f46e5] transition-colors">{typeof title === 'string' ? title.replace(/^[*-]\s*/, '').replace(/^"|"$/g, '') : String(title)}</span>
+                </div>
+                <Copy className="w-5 h-5 text-[#71717a] group-hover:text-white shrink-0 mt-2 md:mt-0" />
+              </button>
+            )
+          }) : null}
         </div>
       </div>
 
@@ -67,11 +81,11 @@ export function PublishingKitCard({ data }: PublishingKitCardProps) {
            <Hash className="w-3 h-3" /> SEO_Hash_Cluster
         </h4>
         <div className="flex flex-wrap flex-row-reverse gap-2">
-          {data.tags.map((tag, i) => (
+          {Array.isArray(data.tags) ? data.tags.map((tag, i) => (
             <span key={i} className="px-3 py-1 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] text-[10px] font-mono text-[#a1a1aa]">
               #{tag}
             </span>
-          ))}
+          )) : null}
         </div>
       </div>
 

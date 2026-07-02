@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Upload, Mic, UploadCloud, ChevronLeft, ChevronDown, Check, Loader2, Play, Download, Server, Lightbulb, User } from 'lucide-react';
 import { default as toast } from 'react-hot-toast';
 

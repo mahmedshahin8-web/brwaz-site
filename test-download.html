@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+  const blob = new Blob(["Hello"], { type: "text/plain" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "test.txt";
+  document.body.appendChild(a);
+  a.click();
+  URL.revokeObjectURL(url);
+</script>
+</body>
+</html>

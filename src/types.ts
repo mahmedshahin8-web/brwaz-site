@@ -122,6 +122,9 @@ export interface EpisodeScene {
   first_frame_motion_prompt?: string;
   second_frame_image_prompt?: string;
   second_frame_motion_prompt?: string;
+  text_on_screen?: string;
+  pop_culture_meme_insert?: string;
+  director_editing_notes_ar?: string;
   archival_quotes?: ArchivalQuote[];
   generated_image_url?: string;
   b_roll_keywords?: string; // Plan 1: Keywords for searching stock footage
@@ -161,6 +164,8 @@ export interface EpisodeScene {
 
 export interface PublishingKit {
   youtube_titles: string[];
+  episode_hashtag?: string;
+  visual_branding_instructions?: string;
   thumbnail_prompt: string;
   description: string;
   thumbnail_concept?: string;

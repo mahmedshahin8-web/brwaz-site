@@ -3,12 +3,12 @@
 
 @theme {
   --color-primary-dark: #000000;
-  --color-secondary-dark: #0a0a0a;
-  --color-tertiary-dark: #171717;
+  --color-secondary-dark: #09090b;
+  --color-tertiary-dark: #18181b;
   
   --color-accent-brand: #e4e4e7;
-  --color-accent-highlight: #d4af37; /* Gold accent */
-  --color-accent-glow: rgba(212, 175, 55, 0.4);
+  --color-accent-highlight: #3b82f6; 
+  --color-accent-glow: rgba(59, 130, 246, 0.2);
   
   --color-text-primary: #fafafa;
   --color-text-secondary: #a1a1aa;
@@ -18,23 +18,14 @@
   --font-mono: "JetBrains Mono", monospace;
   --font-arabic: "Alexandria", sans-serif;
   --font-display: "Alexandria", sans-serif;
-
-  --shadow-subtle: 0 1px 2px rgba(0,0,0,0.1);
-  --shadow-medium: 0 4px 12px rgba(0,0,0,0.3);
-  --shadow-deep: 0 12px 32px rgba(0,0,0,0.5);
-  --shadow-glow: 0 0 30px var(--color-accent-glow);
 }
 
 @layer base {
   body {
-    @apply bg-black text-[#fafafa] selection:bg-[#d4af37]/30 selection:text-white;
+    @apply bg-black text-[#fafafa] selection:bg-[#3b82f6]/30 selection:text-white;
     font-family: var(--font-arabic);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
     -webkit-font-smoothing: antialiased;
-    background-image: 
-      radial-gradient(circle at 10% 50%, rgba(212, 175, 55, 0.03), transparent 25%),
-      radial-gradient(circle at 90% 30%, rgba(212, 175, 55, 0.02), transparent 25%);
-    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -44,86 +35,85 @@
 
 @layer components {
   svg.lucide {
-    stroke-width: 1.25px !important;
+    stroke-width: 1.5px !important;
   }
 
-  /* Ultra Premium Glass Panel */
+  /* Professional Panel */
   .glass-panel {
-    @apply bg-[#050505]/80 backdrop-blur-3xl border border-white/[0.04] shadow-[0_4px_40px_-4px_rgba(0,0,0,0.8)] relative overflow-hidden;
-    box-shadow: inset 0 1px 0 0 rgba(255, 255, 255, 0.02);
+    @apply bg-[#09090b] border border-[#27272a] shadow-none relative overflow-hidden;
+    border-radius: 4px !important;
   }
   
-  /* Adds a subtle internal highlight to the top edge for the 3D glass effect */
-  .glass-panel::before {
-    content: '';
-    @apply absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent opacity-100 pointer-events-none;
-  }
-
   /* Premium Buttons */
   .btn-premium {
-    @apply relative overflow-hidden px-8 py-4 rounded-xl bg-gradient-to-r from-[#d4af37] to-[#b89528] text-black font-bold shadow-[0_0_20px_rgba(212,175,55,0.2)] active:scale-95 transition-all duration-500 hover:shadow-[0_0_35px_rgba(212,175,55,0.4)] hover:-translate-y-0.5;
+    @apply relative overflow-hidden px-6 py-2 bg-[#fafafa] text-black font-bold text-sm active:scale-95 transition-all duration-200 hover:bg-[#e4e4e7];
+    border-radius: 4px !important;
   }
 
   .btn-outline-premium {
-    @apply relative overflow-hidden px-6 py-3 rounded-xl border border-white/5 bg-white/[0.02] text-white backdrop-blur-md active:scale-95 transition-all duration-500 hover:bg-white/[0.05] hover:border-white/10;
+    @apply relative overflow-hidden px-4 py-2 border border-[#27272a] bg-[#09090b] text-[#fafafa] text-sm active:scale-95 transition-all duration-200 hover:bg-[#18181b] hover:border-[#3f3f46];
+    border-radius: 4px !important;
   }
 
   .btn-secondary {
-    @apply relative overflow-hidden px-4 py-2 rounded-xl border border-white/[0.04] bg-white/[0.02] text-white/70 backdrop-blur-md active:scale-95 transition-all duration-500 hover:bg-white/[0.04] hover:text-white hover:border-white/[0.08];
+    @apply relative overflow-hidden px-3 py-1.5 border border-[#27272a] bg-transparent text-[#a1a1aa] text-xs active:scale-95 transition-all duration-200 hover:bg-[#18181b] hover:text-[#fafafa];
+    border-radius: 4px !important;
   }
 
-  .text-glow {
-    text-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+  /* Force squarish corners on main layout containers but preserve rounded-full */
+  .rounded-2xl, .rounded-3xl, .rounded-xl, .rounded-lg {
+    border-radius: 6px !important;
   }
 
   /* Core UI Overrides for immediate massive change */
   .bg-\\[\\#121214\\] {
-    background-color: #050505 !important;
-    border-color: rgba(255, 255, 255, 0.04) !important;
+    background-color: #09090b !important;
+    border-color: #27272a !important;
   }
   
   .border-\\[\\#27272a\\] {
-    border-color: rgba(255, 255, 255, 0.04) !important;
+    border-color: #27272a !important;
   }
 
   .bg-\\[\\#4f46e5\\] {
-    background: linear-gradient(135deg, #d4af37, #b89528) !important;
-    color: black !important;
+    background-color: #3b82f6 !important;
+    color: white !important;
     border: none !important;
   }
   
   .text-\\[\\#4f46e5\\] {
-    color: #d4af37 !important;
+    color: #3b82f6 !important;
   }
   
   .border-\\[\\#4f46e5\\] {
-    border-color: rgba(212, 175, 55, 0.5) !important;
+    border-color: #3b82f6 !important;
   }
 
   .hover\\:bg-\\[\\#4f46e5\\]\\/10:hover {
-    background-color: rgba(212, 175, 55, 0.1) !important;
+    background-color: rgba(59, 130, 246, 0.1) !important;
   }
 
   .hover\\:text-\\[\\#4f46e5\\]:hover {
-    color: #d4af37 !important;
+    color: #3b82f6 !important;
   }
 
   .hover\\:border-\\[\\#4f46e5\\]\\/50:hover {
-    border-color: rgba(212, 175, 55, 0.5) !important;
+    border-color: rgba(59, 130, 246, 0.5) !important;
   }
 
   /* INPUT FIELDS */
   input, textarea {
-    background-color: rgba(255, 255, 255, 0.01) !important;
-    border-color: rgba(255, 255, 255, 0.05) !important;
-    transition: all 0.5s ease !important;
+    background-color: #09090b !important;
+    border-color: #27272a !important;
+    border-radius: 4px !important;
+    transition: all 0.2s ease !important;
     font-family: var(--font-arabic) !important;
   }
 
   input:focus, textarea:focus {
-    box-shadow: 0 0 0 1px rgba(212, 175, 55, 0.3) !important;
-    border-color: rgba(212, 175, 55, 0.5) !important;
-    background-color: rgba(255, 255, 255, 0.02) !important;
+    box-shadow: none !important;
+    border-color: #3b82f6 !important;
+    background-color: #000000 !important;
   }
 
   .custom-scrollbar::-webkit-scrollbar {
@@ -136,7 +126,7 @@
   }
 
   .custom-scrollbar::-webkit-scrollbar-thumb {
-    @apply bg-white/10 hover:bg-white/20 rounded-full transition-colors;
+    @apply bg-[#27272a] hover:bg-[#3f3f46] rounded-none transition-colors;
   }
 
   html.zen-mode .zen-hidden {
@@ -153,13 +143,15 @@
     outline: none;
     height: 100%;
     min-height: 600px;
+    font-size: 15px;
+    line-height: 1.8;
   }
   .ProseMirror p {
-    margin-bottom: 1.5em;
+    margin-bottom: 1em;
   }
   .ProseMirror mark {
-    background-color: rgba(79, 70, 229, 0.2); 
-    border-radius: 4px;
+    background-color: rgba(59, 130, 246, 0.2); 
+    border-radius: 2px;
     padding: 0 4px;
     color: inherit;
   }

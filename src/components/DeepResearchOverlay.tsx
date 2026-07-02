@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import { Loader2, CheckCircle2, ChevronRight, Binary, Globe, FileText, Search, Fingerprint, Database, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 
 export const DeepResearchOverlay = ({ 
   topic, 

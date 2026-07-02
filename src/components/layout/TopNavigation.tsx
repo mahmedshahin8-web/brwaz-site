@@ -1,7 +1,7 @@
 import React from "react";
 import { BookOpen, Settings, Zap, User } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 
 export default function TopNavigation() {
   const location = useLocation();

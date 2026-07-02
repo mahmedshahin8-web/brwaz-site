@@ -703,7 +703,7 @@ export default function ContentCreationPage() {
           }
         });
       } else {
-        const newScenes = data.scenes.map(s => 
+        const newScenes = (data.scenes || []).map(s => 
           s.asset_id === sceneId ? { ...s, comparison_version: updatedComparisonScene } : s
         );
         setData({ ...data, scenes: newScenes });
@@ -726,7 +726,7 @@ export default function ContentCreationPage() {
          const { comparison_version, ...rest } = data.opening_sketch;
          setData({ ...data, opening_sketch: rest as any });
        } else {
-         const newScenes = data.scenes.map(s => {
+         const newScenes = (data.scenes || []).map(s => {
            if (s.asset_id === sceneId) {
              const { comparison_version, ...rest } = s;
              return rest as any;
@@ -744,7 +744,7 @@ export default function ContentCreationPage() {
             setData({ ...data, opening_sketch: rest as any });
          }
        } else {
-         const newScenes = data.scenes.map(s => {
+         const newScenes = (data.scenes || []).map(s => {
            if (s.asset_id === sceneId && s.comparison_version) {
              const { comparison_version, ...rest } = s.comparison_version;
              return rest as any;
@@ -762,7 +762,7 @@ export default function ContentCreationPage() {
     setIsAuditing(true);
     setIsEchoing(true);
     try {
-      const script = [data.opening_sketch.voice_over, ...data.scenes.map(s => s.voice_over)].join("\n\n");
+      const script = [data.opening_sketch.voice_over, ...(data.scenes || []).map(s => s.voice_over)].join("\n\n");
       const archiveData = await executeAgent6_ArchiveSearch(data.video_title, script);
       await new Promise(r => setTimeout(r, 1500));
       const auditData = await executeAgent7_ComplianceAudit(script);
@@ -821,7 +821,7 @@ export default function ContentCreationPage() {
            <div className="space-y-4">
               <h4 className="text-[10px] font-mono text-cyan-400 uppercase tracking-widest">Historical_Truth_Check</h4>
               <div className="space-y-3">
-                 {auditResult.historical_accuracy.map((acc, i) => (
+                 {Array.isArray(auditResult.historical_accuracy) && auditResult.historical_accuracy.map((acc, i) => (
                     <div key={i} className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-2">
                        <div className="flex justify-between items-center">
                           <span className="text-[9px] font-mono text-[#a1a1aa] uppercase">Statement</span>
@@ -838,7 +838,7 @@ export default function ContentCreationPage() {
            <div className="space-y-4">
               <h4 className="text-[10px] font-mono text-[#ef4444] uppercase tracking-widest">Policy_&_Compliance</h4>
               <div className="space-y-3">
-                 {auditResult.risks.map((risk, i) => (
+                 {Array.isArray(auditResult.risks) && auditResult.risks.map((risk, i) => (
                     <div key={i} className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-2">
                        <div className="flex justify-between items-center">
                           <span className="text-[9px] font-mono text-[#a1a1aa] uppercase">Finding</span>
@@ -861,7 +861,7 @@ export default function ContentCreationPage() {
              <FileSearch size={16} /> Global_Archive_Sourcing
            </h4>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {auditResult.archives.map((arc, i) => (
+              {Array.isArray(auditResult.archives) && auditResult.archives.map((arc, i) => (
                  <a key={i} href={arc.url} target="_blank" rel="noopener noreferrer" className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] active:scale-95 transition-all group block">
                     <div className="flex justify-between items-start mb-3">
                        <div className="p-2 bg-[#4f46e5]/10 text-[#4f46e5]">
@@ -875,7 +875,7 @@ export default function ContentCreationPage() {
               ))}
            </div>
 
-           {auditResult.notable_quotes && auditResult.notable_quotes.length > 0 && (
+           {Array.isArray(auditResult.notable_quotes) && auditResult.notable_quotes.length > 0 && (
               <div className="mt-8 pt-6 border-t border-[#27272a]">
                  <h4 className="text-sm font-mono text-amber-600 uppercase tracking-[0.5em] flex items-center gap-3 mb-6">
                    <Archive size={16} /> Notable_Testimonies
@@ -942,7 +942,7 @@ export default function ContentCreationPage() {
                 <ShieldAlert size={14} /> Persona: Skeptics
               </h4>
               <div className="space-y-3">
-                 {echoResult.skeptics.map((s, i) => (
+                 {Array.isArray(echoResult.skeptics) && echoResult.skeptics.map((s, i) => (
                     <div key={i} className="p-4 bg-yellow-500/5 border border-yellow-500/10 space-y-3">
                        <span className="text-[10px] font-mono text-yellow-500/60 block">{s.user}</span>
                        <p className="text-sm font-arabic text-[#fafafa]/80 italic">"{s.comment}"</p>
@@ -961,7 +961,7 @@ export default function ContentCreationPage() {
                 <Flame size={14} /> Persona: Hype_Men
               </h4>
               <div className="space-y-3">
-                 {echoResult.hype_men.map((s, i) => (
+                 {Array.isArray(echoResult.hype_men) && echoResult.hype_men.map((s, i) => (
                     <div key={i} className="p-4 bg-green-500/5 border border-green-500/10 space-y-3">
                        <span className="text-[10px] font-mono text-green-500/60 block">{s.user}</span>
                        <p className="text-sm font-arabic text-[#fafafa]/80 italic">"{s.comment}"</p>
@@ -980,7 +980,7 @@ export default function ContentCreationPage() {
                 <AlertTriangle size={14} /> Persona: Critics
               </h4>
               <div className="space-y-3">
-                 {echoResult.critics.map((s, i) => (
+                 {Array.isArray(echoResult.critics) && echoResult.critics.map((s, i) => (
                     <div key={i} className="p-4 bg-red-500/5 border border-red-500/10 space-y-3">
                        <span className="text-[10px] font-mono text-[#ef4444]/60 block">{s.user}</span>
                        <p className="text-sm font-arabic text-[#fafafa]/80 italic">"{s.comment}"</p>
@@ -1000,7 +1000,7 @@ export default function ContentCreationPage() {
              <LinkLink size={16} /> Knowledge_Viewership_Loop
            </h4>
            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {echoResult.suggested_links.map((link, i) => (
+              {Array.isArray(echoResult.suggested_links) && echoResult.suggested_links.map((link, i) => (
                  <div key={i} className="p-5 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-4 group active:scale-95 transition-all">
                     <h5 className="text-sm font-arabic font-bold text-[#fafafa] group-active:scale-95 transition-colors">{link.title}</h5>
                     <p className="text-[11px] text-[#a1a1aa] leading-relaxed">{link.connection_logic}</p>
@@ -1200,7 +1200,7 @@ export default function ContentCreationPage() {
   const handleApplySmartChaining = () => {
     if (!data) return;
     try {
-      const chainedScenes = applySmartChaining(data.scenes);
+      const chainedScenes = applySmartChaining(data.scenes || []);
       setData(prev => prev ? { ...prev, scenes: chainedScenes } : prev);
       notify.classified("Smart Chaining Applied Successfully!");
     } catch (err) {
@@ -1244,7 +1244,7 @@ export default function ContentCreationPage() {
                 },
               });
             } else {
-              const newScenes = data.scenes.map((s) =>
+              const newScenes = (data.scenes || []).map((s) =>
                 s.asset_id === sceneId
                   ? { ...s, word_timestamps: timestamps }
                   : s,
@@ -1301,7 +1301,7 @@ export default function ContentCreationPage() {
   const mainAccentLight = useOllama ? "rgba(16, 185, 129, 0.2)" : "rgba(59, 130, 246, 0.2)";
   const [ollamaUrl, setOllamaUrl] = useState(() => {
     const stored = localStorage.getItem("ollamaUrl");
-    return stored ? stored : "";
+    return stored ? stored : "https://improvise-attire-giblet.ngrok-free.dev";
   });
   const [ollamaModel, setOllamaModel] = useState(
     () => localStorage.getItem("ollamaModel") || "gemma4:31b-cloud",
@@ -1396,12 +1396,12 @@ export default function ContentCreationPage() {
                   <span>{data.opening_sketch?.estimated_duration_seconds || 15}s</span>
                </div>
                {data.scenes?.map((scene, i) => (
-                  <div key={scene.asset_id} className="flex-shrink-0 w-24 h-16 bg-[#121214] rounded-lg flex flex-col items-center justify-center text-[#71717a] font-mono text-[10px] border border-[#27272a] shadow-sm relative group hover:border-[#4f46e5]/50 transition-colors cursor-grab active:cursor-grabbing">
-                     <span className="text-[#fafafa]/80">N_{scene.asset_id.replace(/\D/g, "")}</span>
-                     <span>{scene.estimated_duration_seconds || Math.ceil((scene.voice_over?.length || 100) / 15)}s</span>
+                  <div key={scene?.asset_id || i} className="flex-shrink-0 w-24 h-16 bg-[#121214] rounded-lg flex flex-col items-center justify-center text-[#71717a] font-mono text-[10px] border border-[#27272a] shadow-sm relative group hover:border-[#4f46e5]/50 transition-colors cursor-grab active:cursor-grabbing">
+                     <span className="text-[#fafafa]/80">N_{(scene?.asset_id || "").replace(/\D/g, "")}</span>
+                     <span>{scene?.estimated_duration_seconds || Math.ceil((scene?.voice_over?.length || 100) / 15)}s</span>
                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 transition-opacity">
                         <button onClick={() => i > 0 && handleSwapScenes(i, i - 1)} className="p-1 hover:text-white">&larr;</button>
-                        <button onClick={() => i < data.scenes!.length - 1 && handleSwapScenes(i, i + 1)} className="p-1 hover:text-white">&rarr;</button>
+                        <button onClick={() => i < (data.scenes || []).length - 1 && handleSwapScenes(i, i + 1)} className="p-1 hover:text-white">&rarr;</button>
                      </div>
                   </div>
                ))}
@@ -2491,6 +2491,7 @@ export default function ContentCreationPage() {
       )}
 
       {/* DASHBOARD HEADER */}
+      {!isZenMode && (
       <header className="relative z-10 w-full mb-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 bg-[#000000] p-6 lg:p-8 rounded-2xl border border-white/5 shadow-sm">
            <div className="flex flex-col gap-2">
@@ -2521,6 +2522,7 @@ export default function ContentCreationPage() {
            </div>
         </div>
       </header>
+      )}
 
       {/* PIPELINE CONTAINER */}
       <div className="relative z-10 w-full flex-grow flex flex-col">
@@ -2941,7 +2943,7 @@ export default function ContentCreationPage() {
                         )}
                       </div>
                     </div>
-                  ) : isLoading ? (
+                  ) : (isLoading && (!data || (data.scenes && (data.scenes || []).length === 0))) ? (
                     <div className="flex flex-col items-center justify-center min-h-[500px] space-y-12 bg-black/50 relative p-8 border border-white/5 rounded-3xl">
                        <div className="absolute inset-0 bg-gradient-to-b from-[#050505]/80 to-black pointer-events-none rounded-3xl" />
                        <div className="relative z-10 w-64 h-64 flex items-center justify-center">
@@ -3005,6 +3007,26 @@ export default function ContentCreationPage() {
                                  <span className="absolute -right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-[#168ee8] animate-ping" />
                                </motion.span>
                             </p>
+                          </div>
+                          
+                          {/* Generation Pipeline Steps */}
+                          <div className="flex items-center justify-between mt-6 relative z-10 px-2">
+                             <div className="absolute top-1/2 left-0 w-full h-[1px] bg-[#168ee8]/20 -translate-y-1/2 z-0" />
+                             {[
+                               { label: "البحث والتوثيق", min: 0, max: 19 },
+                               { label: "هندسة السرد", min: 20, max: 49 },
+                               { label: "الرؤية البصرية", min: 50, max: 79 },
+                               { label: "المعالجة والتصدير", min: 80, max: 100 }
+                             ].map((step, idx) => {
+                               const isActive = progress >= step.min && progress <= step.max;
+                               const isPassed = progress > step.max;
+                               return (
+                                 <div key={idx} className="relative z-10 flex flex-col items-center gap-2">
+                                   <div className={`w-4 h-4 rounded-full border-[2px] transition-all duration-500 ${isActive ? "bg-[#168ee8] border-[#168ee8] shadow-[0_0_10px_#168ee8] scale-125" : isPassed ? "bg-[#168ee8]/60 border-[#168ee8]/60" : "bg-[#03060a] border-[#168ee8]/30"}`} />
+                                   <span className={`text-[10px] font-arabic whitespace-nowrap transition-all duration-500 ${isActive ? "text-white font-bold" : isPassed ? "text-[#a5d1f5]/70" : "text-[#168ee8]/40"}`}>{step.label}</span>
+                                 </div>
+                               );
+                             })}
                           </div>
                           
                           {/* Raw Terminal Stream Output */}
@@ -3131,8 +3153,19 @@ export default function ContentCreationPage() {
                       <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-10 pb-12 border-b border-[#27272a]">
                         <div className="space-y-4 text-right flex-1">
                           <div className="flex items-center justify-end gap-4">
-                            <span className="px-3 py-1 bg-[#121214] border border-blue-100 text-[#4f46e5] text-[9px] font-mono uppercase tracking-widest font-bold rounded-full">Operation Complete</span>
-                            <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)] animate-pulse" />
+                            {isLoading ? (
+                               <>
+                                 <span className="px-3 py-1 bg-[#168ee8]/10 border border-[#168ee8]/30 text-[#168ee8] text-[9px] font-mono uppercase tracking-widest font-bold rounded-full animate-pulse">
+                                   Streaming Data [{progress}%] - {status || "Processing"}
+                                 </span>
+                                 <Loader2 className="w-4 h-4 text-[#168ee8] animate-spin" />
+                               </>
+                            ) : (
+                               <>
+                                 <span className="px-3 py-1 bg-[#121214] border border-blue-100 text-[#4f46e5] text-[9px] font-mono uppercase tracking-widest font-bold rounded-full">Operation Complete</span>
+                                 <div className="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.4)] animate-pulse" />
+                               </>
+                            )}
                           </div>
                           <h1 className="text-5xl lg:text-7xl font-arabic font-extrabold text-[#fafafa] tracking-tight leading-tight drop-shadow-sm">
                             {data.video_title}
@@ -3140,7 +3173,7 @@ export default function ContentCreationPage() {
                         </div>
                         
                         <div className="w-full lg:w-auto lg:min-w-[320px]">
-                          <ExportCenterModule fragmenterData={fragmenterData} finalVoiceScript={finalVoiceScript} data={data} />
+                          <ExportCenterModule fragmenterData={fragmenterData} finalVoiceScript={finalVoiceScript} data={data} topic={topic} />
 
                           <button
                             onClick={() => {
@@ -3160,7 +3193,8 @@ export default function ContentCreationPage() {
                       </div>
 
                       {/* TABS NAVIGATION & VIEW TOOLS */}
-                      <div className="flex justify-between items-center border-b border-[#27272a] mb-6">
+                      <div className={`flex justify-between items-center ${!isZenMode ? 'border-b border-[#27272a]' : ''} mb-6`}>
+                        {!isZenMode && (
                         <div className="flex gap-8 overflow-x-auto no-scrollbar">
                           {["script", "assets", "kit", "shorts", "audit", "echo", "planner"].map(tab => (
                             <button
@@ -3173,7 +3207,8 @@ export default function ContentCreationPage() {
                             </button>
                           ))}
                         </div>
-                        <div className="flex items-center gap-4 pb-4">
+                        )}
+                        <div className={`flex items-center gap-4 pb-4 ${isZenMode ? 'w-full justify-end' : ''}`}>
                            <div className="flex bg-[#121214] border border-[#27272a] rounded-lg p-1">
                                <button onClick={() => setViewMode('cards')} className={`p-2 rounded-md ${viewMode === 'cards' ? 'bg-[#27272a] text-white' : 'text-[#71717a]'}`}><Layers size={14} /></button>
                                <button onClick={() => setViewMode('timeline')} className={`p-2 rounded-md ${viewMode === 'timeline' ? 'bg-[#27272a] text-white' : 'text-[#71717a]'}`}><Eye size={14} /></button>
@@ -3266,12 +3301,12 @@ export default function ContentCreationPage() {
                                       onClick={async () => {
                                         setIsGeneratingFragments(true);
                                         try {
-                                           const script = [data.opening_sketch.voice_over, ...data.scenes.map(s => s.voice_over)].join("\n\n");
+                                           const script = [data.opening_sketch.voice_over, ...(data.scenes || []).map(s => s.voice_over)].join("\n\n");
                                            const packResult = await generatePackaging(
                                              data.video_title, 
                                              script, 
-                                             mood, 
-                                             data.scenes,
+                                             mood,
+                                             data.scenes || [],
                                              useOllama ? "ollama" : "gemini"
                                            );
                                            setFragmenterData({
@@ -3392,7 +3427,7 @@ export default function ContentCreationPage() {
                                      <div className="grid grid-cols-2 gap-4">
                                         <div className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-1">
                                            <span className="text-[8px] font-mono text-[#71717a] uppercase block">Prompts</span>
-                                           <span className="text-lg font-mono text-[#fafafa] font-bold">{data.scenes.length + 1}</span>
+                                           <span className="text-lg font-mono text-[#fafafa] font-bold">{(data.scenes || []).length + 1}</span>
                                         </div>
                                         <div className="p-4 bg-[#121214]  border-[#27272a] shadow-sm border border-[#27272a] space-y-1">
                                            <span className="text-[8px] font-mono text-[#71717a] uppercase block">B-Roll</span>

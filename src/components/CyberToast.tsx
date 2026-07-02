@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion } from 'motion/react';
 import { CLEARANCE_LEVELS } from '../constants/messages';
 import { ShieldCheck, ShieldAlert, Terminal, Radio } from 'lucide-react';
 

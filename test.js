@@ -1,6 +1,1 @@
-import http from 'http';
-http.get('http://127.0.0.1:3000/api/trends/public', (res) => {
-  let data = '';
-  res.on('data', chunk => data += chunk);
-  res.on('end', () => console.log(res.statusCode, data));
-}).on('error', console.error);
+fetch("http://localhost:3000/api/ai/generate", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({prompt: "test", engine: "ollama", ollamaUrl: "https://improvise-attire-giblet.ngrok-free.dev", stream: false})}).then(async r => { console.log(r.status); console.log(await r.text()); }).catch(console.error)

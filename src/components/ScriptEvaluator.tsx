@@ -145,7 +145,7 @@ export const ScriptEvaluator: React.FC<Props> = ({ script, engine, onRefined }) 
       setQualityResult(result);
       // Select all issues by default
       if (result.issues) {
-        setSelectedIssueIds(result.issues.map(issue => issue.id));
+        setSelectedIssueIds(result.issues.map((issue: any) => issue.id));
       }
       notify.classified('اكتمل فحص الملفات! تم رصد نقاط الهلوسة والتكرار بنجاح.');
       playSuccess();
@@ -168,7 +168,8 @@ export const ScriptEvaluator: React.FC<Props> = ({ script, engine, onRefined }) 
   const handleApplyCleansingFix = async () => {
     if (!qualityResult || !data) return;
     
-    const issuesToFix = qualityResult.issues.filter(issue => selectedIssueIds.includes(issue.id));
+    const issuesList = qualityResult.issues || [];
+    const issuesToFix = issuesList.filter((issue: any) => selectedIssueIds.includes(issue.id));
     if (issuesToFix.length === 0) {
       notify.breach('يرجى تحديد مشكلة واحدة على الأقل لإصلاحها');
       return;
@@ -412,19 +413,20 @@ export const ScriptEvaluator: React.FC<Props> = ({ script, engine, onRefined }) 
                   <button 
                     onClick={() => {
                       playClick();
-                      if (selectedIssueIds.length === qualityResult.issues.length) {
+                      const issuesList = qualityResult.issues || [];
+                      if (selectedIssueIds.length === issuesList.length) {
                         setSelectedIssueIds([]);
                       } else {
-                        setSelectedIssueIds(qualityResult.issues.map(i => i.id));
+                        setSelectedIssueIds(issuesList.map(i => i.id));
                       }
                     }}
                     className="text-[10px] font-mono text-[#a1a1aa] hover:text-[#fafafa]"
                   >
-                    {selectedIssueIds.length === qualityResult.issues.length ? "[إلغاء تحديد الكل]" : "[تحديد الكل]"}
+                    {selectedIssueIds.length === (qualityResult.issues?.length || 0) ? "[إلغاء تحديد الكل]" : "[تحديد الكل]"}
                   </button>
                 </div>
 
-                {qualityResult.issues.length === 0 ? (
+                {(!qualityResult.issues || qualityResult.issues.length === 0) ? (
                   <div className="p-10 text-center bg-emerald-950/10 border border-emerald-500/30 rounded-2xl space-y-2">
                     <CheckCircle className="text-emerald-400 mx-auto" size={32} />
                     <p className="text-sm font-arabic font-bold text-[#fafafa]">تهانينا! الملفات نقية 100% ولا تحتوي على هلوسات أو تكرار.</p>

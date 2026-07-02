@@ -187,7 +187,7 @@ export const Node2Schema = z.object({
   cinematic_movement: z.string().describe("حركة الكاميرا السينمائية للـ B-Roll (مثال: Slow Dolly in, Dutch angle, Parallax effect)"),
   visual_motif: z.string().describe("الموتيف البصري (مثال: تأثير الميكروفيلم، مستندات مسربة، ورق أصفر، أختام باهتة)"),
   visual_color_grading: z.string().describe("توزيع باليتة برواز (Navy #1F2A44, Gold #B89B6A, Ivory #F5F1E8) في هذا المشهد"),
-  montage_instructions: z.string().describe("توجيهات المونتاج: تعليمات تقنية للمونتير البشري حول سرعة التقطيع، نوع الانتقالات، وكثافة الجرافيكس"),
+  montage_instructions: z.string().describe("توجيهات المونتاج بالمصري للمونتير البشري حول سرعة التقطيع بين الفريم الأول والثاني، نوع الانتقالات، وكثافة الجرافيكس (Daheeh Style)"),
   english_image_prompt: z.string().describe("Prompt for AI generation (NO HUMAN FACES). MUST explicitly mention Color palette (Navy blue, muted gold, warm ivory)."),
   ai_video_prompt: z.string().describe("Motion prompt for Runway/Kling based on the camera and vision (English)."),
   b_roll_keywords: z.string().describe("Comma separated English keywords for stock footage search (e.g. vintage newspaper, crowded street silhouette)."),
@@ -220,6 +220,8 @@ export async function generateEpisode(
         scenes: [],
         sources: [],
         publishing_kit: { youtube_titles: [], description: "", thumbnail_prompt: "", tags: [] },
+        episode_hashtag: { type: "STRING" },
+        visual_branding_instructions: { type: "STRING" },
         shorts: [],
         audit_report: { status: "warning", executive_summary: "Not implemented", issues: [] }
     };
@@ -239,9 +241,7 @@ PREVIOUS VISUALS (DO NOT REPEAT THESE ANGLES):
 ${visualHistory.join('\
 ')}` : '';
   
-  let pacingGuidelines = "";
-  if (mood === "الدحيح" || mood === "طريقة الدحيح" || mood.includes("الدحيح")) {
-    pacingGuidelines = `
+  let pacingGuidelines = `
 12. EDUTAINMENT PACING (DAHIH RULE) - FACELESS MODE:
 - Jump Cuts: Almost no breathing room. Split sentences into frequent sub-shots.
 - J-Cuts & L-Cuts: Overlap voice with B-Roll constantly in montage_instructions.
@@ -249,7 +249,6 @@ ${visualHistory.join('\
 - Visual Substitutes for Host: Rely heavily on motion graphics, pop-culture popups, text transitions, and stock footage.
 - Sound Design & VFX Markers: Map the inline XML sfx markers (like <sfx_glass_shatter/>) into the 'sound_design' field for the editor!
 - Clean Backgrounds: EVERY single image_prompt MUST end with "--no text, typography, letters, watermark" to allow editors to place their own text graphics.`;
-  }
 
   const prompt = `You are the "Director Node". Your ONLY job is to take a raw voice-over script and split it into compelling cinematic scenes.
 
@@ -259,14 +258,15 @@ RULES:
 Ensure new visual prompts use different camera angles (e.g. macro shot, wide drone shot, point of view) or subjects compared to the previous visuals to prevent repetition.
 3. VISUAL SEQUENCING: For every scene, you MUST generate two frames: 'first_frame' (e.g., wide illustration) and 'second_frame' (e.g., tight crop, abstract detail). Both must share exactly the same color palette, abstract style, and subjects to ensure continuity. High visual continuity is extremely important!
 4. CULTURAL & ART DIRECTION (CRITICAL): You MUST heavily enforce an Egyptian visual aesthetic but within a Mid-Century Illustration style. Use stylized Egyptian cultural motifs. ABSOLUTELY NO European features, blondes, or western archetypes. No photorealism.
-5. NO HOST/NARRATOR FACES & STRICT HISTORICAL ACCURACY: DO NOT generate images depicting the narrator, the user, or modern people presenting the video. The visuals MUST be purely B-Roll representing the exact historical era, events, and subjects discussed. Historical and era-specific accuracy in clothing, architecture, and technology is mandatory.
-6. ARCHITECTURAL GUARD: When depicting architecture, use "Mamluk Cairo" or "Fatimid Islamic" details. NO generic "Aladdin-style" middle eastern tropes.
+5. NO HOST/NARRATOR FACES & STRICT HISTORICAL ACCURACY: DO NOT generate images depicting the narrator, the user, or modern people presenting the video. The visuals MUST be purely B-Roll representing the exact historical era, events, and subjects discussed. Historical and era-specific accuracy in clothing, architecture, and technology is mandatory. THE ARCHITECTURE AND ELEMENTS MUST BE DIRECTLY RELEVANT TO THE TOPIC, DO NOT REPEAT THE SAME GENERIC BACKGROUNDS.
+6. ARCHITECTURAL GUARD: When depicting architecture, use "Mamluk Cairo" or "Fatimid Islamic" details ONLY if the topic takes place in Egypt. If it's a different topic, use architecture historically relevant to the topic but keep the Mid-Century Illustration style. NO generic "Aladdin-style" middle eastern tropes.
 7. NEGATIVE PROMPT ENFORCEMENT: ${VISUAL_DNA_SOVEREIGN}
 8. EPIC INTRO CONCEPT: The very first scene of the script MUST contain an 'epic_intro' motif in the image prompt – think surreal, creative poster art with floating bold geometry. Make it absolutely mind-blowing and visually abstract.
 9. ARABIC TEXT & TYPOGRAPHY BAN (CRITICAL): Text rendering in AI is banned. For any text requirement, use overlays in post-production. You MUST append the NEGATIVE PROMPTS to ALL image prompts.
 10. COMPOSITION & STYLE: For wide/establishing shots, use: "wide isometric or flat vector composition". For closeups, use: "flat portrait style, bold screenprint colors". NEVER use cinematic, realistic, bokeh, or 3d render.
-11. PERSONA DISTINCTNESS: When multiple characters are present, forcefully contrast their appearances to prevent AI blending (e.g. sharp suit vs. worn jalabiya).
-12. JSON STRICTNESS: Return ONLY valid JSON matching the schema.${pacingGuidelines}
+11. PERSONA DISTINCTNESS: When multiple characters are present, forcefully contrast their appearances to prevent AI blending.
+12. ANIMATION & MOTION (CRITICAL): For motion prompts ('first_frame_motion_prompt', 'second_frame_motion_prompt'), describe the exact camera movement. THE ANIMATION MUST BE MAXIMUM 5 TO 10 SECONDS. Not all images need AI animation! If a static image or regular B-Roll is better suited for the moment, write "STATIC" or "B-ROLL ARCHIVE" in the motion prompt instead of camera instructions.
+13. JSON STRICTNESS: Return ONLY valid JSON matching the schema.${pacingGuidelines}
 
 JSON SCHEMA:
 {
@@ -275,14 +275,16 @@ JSON SCHEMA:
       "asset_id": "Scene_XX",
       "voice_over": "part of the script",
       "visual_cue": "Arabic desc of visual",
-      "montage_instructions": "Arabic notes for editor. If text is turning, request text tracking in post",
+      "montage_instructions": "MUST BE IN EGYPTIAN ARABIC (بالمصري). Detailed professional Daheeh-style editing instructions for the human editor on how to animate, transition, and connect the 'first_frame' to the 'second_frame' (e.g. 'ابدا بـ Slow Zoom In على الفريم الأول وبعدها اضرب Jump Cut سريع للفريم التاني مع Sound Effect Whoosh عشان نشد انتباه المشاهد').",
       "transition_to_next_scene": "Arabic instructions for visual transition to next scene (Match Cut, Whip Pan, Hard Cut, Fade etc.)",
       "sound_design": "Arabic SFX notes",
       "estimated_duration_seconds": 10,
       "first_frame_image_prompt": "English prompt for shot 1 (MUST explicitly say 'Egyptian characters, Barwaz style'. NO TEXT OR TYPOGRAPHY ALLOWED in the prompt. MUST end with --ar 16:9)",
-      "first_frame_motion_prompt": "English motion prompt for runway/kling for shot 1. (Must specify 10s duration)",
+      "first_frame_motion_prompt": "English motion prompt for runway/kling for shot 1. (Max 10s duration. OR write 'STATIC' / 'B-ROLL ARCHIVE' if AI animation is not needed)",
       "second_frame_image_prompt": "English prompt for shot 2 (MUST seamlessly follow shot 1 and end with --ar 16:9)",
-      "second_frame_motion_prompt": "English motion prompt for runway/kling for shot 2. (Specify 10s duration)",
+      "second_frame_motion_prompt": "English motion prompt for runway/kling for shot 2. (Max 10s duration. OR write 'STATIC' / 'B-ROLL ARCHIVE')",
+      "text_on_screen": "Arabic text. Popups for Edutainment (Daheeh style) like funny facts, numbers, scientific terms, or emphasis words. E.g. 'نسبة 99%!!'",
+      "pop_culture_meme_insert": "Recommend a specific Daheeh-style meme, movie scene, or pop-culture insert to interrupt the pacing (e.g. 'ميم عادل إمام من مسرحية الواد سيد الشغال')",
       "b_roll_keywords": "comma separated english keywords for stock footage search"
     }
   ]
@@ -345,7 +347,7 @@ export async function executeAgent_DeepResearcher(
   const prompt = `[Agent: Deep Researcher / فريق إعداد الدحيح (طاهر/غندور)]
 You are a highly skilled Deep Researcher simulating the 'Daheeh' research room. Analyze the topic: "${topic}"
 Extract the "Daheeh Evidence Triangle" (مثلث التحضير الدحيح):
-1. المراجع المعتمدة (Scientific/Historic References): Simulate gathering facts from reputable databases (Nature, PubMed, Google Scholar, JSTOR, Heritage Books, International Archives, etc.). What are the hard, undeniable facts?
+1. المراجع المعتمدة (Scientific/Historic References): Simulate gathering facts from reputable databases (Nature, PubMed, Google Scholar, JSTOR, Heritage Books, International Archives, etc.). What are the hard, undeniable facts? YOU MUST EXPLICITLY MENTION SPECIFIC BOOKS, AUTHORS, ARTICLES, OR SCIENTISTS BY NAME THAT WE CAN CITE DURING THE SCRIPT.
 2. التبسيط العلمي والقياسات (Scientific Simplification & Analogies): How can we explain complex parts of this topic using a completely absurd, simple, pop-culture or street-level analogy? (e.g. comparing Quantum Mechanics to microbus drivers).
 3. الصدمة المنطقية (The Logical Paradox / The Hook Element): What is the most mind-blowing, contradictory, or bizarre psychological fact about this topic that shatters common sense?
 
@@ -422,7 +424,7 @@ export async function executeAgent_MasterStoryteller(
         { title: "حصان طروادة (The Trojan Horse)", rule: "ابدأ بموضوع بسيط وتريند مع صور تاريخية أرشيفية دقيقة ومناسبة، ثم اقلب الطاولة لطرح الفكرة العلمية العميقة." },
         { title: "الأنا البديلة والبوب كالشر (Alter-Ego & Pop Culture)", rule: "قاطع السرد بسؤال ساذج من شخصية خيالية (يتم التعبير عنه صوتياً، والصورة تكون ميمز أو صور تخيلية بدون وجه الراوي). ثم بسط الفكرة العميقة بتشبيه عجيب." },
         { title: "الصرامة الأكاديمية بطريقة ساخرة (The Authority & Climax)", rule: "تحول للحوار الأكاديمي الصارم واذكر الأبحاث وأسماء الكتب مع عرض أغلفة خيالية أو أرشيفية دقيقة (بدون نصوص مولدة) مع الحفاظ على وتيرة الصور الاحترافية Faceless B-roll." },
-        { title: "الرسالة النهائية (The Edutainment Resolution)", rule: "لخص الفكرة في حكمة أو سؤال أخلاقي خطير يهز المشاهد." }
+        { title: "الرسالة النهائية (The Edutainment Resolution)", rule: "لخص الفكرة في حكمة أو سؤال أخلاقي خطير يهز المشاهد. [CALL TO ACTION MANDATE]: أنهِ الحلقة بسؤال تفاعلي ذكي يستدعي النقاش في التعليقات." }
       ];
   } else {
     acts = (design && design.chapters && Array.isArray(design.chapters) && design.chapters.length > 0) 
@@ -435,7 +437,7 @@ export async function executeAgent_MasterStoryteller(
           { title: "الفصل الثاني (PARADIGM SHIFT - تفكيك المسلمات)", rule: "فكك ما يعتقده المشاهدون باستخدام سوابق تاريخية وأسس الخلفية والأبعاد بدقة مفرطة للتفاصيل التكتيكية." },
           { title: "الفصل الثالث (THE RABBIT HOLE - الغوص المعلوماتي)", rule: "أغرق المشاهد في تفاصيل كثيفة: أسماء دقيقة، تواريخ موثقة، وتحليل مطول ومعمق للأحداث ولا تختصر أبداً." },
           { title: "الفصل الرابع (THE CLIMAX - الكشف الكبير)", rule: "وصل السرد إلى ذروة الكشف أو المفاجأة. أظهر الحقيقة والمؤامرة المخفية بأقصى تفصيل ممكن." },
-          { title: "الفصل الخامس (OPEN RESOLUTION - رسالة النهاية)", rule: "اختتم برسالة تترك العقل في حالة ذهول وتساؤل نفسي أو تاريخي مفتوح بناءً على الحقائق السابقة." }
+          { title: "الفصل الخامس (OPEN RESOLUTION - رسالة النهاية)", rule: "اختتم برسالة تترك العقل في حالة ذهول وتساؤل نفسي أو تاريخي مفتوح بناءً على الحقائق السابقة. [CALL TO ACTION MANDATE]: يجب أن تنهي هذا الفصل بسؤال تفاعلي مباشر للجمهور لزيادة التعليقات على اليوتيوب (مثال: لو كنت مكان فلان هتعمل إيه؟ شاركوني رأيكم في التعليقات)." }
         ];
   }
 
@@ -547,6 +549,7 @@ ADDITIONAL REWRITE INSTRUCTIONS:
 - Rewrite the ENTIRE script segment below using the Persona profile requested above.
 - Ensure the tone, vocabulary, and pacing match this Persona perfectly.
 - DO NOT summarize or skip segments. Maintain extreme detail.
+- FACELESS CHANNEL CONSTRAINT: The script is for a "Faceless" channel (voice-over with B-roll only). DO NOT include phrases that imply the narrator is visible on camera (e.g., avoid "بصلي هنا", "شوفني وأنا بعمل كذا", "خليني أوريك بإيدي"). Instead, use phrases that direct the viewer to the screen/visuals (e.g., "بص على الشاشة", "تخيل معايا", "ركز في الصورة دي").
 
 CRITICAL RULES (Zero-Hallucination Constraint):
 1. Output ONLY the raw spoken script (but keep any URLs or Source citations exactly as they are).
@@ -653,9 +656,10 @@ export async function executeAgent_PunchlineWriter(
       const prompt = `[Agent: Punchline Writer (الكاتب الساخر - مدرسة صناعة الإيديو-تينمنت)]
 You are a brilliant Dark Comedy Writer and Edutainment Pioneer. Take this documentary script chunk and inject the ultimate "Daheeh" flavor:
 1. Break the 4th wall gracefully (e.g., address the viewer directly as "عزيزي المشاهد" or create an invisible argumentative character like "صديقي المعترض").
-2. Use extreme pop-culture analogies (football, movies, internet memes, Egyptian street culture) to explain highly complex scientific, historical, or philosophical data.
+2. Use extreme pop-culture analogies (football, movies, internet memes, Egyptian street culture) to explain highly complex scientific, historical, or philosophical data. YOU MUST EXPLICITLY USE THE NAMES OF FAMOUS MOVIES, PLAYS, MEMES, OR CELEBRITIES IN YOUR ANALOGIES (e.g., "زي ما عادل إمام قال في مسرحية مدرسة المشاغبين", "زي فيلم الماتريكس").
 3. Keep the heavy science/history absolutely accurate ("Knowledge Spikes") but surround it completely with a thick layer of rapid-fire comedy and situational sarcasm.
 4. Use dark humor, modern street slang (عامية الشارع), and relatable societal examples.
+5. FACELESS CHANNEL CONSTRAINT: The script is for a "Faceless" channel (voice-over with B-roll only). DO NOT include phrases that imply the narrator is visible on camera (e.g., avoid "بصلي هنا", "شوفني وأنا بعمل كذا"). Instead, use phrases that direct the viewer to the screen/visuals (e.g., "بص على الشاشة", "تخيل معايا", "ركز في الصورة دي").
 
 CRITICAL RULES:
 - You MUST rewrite the script EXACTLY preserving its original sequence of events and ALL heavy facts.
@@ -702,7 +706,8 @@ You are a ruthless Fact Checker working for an Edutainment institution (like Dah
 Your writers just injected comedy, pop-culture, and analogies into this script section.
 Your job is to read it, verify the core facts against the REFERENCE_DATA, and politely correct ANY factual inaccuracies introduced by the comedy.
 - If a joke breaks physics, history, or science, REWRITE it to be true to the facts while keeping the comedic spirit.
-- If the facts are correct, output the script EXACTLY as it is.
+- If the script is vague (e.g. says "some scientist said" or "a book says"), YOU MUST REWRITE THAT SENTENCE TO INCLUDE THE EXPLICIT NAME OF THE SCIENTIST, YEAR, OR BOOK TITLE (e.g., "زي ما العالم ألبرت أينشتاين قال سنة ١٩٠٥ في بحثه عن كذا").
+- If the facts are correct and specific, output the script EXACTLY as it is.
 - Keep the exact same pacing, slang, and jokes if they do not distort the truth.
 - DO NOT add new chapters. DO NOT output markdown \`\`\`. Output plain text.
 
@@ -744,7 +749,7 @@ export async function executeAgent_PacingEditor(
   const isComedy = mood === "طريقة الدحيح" || mood === "استعراض مسرحي المعطيات";
   const visualInstruction = isComedy ? 
     "2. Use [AI IMAGE GAG: <arabic description>] for bizarre visual metaphors and dark comedy.\n3. IMMEDIATELY follow every [AI IMAGE GAG] with an exact English prompt: [IMAGE_PROMPT: <english mid-century illustration prompt>]." : 
-    "2. Use [VISUAL CURE: <arabic description>] for cinematic documentative visual reconstruction.\n3. IMMEDIATELY follow every [VISUAL CURE] with an exact English prompt: [IMAGE_PROMPT: <english historically accurate visual concept>].";
+    "2. Use [VISUAL CUE: <arabic description>] for cinematic documentative visual reconstruction.\n3. IMMEDIATELY follow every [VISUAL CUE] with an exact English prompt: [IMAGE_PROMPT: <english historically accurate visual concept>].";
 
   const promptStyle = isComedy ?
     "1950s Mid-Century Modern Illustration, vector-like, screenprint aesthetic --no cinematic, realistic, photography" :
@@ -758,10 +763,10 @@ You are the Pacing Editor for a documentary channel.
 Your goal is to sustain a long format by injecting visual/audio cues and PERFORMANCE MARKERS into the script without shrinking the word count.
 
 Rules:
-1. Every ~150-200 words, insert a performance marker to guide the narrator:
-   - [PAUSE: <seconds>] for dramatic effect.
-   - [SPEED: SLOW/FAST] to shift energy.
-   - [TONE: SURPRISED/ANGRY/MYSTERIOUS/SERIOUS] to shift mood.
+1. Every ~100-150 words, insert a performance marker to guide the narrator dynamically:
+   - [PAUSE] or [PAUSE: <seconds>] for dramatic effect and absorbing silence.
+   - [SPEED: SLOW/FAST] to shift energy and pacing.
+   - [TONE: MYSTERIOUS/SARCASTIC/INTENSE/WHISPER/REVELATION] to shift mood and prevent a boring documentary tone. The narrator should sound like they are telling a secret to a friend.
 ${visualInstruction}
 
 --- THE IMAGE PROMPT FORMULA (MANDATORY) ---
@@ -769,9 +774,12 @@ EVERY [IMAGE_PROMPT: ...] MUST follow this:
 [IMAGE_PROMPT: <Main Subject> in <EXACT ERA/LOCATION> -- Wardrobe: <Historically accurate> -- Style: ${promptStyle}]
 --------------------------------------------------
 
-4. Use [SFX: <audio effect>] frequently.
+4. SOUND DESIGN IS THE HERO: Use [SFX: <detailed audio effect>] frequently to build the atmosphere.
+   - Create contrast: Use [SFX: Grand classical music, cameras flashing] for moments of fame/glory, and [SFX: Street vendors, clinking tea glasses, distant radio] for raw street/historical moments.
+   - Use [SFX: Complete silence, ticking clock] during deep philosophical or isolated moments.
 5. NEVER CUT TEXT. You ONLY inject tags into the provided text.
-6. Return ONLY the final output. NO MARKDOWN.
+6. FACELESS CHANNEL CONSTRAINT: Remember this is a Faceless channel (voice-over only). Keep the script directed at visuals.
+7. Return ONLY the final output. NO MARKDOWN.
 
 Topic Context:
 ${topic}
@@ -815,10 +823,25 @@ Format your response exactly as JSON:
 }
 Return ONLY the JSON object.`;
 
+  const schema = {
+    type: "OBJECT",
+    properties: {
+      primary_documents: { type: "ARRAY", items: { type: "STRING" } },
+      gritty_realism: { type: "ARRAY", items: { type: "STRING" } },
+      visual_metaphors: { type: "ARRAY", items: { type: "STRING" } },
+      mood_board: { type: "ARRAY", items: { type: "STRING" } }
+    },
+    required: ["primary_documents", "gritty_realism", "visual_metaphors", "mood_board"]
+  };
+
   try {
-    const rawContent = await generateAIContentRaw(prompt, undefined, engine, undefined, undefined, true);
-    const jsonStr = rawContent.substring(rawContent.indexOf('{'), rawContent.lastIndexOf('}') + 1);
-    return JSON.parse(jsonStr);
+    const res = await generateAIContentRaw(prompt, schema, engine, undefined, undefined, true);
+    return safeJsonParse(res, {
+       primary_documents: [],
+       historical_anecdotes: [],
+       verified_claims: [],
+       debunked_myths: []
+    });
   } catch (err) {
     console.warn("Archival Search Agent failed", err);
     return {
@@ -1661,6 +1684,7 @@ ${tips.map(t => `- ${t}`).join('\
 ${script}
 
 المطلوب: إكساب السكريبت المزيد من الديناميكية، إصلاح نقاط الضعف، شد انتباه المشاهد في الثواني الأولى (Hook)، وإزالة الحشو (Fluff) بناءً على النصائح أو بخبرتك.
+- قاعدة هامة (قناة بدون وجه): المحتوى مخصص لقناة لا يظهر فيها مقدم (Faceless). يرجى التأكد من عدم وجود أي جمل توحي بأن المشاهد يرى المقدم (مثل "بصلي هنا"، "شاور بصباعك"). استخدم عبارات توجه المشاهد للشاشة أو المونتاج (مثل "بص على الشاشة"، "ركز في الصورة دي").
 أخرج السكريبت النهائي فقط باللغة العربية. حافظ على روح السكريبت وتنسيقه العام، ولا تكتب أي مقدمات أو ردود خارج النص.`;
 
   const text = await generateAIContentRaw(prompt, undefined, engine, undefined, signal);
@@ -1687,6 +1711,7 @@ ${examplesXml}
 <negative_constraints>
 YOU MUST NEVER USE ANY OF THESE CLICHES: ${blacklistStr}.
 CRITICAL PRONUNCIATION RULE: Egyptian Ammiya ALWAYS uses the "ين" ending for tens numbers (e.g. تسعين، عشرين، خمسين) regardless of grammatical case. YOU MUST NEVER output Fusha forms like "تسعون", "عشرون", "خمسون".
+FACELESS CHANNEL RULE: DO NOT use phrases implying the narrator is on camera (e.g., "بصلي", "شوفني"). Replace them with "بص على الشاشة" or "تخيل معايا".
 </negative_constraints>
 
 Task: Translate the following ${fushaScripts.length} paragraphs. 
@@ -1848,6 +1873,30 @@ export function applyGlobalStyle(...args: any[]): string {
 }
 
 export async function generateAIContentRaw(
+  prompt: string, 
+  schema?: any, 
+  engine: string = "gemini", 
+  onChunk?: (text: string) => void, 
+  signal?: AbortSignal,
+  isRaw?: boolean,
+  tempOrModel?: number | string,
+  enableSearch?: boolean
+): Promise<any> {
+    let retries = 2;
+    while (retries >= 0) {
+      try {
+        return await _performGenerateAIContentRaw(prompt, schema, engine, onChunk, signal, isRaw, tempOrModel, enableSearch);
+      } catch (e: any) {
+        if (signal?.aborted || retries === 0) throw e;
+        console.warn(`[AI Engine] Fetch failed, retrying... (${retries} retries left)`, e);
+        if (onChunk) onChunk(`\n[SYSTEM WARNING] عطل مؤقت في المعالجة... جاري إعادة تشغيل العقدة (محاولات متبقية: ${retries})...\n`);
+        retries--;
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+}
+
+async function _performGenerateAIContentRaw(
   prompt: string, 
   schema?: any, 
   engine: string = "gemini", 
@@ -2162,7 +2211,7 @@ export async function generateResearchMap(topic: string, durationMinutes: number
 ${moodContext.scriptingStyle}
 
 Return JSON matching the schema. CRITICAL RULES FOR SHORT VERTICAL SCRIPT (9:16 SHORTS/REELS/VERTICALS):
-1. Focus entirely on a highly fast-paced vertical narrative. The Chapters MUST be exactly 2 to 3 compact steps:
+1. Focus entirely on a highly fast-paced vertical narrative. The Chapters MUST be exactly ${targetChapters} compact steps:
    - Step 1 (The Scroll Stopper - الخطاف): First 3 seconds. An absolute pattern interrupt, a visual metaphor or controversial statement to stop the scroll.
    - Step 2 (The Fast Evidence - الحقيقة المزلزلة): 20-30 seconds of pure, concentrated, shocking revelations or educational facts.
    - Step 3 (The Loop/CTA - النهاية الدائرية): Designed to loop the video or end with an active punchy subscription call to action.
@@ -2174,15 +2223,15 @@ Return JSON matching the schema. CRITICAL RULES FOR SHORT VERTICAL SCRIPT (9:16 
 ${moodContext.scriptingStyle}
 
 Return JSON matching the schema. CRITICAL RULES FOR SCRIPT ROADMAP (DAHEEH STYLE):
-1. The structure MUST follow this exact 5-act narrative curve:
+1. The structure MUST follow this exact narrative curve AND MUST CONTAIN EXACTLY ${targetChapters} CHAPTERS to fill a ${durationMinutes}-minute episode:
    - Act 1 (The Hook/Distraction): Start with a bizarre, funny, or shocking anecdote that seems entirely unrelated to the main topic.
    - Act 2 (The Pivot): The "Dear Viewer" moment. Connect the bizarre hook to the actual core topic of the video unexpectedly.
-   - Act 3 (The Deep Dive): Simplify the complex science/history using pop-culture references, street Egyptian logic, and relatable analogies.
-   - Act 4 (The Escalation/Twist): The plot twist where the theory fails, or the dark side of the topic is revealed.
-   - Act 5 (The Philosophical Outro): Zoom out to the bigger picture. End with a philosophical takeaway about humanity, followed by "Sources are down below, bye".
+   - Middle Acts (The Deep Dive): Expand significantly here. You MUST generate several chapters to simplify the complex science/history using pop-culture references, street Egyptian logic, and relatable analogies. Break down different facets, arguments, or historical eras into their own distinct chapters to meet the target length.
+   - Penultimate Act (The Escalation/Twist): The plot twist where the theory fails, or the dark side of the topic is revealed.
+   - Final Act (The Philosophical Outro): Zoom out to the bigger picture. End with a philosophical takeaway about humanity, followed by "Sources are down below, bye".
 2. The chapter titles MUST be catchy, dramatic, and creative (e.g. "الدخلة المموهة", "كوبري الدحيح", "الدرك الأسفل من المادة").
 3. NO GENERIC FLUFF: The "core_premise" and "key_revelations" MUST contain actual specific facts, names, or the exact joke/metaphor you are planning to use. Do NOT write generic things like "الغوص في التفاصيل" or "كشف الخيوط المخفية". Instead, write exactly WHAT the detail or hidden thread is (e.g., "هنقارن بين أينشتاين ومحمد صلاح في استغلال المساحات").
-4. Scale spacing if duration=${durationMinutes} demands more acts in the 'Deep Dive' portion.
+4. Scale spacing if duration=${durationMinutes} demands more acts in the 'Deep Dive' portion to reach ${targetChapters} chapters.
 5. Make it controversial, deeply tied to the specific psychological angle chosen!`;
 
   const messages = [{role: "user", content: `Generate a full production map for this selected idea:
@@ -2261,35 +2310,52 @@ export async function generateChapter(chapterOutline: any, researchData: any, mo
 
 CRITICAL CONSTRAINT: The video is completely FACELESS (مش هطلع بوشي). The narrator NEVER appears on screen. The entire visual strategy MUST rely on documentary-style B-Roll, historical footage, graphics, and visual metaphors. Do NOT write "Camera cuts to host" or "Presenter looks at the camera".
 
-SCENE PACING CONSTRAINT: To avoid excessive visual clutter, group the narration into large, cohesive blocks. Do NOT create a new scene for every single sentence. MINIMIZE the total number of scenes by using longer Voice-Over segments per scene.
+[DAHEEH RETENTION EDITING RULES - STRICT AUTOMATION]
+1. VISUAL PACING (Rule of Motion):
+   - Hook (First 1 min): Max shot duration = 2 seconds. Overload visually.
+   - Explanation: Max shot duration = 5 seconds.
+   - Climax/Reveal: Max shot duration = 2 seconds.
+   - NO STATIC SCREEN. Every sentence MUST be a visual change. 
+   - Pattern Interrupt every 10-20 seconds (Meme, Silence, Boom, Unexpected zoom).
+
+2. B-ROLL & ASSETS:
+   - Mix of Archival footage (40%), Still images with Ken Burns/Push-in/Layer Parallax (35%), Memes/Reaction shots (10%).
+   - TYPOGRAPHY OVERLAY: EVERY number, name, year, or key statistic MUST appear on screen as BIG, BOLD Text (Highlight Text, Big Statement, Info Card).
+
+3. SOUND DESIGN (50% of the vibe):
+   - 'Whoosh': For every transition, camera movement, or fast cut.
+   - 'Pop / Click': Every time Text or a Meme appears.
+   - 'Riser': 1-2 seconds BEFORE a massive twist or reveal.
+   - 'Glitch': Timeline changes, flashbacks.
+   - 'Hit / Boom': Punchlines, shocks, and major statements.
+   - 'J-Cuts': Sound of the next scene starts 0.5s BEFORE the picture changes.
+   - SILENCE DROP: Stop the music and leave 0.3-0.8 seconds of silence at a punchline, joke, or shocking realization.
+
+4. THE "SECRET ARCHIVE" VISUAL AESTHETIC (مكتبة الأسرار):
+   - The overall visual style is a highly classified intelligence dossier, historical archive, or detective's board.
+   - Images should look like vintage photographs, classified documents, polaroids pinned to a corkboard, or microfilms.
+   - Backgrounds and framing should subtly include textures like aged paper, manila folders, paperclips, red string, top-secret stamps, or redacted text marks.
+   - AI IMAGE PROMPT STRUCTURE: "Subject/Scene, framed inside a vintage classified document, aged paper texture, manila folder background, cinematic lighting, documentary style, realistic, 16:9 --no text, typography"
 
 [MOOD AND FORMAT GUIDELINES]
 ${moodContext.scriptingStyle}
 
-${moodContext.visualAudioStyle}
-
-CRITICAL: The ENTIRE script, including all narration, MUST be written consistently in SPOKEN EGYPTIAN AMMIYA (العامية المصرية المحكية). DO NOT use formal Arabic (Fusha) under any circumstances. 
+CRITICAL: The ENTIRE script MUST be written consistently in SPOKEN EGYPTIAN AMMIYA (العامية المصرية المحكية). DO NOT use formal Arabic (Fusha). 
 - Use Egyptian words: "اللي", "عشان", "ليه", "إزاي", "ده", "دي", "فين", "إمتى", "كمان", "بس".
-- Verbs MUST use the Egyptian prefix "ب" (e.g. بيعمل, بيقول, بيحاول) or future "هـ" (هيعمل).
-- Negation must be Egyptian (e.g. مابيعملش, ما بدأش) not (لم يفعل, لا يعمل).
-- Numbers MUST be written in Egyptian (e.g., "مية" instead of "مائة/مئة", "متين", "تلتومية").
-
-[DAHIH CREATIVE DIRECTOR RULES (FACELESS OMNIPRESENT VOICE)]
-1. Catchphrases Diversity: Use "بص يا سيدي" ONLY ONCE per episode. For subsequent setups, use Egyptian synonyms like "تخيل معايا بقى", "خد دي عندك", "ركز معايا في اللي جاي", "طيب والعمل؟".
-2. Source Diversification: DO NOT repeat the same scientific journal or source name (e.g. don't use 'Nature' twice). Diversify your sources (e.g., "حسب مجلة Science", "الأرشيف البريطاني بيقول", "دراسة لجامعة هارفارد نشرت في The Lancet").
-3. Punchlines & Pop-Culture: Inject Egyptian pop-culture references or quick punchlines to lighten extremely heavy scientific/historical topics.
-4. Silence & Pacing: Inject '[SILENCE - 2 SECONDS]' directly in the 'voice_over' BEFORE major plot twists or dramatic revelations to control the TTS engine's pacing.
-5. SFX/VFX Sync Markers: In the 'voice_over', tag specific words with inline XML sound markers directly where they happen! Example: "وفجأة الباب اتكسر <sfx_glass_shatter/> وكل حاجة باظت <sfx_record_scratch/>".
-6. Fluid Flow: Refactor consecutive questions so it doesn't sound like an interrogation. Connect paragraphs smoothly.
-7. A/V Audio Timing: DO NOT write paragraphs longer than 3-4 sentences per scene. The VoiceOver must fit the pacing of a single continuous visual thought.
+- Verbs MUST use the Egyptian prefix "ب" (e.g. بيعمل) or future "هـ" (هيعمل).
+- Negation must be Egyptian (e.g. مابيعملش, ما بدأش) not (لم يفعل).
+- Numbers MUST be written in Egyptian (e.g., "مية", "متين", "تلتومية").
 
 [EXPERT INSTRUCTIONS FOR JSON FIELDS]:
-- 'visual_cue' (Arabic): Describe what the viewer sees (cinematic style, editing pace). Make it highly creative based on the persona. Ensure it's faceless documentary style.
-- 'image_prompt' (English): Write an English text-to-image prompt here. NEVER ask for Arabic text inside the image. You MUST append "--no text, typography, letters, watermark" to every single prompt to create clean blank spaces for the video editor.
-- 'b_roll_keywords' (English): Comma-separated English search terms for stock footage. (e.g. vintage file, neon signs).
-- 'sound_design' (Arabic/English): Explicit SFX directions mapped to the inline <sfx_...> markers from the voice_over.
+- 'voice_over': The Egyptian Ammiya text. Add '[SILENCE]' markers where appropriate.
+- 'visual_cue' (Arabic): Describe what the viewer sees (cinematic style, editing pace). Mention the Ken Burns, J-Cuts, or fast cuts here!
+- 'first_frame_image_prompt' & 'second_frame_image_prompt' (English): Write TWO different English text-to-image prompts for the scene to force the editor to make a cut every 2-3 seconds.
+- 'text_on_screen': (Arabic/English) The exact word/number that should POP on screen. If none, leave empty.
+- 'b_roll_keywords' (English): Comma-separated English search terms for stock footage.
+- 'sound_design' (Arabic/English): Explicit SFX directions mapping to the rules (Whoosh, Pop, Riser, Glitch, Boom).
+- 'pop_culture_meme_insert': Describe an Egyptian/Global meme or reaction shot to insert. Leave empty if not applicable.
 
-You are a Senior Scriptwriter and Art Director. Return JSON containing an array of 'scenes'.`;
+You are a Senior Scriptwriter and Master Editor. Return JSON containing an array of 'scenes'.`;
 
   const schema = {
     type: "OBJECT",
@@ -2302,11 +2368,14 @@ You are a Senior Scriptwriter and Art Director. Return JSON containing an array 
             scene_id: { type: "STRING" },
             voice_over: { type: "STRING" },
             visual_cue: { type: "STRING" },
-            image_prompt: { type: "STRING" },
+            first_frame_image_prompt: { type: "STRING" },
+            second_frame_image_prompt: { type: "STRING" },
+            text_on_screen: { type: "STRING" },
+            pop_culture_meme_insert: { type: "STRING" },
             b_roll_keywords: { type: "STRING" },
             sound_design: { type: "STRING" }
           },
-          required: ["scene_id", "voice_over", "visual_cue", "image_prompt", "b_roll_keywords", "sound_design"]
+          required: ["scene_id", "voice_over", "visual_cue", "first_frame_image_prompt", "second_frame_image_prompt", "b_roll_keywords", "sound_design"]
         }
       }
     },
@@ -2320,18 +2389,22 @@ You are a Senior Scriptwriter and Art Director. Return JSON containing an array 
   else if (Array.isArray(parsed)) rawScenes = parsed;
   
   return rawScenes.map((s: any, idx: number) => {
-      let imgPrompt = s.image_prompt || s.visual_cue || "";
-      if (imgPrompt && !imgPrompt.includes("--ar")) {
-          imgPrompt += " --ar 16:9";
-      }
-      if (imgPrompt && !imgPrompt.includes("--no text")) {
-          imgPrompt += " --no text, typography, letters, watermark";
-      }
+      let imgPrompt1 = s.first_frame_image_prompt || s.image_prompt || s.visual_cue || "";
+      let imgPrompt2 = s.second_frame_image_prompt || "";
+      if (imgPrompt1 && !imgPrompt1.includes("--ar")) imgPrompt1 += " --ar 16:9";
+      if (imgPrompt1 && !imgPrompt1.includes("--no text")) imgPrompt1 += " --no text, typography, letters, watermark";
+      if (imgPrompt2 && !imgPrompt2.includes("--ar")) imgPrompt2 += " --ar 16:9";
+      if (imgPrompt2 && !imgPrompt2.includes("--no text")) imgPrompt2 += " --no text, typography, letters, watermark";
+      
       return {
         asset_id: s.scene_id || s.asset_id || `scene_${Date.now()}_${idx}`,
         voice_over: s.voiceover_text || s.voice_over || "",
         visual_cue: s.camera_and_vision || s.visual_cue || "",
-        image_prompt: imgPrompt,
+        image_prompt: imgPrompt1, // legacy mapping
+        first_frame_image_prompt: imgPrompt1,
+        second_frame_image_prompt: imgPrompt2,
+        text_on_screen: s.text_on_screen || "",
+        pop_culture_meme_insert: s.pop_culture_meme_insert || "",
         montage_instructions: s.montage_instructions || "",
         b_roll_keywords: s.b_roll_keywords || s.b_roll_search_query || "",
         sound_design: s.sound_design || s.sfx || ""
@@ -2353,6 +2426,28 @@ const OLLAMA_API_NEW = 'http://localhost:11434/api/chat';
 const MODEL_NAME_NEW = 'qwen';
 
 async function fetchOllamaNew(messages: any[], systemPrompt: string, engine?: string, model?: string, onChunk?: (text: string) => void, schema?: any, temp: number = 0.65) {
+    let retries = 2;
+    while (retries >= 0) {
+      try {
+        return await _performFetchOllamaNew(messages, systemPrompt, engine, model, onChunk, schema, temp);
+      } catch (e: any) {
+        const errorMsg = e.message || "";
+        if (
+          retries === 0 || 
+          errorMsg === "MANUAL_EDIT_ABORT" ||
+          errorMsg.includes("ZERO_HALLUCINATION_ENFORCER")
+        ) {
+          throw e;
+        }
+        console.warn(`[AI Engine] Fetch failed, retrying... (${retries} retries left)`, e);
+        if (onChunk) onChunk(`\n[SYSTEM WARNING] عطل مؤقت في المعالجة... جاري إعادة تشغيل العقدة (محاولات متبقية: ${retries})...\n`);
+        retries--;
+        await new Promise(r => setTimeout(r, 2000));
+      }
+    }
+}
+
+async function _performFetchOllamaNew(messages: any[], systemPrompt: string, engine?: string, model?: string, onChunk?: (text: string) => void, schema?: any, temp: number = 0.65) {
     const prompt = messages.map(m => m.content).join('\n\n');
     let dynamicOllamaUrl = undefined;
     try {
@@ -2463,7 +2558,16 @@ async function applyRedTeamReflection(draftScene, engine?: string, model?: strin
 }
 
 async function executeNode_Visuals_V2(sceneText: string, timePeriod: string, engine?: string, model?: string, onChunk?: (t: string) => void) {
-    const artDirectorPrompt = 'You are the Art Director. Analyze the scene and output an English image prompt. CRITICAL RULES: - Visual Style MUST be: authentic vintage Egyptian and Middle Eastern editorial illustration, dramatic chiaroscuro. - NEVER use meaningless floating circles, connecting lines, or abstract geometric shapes. - Match cultural context accurately (e.g., 7th-century specific robes, accurate features).';
+    const artDirectorPrompt = `You are the Art Director. Analyze the scene and output an English image prompt. CRITICAL RULES: 
+- Visual Style MUST be: authentic vintage Egyptian and Middle Eastern editorial illustration, dramatic chiaroscuro. 
+- NEVER use meaningless floating circles, connecting lines, or abstract geometric shapes. 
+- Match cultural context accurately (e.g., 7th-century specific robes, accurate features). 
+- FAMOUS FIGURES: If the scene features a well-known historical figure (e.g., Naguib Mahfouz, Umm Kulthum, Anwar El Sadat, Ahmed Zaki), you MUST explicitly state their full name and demand EXACT facial likeness.
+- SIGNATURE PROPS: Always include iconic accessories for famous figures (e.g., Mahfouz's thick glasses/cigarette, Umm Kulthum's handkerchief/dark glasses, Sadat's pipe).
+- ERA-SPECIFIC FASHION: Use precise historical clothing terms (e.g., 'Effendi style', 'Tarboush/Fez', 'Saidi Galabeya', '1960s linen suit') rather than generic terms like 'suit'.
+- VINTAGE MEDIUMS: Emulate classic Egyptian art styles like '1950s Egyptian Cinema Gouache Poster', 'Vintage mid-century Egyptian editorial illustration', or 'High-contrast B&W cinematic lighting'.
+- PREVENT ANACHRONISMS: Ensure the prompt explicitly excludes modern elements (no modern cars, smartphones, plastic, or modern technology) to maintain historical accuracy.
+- MOOD & BODY LANGUAGE: Describe the character's 'spirit' or pose (e.g., 'deep in thought', 'intense dramatic expression') to bring them to life.`;
     const schema = {
       type: "OBJECT",
       properties: {
@@ -2505,11 +2609,13 @@ async function executeNode_Editor(sceneText: string, engine?: string, model?: st
 }
 
 async function executeNode_PublishingKit(topic: string, engine?: string, model?: string, onChunk?: (t: string) => void) {
-    const pubPrompt = `You are a highly skilled YouTube Strategist. For the topic provided, output an SEO publishing kit and social media fragments.`;
+    const pubPrompt = `You are a highly skilled YouTube Strategist. For the topic provided, output an SEO publishing kit, social media fragments, a viral episode hashtag (e.g. #قاسم_أمين), and visual branding instructions for overlays (e.g. "Place Channel Logo top right, add episode hashtag bottom left").`;
     const schema = {
       type: "OBJECT",
       properties: {
         youtube_titles: { type: "ARRAY", items: { type: "STRING" } },
+        episode_hashtag: { type: "STRING" },
+        visual_branding_instructions: { type: "STRING" },
         description: { type: "STRING" },
         thumbnail_prompt: { type: "STRING" },
         tags: { type: "ARRAY", items: { type: "STRING" } },
@@ -2534,7 +2640,7 @@ async function executeNode_PublishingKit(topic: string, engine?: string, model?:
           }
         }
       },
-      required: ["youtube_titles", "description", "thumbnail_prompt", "tags", "omnichannel", "shorts"]
+      required: ["youtube_titles", "episode_hashtag", "visual_branding_instructions", "description", "thumbnail_prompt", "tags", "omnichannel", "shorts"]
     };
     const messages = [{ role: 'user', content: 'Topic: ' + topic }];
     const res = await fetchOllamaNew(messages, pubPrompt, engine, model, onChunk, schema);
@@ -2543,6 +2649,8 @@ async function executeNode_PublishingKit(topic: string, engine?: string, model?:
     } catch (e) {
         return { 
             youtube_titles: [topic + " | نظرة أعمق"], 
+        episode_hashtag: { type: "STRING" },
+        visual_branding_instructions: { type: "STRING" },
             description: '', 
             thumbnail_prompt: 'Cinematic concept --ar 16:9', 
             tags: [],
@@ -2585,6 +2693,7 @@ Analyze the provided draft script and metadata. Check for:
 3. "error" (أخطاء لغوية أو تعارض).
 4. "pacing" (مشاكل إيقاع).
 5. "formatting" (مشاكل في التنسيق).
+6. "faceless_violation" (أخطاء كسر قاعدة القناة بدون وجه): Check if the script contains phrases implying the narrator is on camera (e.g., "زي ما أنت شايفني دلوقتي"). If so, flag it as a high severity issue to be rewritten.
 
 Below is the raw data (Truncated for efficiency):
 ---
@@ -2688,6 +2797,7 @@ Correct and purify all of this. Ensure:
 - The voice script matches the scenes voice_over beautifully and continuously.
 - The metadata title and description are polished.
 - The descriptions of visual instructions in the scenes are rich and non-repetitive.
+- FACELESS CHANNEL ENFORCEMENT: Remove any phrase that implies the narrator is visible (e.g. "بصلي هنا", "زي ما أنت شايفني"). Replace them with screen-directed cues ("بص على الشاشة", "شوف الصورة دي").
 
 Format the output strictly as a valid JSON object matching the schema below:
 {
@@ -2766,42 +2876,42 @@ export async function generateDiverseTopics(mood: string, engine: string, onProg
 المدرسة الأولى: "مدرسة الدحيح (التبسيط والكوميديا العبثية)"
 - الفلسفة: تبسيط العلوم والتاريخ والاقتصاد في قالب سطحي جداً وكوميدي وساخر بالعامية المصرية، يبدأ من حاجة تافهة جداً وينتهي بنظرية علمية أو تاريخية عميقة.
 - الهوك: دخلة عبثية جداً أو إيفيه كوميدي في أول 3 ثواني.
-- الوصف والمصادر: شرح الربط العبقري بين الدخلة التافهة والنظرية المعقدة، مع الاستناد إلى أوراق بحثية وتقارير علمية دقيقة.
+- الوصف والمصادر: شرح الربط العبقري بين الدخلة التافهة والنظرية المعقدة، مع الاستناد إلى أوراق بحثية وتقارير علمية دقيقة. (يجب ذكر اسم كتاب، باحث، أو مقال علمي حقيقي بالاسم).
 
 المدرسة الثانية: "مدرسة في الحضارة (أسلوب السعدني والحكي الشعبي)"
 - الفلسفة: الحكي الشعبي العميق والتاريخ المشوق بالطريقة السعدنية الأصيلة. غوص في حكايات الحواري والشخصيات المنسية بأسلوب أدبي عامي بليغ وساخر.
 - الهوك: جملة أدبية شعبية صادمة أو حكمة ساخرة من التراث.
-- الوصف والمصادر: سرد ملامح القصة التاريخية، مع الإشارة المباشرة لمراجع عربية أصلية وكتب مذكرات وتراجم.
+- الوصف والمصادر: سرد ملامح القصة التاريخية، مع الإشارة المباشرة لمراجع عربية أصلية وكتب مذكرات وتراجم حقيقية بالاسم.
 
 المدرسة الثالثة: "مدرسة السينما والفن (تحليل سينمائي ونقد فني)"
 - الفلسفة: تشريح الأفلام والسينما المصرية والعالمية، ما وراء الكاميرا، الدلالات النفسية والفلسفية للمشاهد، وتأثير السينما على المجتمع.
 - الهوك: ملاحظة دقيقة جداً أو مشهد أيقوني يُطرح حوله سؤال لم يفكر فيه أحد.
-- الوصف والمصادر: تحليل فني عميق بالاعتماد على كتب النقد السينمائي والمذكرات الفنية، والربط بمدارس الإخراج.
+- الوصف والمصادر: تحليل فني عميق بالاعتماد على كتب النقد السينمائي والمذكرات الفنية (مع ذكر اسم المخرج، الكتاب، أو المرجع الفني صراحةً).
 
 المدرسة الرابعة: "مدرسة السيرة والبورتريه (وثائقي احترافي للشخصيات)"
 - الفلسفة: تناول حياة الشخصيات المشهورة (تاريخية، سياسية، فنية، أو علمية) بطريقة درامية احترافية تكشف الجوانب المخفية والصراعات النفسية.
 - الهوك: لغز أو تناقض صادم في حياة الشخصية في ذروة مجدها أو سقوطها.
-- الوصف والمصادر: بناء درامي للقصة مدعوم بالوثائق الرسمية، السير الذاتية المعتمدة، والمقابلات النادرة.
+- الوصف والمصادر: بناء درامي للقصة مدعوم بالوثائق الرسمية، السير الذاتية المعتمدة (اذكر اسم الكتاب والمؤلف).
 
 المدرسة الخامسة: "مدرسة المخبر (تحليل استقصائي وجرائم غامضة)"
 - الفلسفة: أسلوب وثائقي مشوق يركز على كشف الحقائق، الجرائم المعقدة، أو الخدع الكبرى، بأسلوب يعتمد على الإثارة وتتبع الأدلة المنسية.
 - الهوك: عرض الدليل الأول أو الجثة أو اللغز الذي قلب الموازين في القضية.
-- الوصف والمصادر: تسلسل منطقي وتدريجي لحل اللغز بالاعتماد على تقارير الشرطة، أرشيف المحاكم، والتحقيقات الصحفية.
+- الوصف والمصادر: تسلسل منطقي وتدريجي لحل اللغز بالاعتماد على تقارير الشرطة (مع ذكر مصدر القضية الفعلي أو الكتاب الذي وثقها).
 
 المدرسة السادسة: "مدرسة البيزنس والاقتصاد (استراتيجيات وسيكولوجية المال)"
 - الفلسفة: تحليل صعود وسقوط الإمبراطوريات التجارية، كيف تلعب الشركات بعقولنا، والقصص الدرامية وراء الأرقام والأسواق.
 - الهوك: رقم صادم، إفلاس مفاجئ، أو قرار إداري مجنون غيّر مسار شركة كبرى.
-- الوصف والمصادر: شرح الميكانيزمات الاقتصادية بتبسيط وتشويق، بالاعتماد على تقارير الأسواق، كتب الاقتصاد السلوكي، وتاريخ الشركات.
+- الوصف والمصادر: شرح الميكانيزمات الاقتصادية بتبسيط وتشويق، بالاعتماد على تقارير الأسواق وكتب الاقتصاد السلوكي (اذكر اسم الكاتب أو النظرية الحقيقية).
 
 المدرسة السابعة: "مدرسة الأدب والرواية (خبايا الكُتاب والقصص المصرية)"
 - الفلسفة: رحلة ممتعة في عقول وأعمال عمالقة الأدب في مصر والعالم، قصص القصائد الممنوعة، حكايات القهاوي الثقافية والمقاهي الأدبية في مصر، وتحليل الروايات العظيمة بشكل يربطها بالواقع.
 - الهوك: بيت شعر غامض، اقتباس صادم من رواية، أو سر خطير كان مخفي وراء كتابة قصة مشهورة.
-- الوصف والمصادر: السرد بأسلوب مشوق يعتمد على كتب النقد الأدبي، سير وتراجم الشعراء والكتاب، ومذكرات أصدقائهم.
+- الوصف والمصادر: السرد بأسلوب مشوق يعتمد على كتب النقد الأدبي، سير وتراجم الشعراء والكتاب (اذكر اسم الرواية، الكاتب، أو المذكرات صراحةً).
 
 مواصفات الفكرة (لكل المدارس):
 - العنوان (title): لازم يكون "بالمصري الدارج" (إلا لو مدرسة تاريخية كلاسيكية)، صايع جداً، قصير، وبيخطف العين (Clickbaity بس شيك)، استخدم كلمات فيها إثارة وتساؤل.
 - الهوك (hook): الجملة الافتتاحية الخاطفة.. لازم تكون مكتوبة بالعامية المصرية الصميمة وكأنك بتكلم واحد صاحبك على القهوة، فيها ريتم سريع وبتشد الانتباه من أول كلمة.
-- الملخص والمصادر (description): سطرين أو تلاتة بيشرحوا الفكرة مع دمج أسامي المراجع، الوثائق، أو الكتب الأساسية اللي هيتبني عليها المحتوى.
+- الملخص والمصادر (description): سطرين أو تلاتة بيشرحوا الفكرة مع دمج أسامي المراجع، الأشخاص الحقيقيين، الوثائق، أو الكتب الأساسية اللي هيتبني عليها المحتوى بشكل صريح جداً (مثال: بالاعتماد على كتاب كذا للكاتب كذا، وتجربة العالم كذا).
 
 Format your response as a JSON ARRAY OF OBJECTS, exactly like this structure:
 [
@@ -2811,7 +2921,7 @@ Format your response as a JSON ARRAY OF OBJECTS, exactly like this structure:
        {
          "title": "عنوان قصير جداً",
          "hook": "دخلة تجذب الانتباه حسب المدرسة",
-         "description": "شرح الفكرة مع ذكر المراجع الأساسية"
+         "description": "شرح الفكرة مع ذكر المراجع الأساسية والكتب والشخصيات بالاسم"
        }
     ]
   }
@@ -2819,10 +2929,33 @@ Format your response as a JSON ARRAY OF OBJECTS, exactly like this structure:
 
 Return ONLY the JSON array containing exactly 7 categories, and 3 ideas per category. NO MARKDOWN, NO OTHER TEXT.`;
 
+    const schema = {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          category: { type: "STRING" },
+          ideas: {
+            type: "ARRAY",
+            items: {
+              type: "OBJECT",
+              properties: {
+                title: { type: "STRING" },
+                hook: { type: "STRING" },
+                description: { type: "STRING" }
+              },
+              required: ["title", "hook", "description"]
+            }
+          }
+        },
+        required: ["category", "ideas"]
+      }
+    };
+
     // DISABLE search (last argument is false) to prevent the search tool from stripping the creativity and forcing a factual, non-comedic robotic tone.
-    const res = await generateAIContentRaw(prompt, undefined, engine, onProgress, signal, true, model, false);
-    const jsonStr = res.substring(res.indexOf('['), res.lastIndexOf(']') + 1).trim();
-    return JSON.parse(jsonStr);
+    const res = await generateAIContentRaw(prompt, schema, engine, onProgress, signal, true, model, false);
+    
+    return safeJsonParse(res, []);
   } catch (err) {
     console.error("Failed to generate diverse topics:", err);
     throw err;
@@ -2844,12 +2977,20 @@ ${JSON.stringify(scene, null, 2)}
 Return a JSON array exactly containing 3 objects with keys: "visual_cue", "image_prompt", "b_roll_search_query", "sound_design".
 NO MARKDOWN, NO OTHER TEXT.`;
 
-  const res = await generateAIContentRaw(prompt, undefined, engine, undefined, undefined, true, model);
-  try {
-    const jsonStr = res.substring(res.indexOf('['), res.lastIndexOf(']') + 1).trim();
-    return JSON.parse(jsonStr);
-  } catch (err) {
-    console.error("Variation parsing failed", err, res);
-    return [];
-  }
+  const schema = {
+    type: "ARRAY",
+    items: {
+      type: "OBJECT",
+      properties: {
+        visual_cue: { type: "STRING" },
+        image_prompt: { type: "STRING" },
+        b_roll_search_query: { type: "STRING" },
+        sound_design: { type: "STRING" }
+      },
+      required: ["visual_cue", "image_prompt", "b_roll_search_query", "sound_design"]
+    }
+  };
+
+  const res = await generateAIContentRaw(prompt, schema, engine, undefined, undefined, true, model);
+  return safeJsonParse(res, []);
 }

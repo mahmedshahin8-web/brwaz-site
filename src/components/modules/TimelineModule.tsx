@@ -12,7 +12,7 @@ export const TimelineModule: React.FC<{ data: EpisodeData }> = ({ data }) => {
         <div className="flex gap-4">
             <div className="text-right">
                 <p className="text-[#fafafa] font-arabic font-bold text-sm">التسلسل الزمني والمونتاج</p>
-                <p className="text-[9px] font-mono text-[#71717a] uppercase opacity-70">Estimated: {Math.ceil(data.scenes.length * 5)}s</p>
+                <p className="text-[9px] font-mono text-[#71717a] uppercase opacity-70">Estimated: {Math.ceil((data.scenes || []).length * 5)}s</p>
             </div>
         </div>
       </div>
@@ -29,7 +29,7 @@ export const TimelineModule: React.FC<{ data: EpisodeData }> = ({ data }) => {
               </span>
             </div>
             <div className="flex-1 flex gap-2 pl-4">
-              {data.scenes.map((scene, i) => (
+              {(data.scenes || []).map((scene, i) => (
                 <div key={`vid-${i}`} className="h-24 shrink-0 bg-[#09090b]/80 border border-[#27272a] rounded-xl p-3 relative group overflow-hidden" style={{ width: Math.max(200, (scene.voice_over?.split(" ").length || 10) * 8) + 'px' }}>
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-[#2b5797]/50" />
                   <p className="text-[10px] text-[#a1a1aa] font-mono line-clamp-3 leading-relaxed mt-1" dir="rtl">{scene.image_prompt || scene.b_roll_search_query || 'Visual Reference'}</p>
@@ -46,7 +46,7 @@ export const TimelineModule: React.FC<{ data: EpisodeData }> = ({ data }) => {
               </span>
             </div>
             <div className="flex-1 flex gap-2 pl-4">
-              {data.scenes.map((scene, i) => (
+              {(data.scenes || []).map((scene, i) => (
                 <div key={`vo-${i}`} className="h-auto min-h-[80px] shrink-0 bg-[#6366f1]/5 border border-[#6366f1]/30 rounded-xl p-3 relative group" style={{ width: Math.max(200, (scene.voice_over?.split(" ").length || 10) * 8) + 'px' }}>
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-[#4f46e5]" />
                   <p className="text-[11px] text-[#fafafa] font-arabic leading-relaxed line-clamp-4 text-right mt-1" dir="rtl">{scene.voice_over}</p>
@@ -63,7 +63,7 @@ export const TimelineModule: React.FC<{ data: EpisodeData }> = ({ data }) => {
               </span>
             </div>
             <div className="flex-1 flex gap-2 pl-4">
-              {data.scenes.map((scene, i) => (
+              {(data.scenes || []).map((scene, i) => (
                 <div key={`sfx-${i}`} className="h-14 shrink-0 bg-emerald-950/10 border border-emerald-900/30 rounded-xl p-3 relative group overflow-hidden" style={{ width: Math.max(200, (scene.voice_over?.split(" ").length || 10) * 8) + 'px' }}>
                   <div className="absolute top-0 left-0 w-full h-[2px] bg-emerald-500/30" />
                   <p className="text-[10px] text-[#a1a1aa] font-mono truncate mt-1 text-right" dir="rtl">{scene.sound_design || scene.sfx_prompt || 'Ambient Noise'}</p>
